@@ -143,9 +143,11 @@ private struct AdaptiveApplicationView: View {
         Group {
             if horizontalSizeClass == .regular {
                 NavigationSplitView {
-                    List(AppSection.allCases, selection: $selection) { section in
-                        Label(section.title, systemImage: section.symbol)
-                            .tag(section)
+                    List(selection: $selection) {
+                        ForEach(AppSection.allCases) { section in
+                            Label(section.title, systemImage: section.symbol)
+                                .tag(section)
+                        }
                     }
                     .navigationTitle(AppDisplayName.value)
                 } detail: {

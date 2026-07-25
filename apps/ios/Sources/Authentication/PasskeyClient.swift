@@ -51,7 +51,11 @@ final class PlatformPasskeyClient: NSObject, PasskeyPerforming {
         guard excludedCredentials.count == challenge.excludedCredentialIDs.count else {
             throw ClientError.malformedData("The passkey exclusion list was malformed.")
         }
-        request.excludedCredentials = excludedCredentials
+        if #available(iOS 17.4, *) {
+            request.excludedCredentials = excludedCredentials
+        } else if !excludedCredentials.isEmpty {
+            throw ClientError.unavailable("Adding another passkey requires iOS 17.4 or later.")
+        }
 
         let result = try await perform(request: request, ceremonyID: challenge.ceremonyID, identity: identity)
         guard case let .registration(credential) = result else {

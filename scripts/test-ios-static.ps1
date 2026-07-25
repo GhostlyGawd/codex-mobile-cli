@@ -224,6 +224,8 @@ $pushNotifications = Join-Path $ios 'Sources/Notifications/PushNotifications.swi
 Assert-Contains $pushNotifications 'remoteNotification' 'Cold-launch APNs payloads must be captured before SwiftUI subscriptions are installed.'
 Assert-Contains $pushNotifications 'coldStartDeepLinks.store' 'Notification deep links must be retained until the app model can consume them.'
 Assert-Contains $pushNotifications '@MainActor UNUserNotificationCenterDelegate' 'The notification-center delegate conformance must remain explicitly main-actor isolated under Swift 6.'
+$passkeyClient = Join-Path $ios 'Sources/Authentication/PasskeyClient.swift'
+Assert-Contains $passkeyClient 'if #available\(iOS 17\.4, \*\)\s*\{\s*request\.excludedCredentials = excludedCredentials\s*\}\s*else if !excludedCredentials\.isEmpty\s*\{\s*throw ClientError\.unavailable\("Adding another passkey requires iOS 17\.4 or later\."\)\s*\}' 'The iOS 17.4 passkey exclusion API must remain availability-guarded and fail closed for additional registration on iOS 17.0-17.3.'
 $coldStartTests = Join-Path $ios 'Tests/ColdStartDeepLinkTests.swift'
 Assert-Contains $coldStartTests 'testValidatedLinkWaitsForSessionBootstrap' 'iOS tests must cover a deep link arriving before session bootstrap.'
 Assert-Contains (Join-Path $root 'services/control-plane/internal/application/passkeys.go') 'StructuredApprovalsAvailable: true' 'The control plane must advertise its internally structured setup approvals.'
@@ -247,6 +249,11 @@ $rootView = Join-Path $ios 'Sources/App/RootView.swift'
 Assert-Contains $appModel 'isServerUnavailable = Self.isServerAvailabilityFailure' 'Server reachability must be tracked independently from device network reachability.'
 Assert-Contains $rootView 'Server unavailable — cached data is read only' 'The native app must persistently distinguish an unreachable server from device offline state.'
 Assert-Contains $rootView 'This app cannot recreate the server' 'The server-unavailable surface must explain the VPS-loss recovery boundary.'
+Assert-Contains $rootView 'List\(selection:\s*\$selection\)' 'Regular-width navigation must use the iOS-supported List(selection:) content initializer.'
+Assert-Contains $rootView 'ForEach\(AppSection\.allCases\)' 'Regular-width navigation must render every application section inside List(selection:).'
+if ((Get-Content -Raw $rootView) -match 'List\(AppSection\.allCases,\s*selection:\s*\$selection\)') {
+    throw 'The data-and-selection List initializer is unavailable on iOS; use List(selection:) with ForEach.'
+}
 Assert-Contains $codingTests 'repository_id' 'JSON coding tests must cover secret repository scope.'
 Assert-Contains $codingTests 'content_base64' 'JSON coding tests must cover attachment base64 encoding.'
 

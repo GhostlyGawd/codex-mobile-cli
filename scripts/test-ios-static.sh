@@ -196,6 +196,10 @@ grep -Fq 'await model.bootstrap()' apps/ios/Sources/App/CodexMobileApp.swift
 grep -Fq 'launchOptions?[.remoteNotification]' apps/ios/Sources/Notifications/PushNotifications.swift
 grep -Fq 'coldStartDeepLinks.store(url)' apps/ios/Sources/Notifications/PushNotifications.swift
 grep -Fq '@MainActor UNUserNotificationCenterDelegate' apps/ios/Sources/Notifications/PushNotifications.swift
+grep -Fq 'if #available(iOS 17.4, *) {' apps/ios/Sources/Authentication/PasskeyClient.swift
+grep -Fq 'request.excludedCredentials = excludedCredentials' apps/ios/Sources/Authentication/PasskeyClient.swift
+grep -Fq '} else if !excludedCredentials.isEmpty {' apps/ios/Sources/Authentication/PasskeyClient.swift
+grep -Fq 'throw ClientError.unavailable("Adding another passkey requires iOS 17.4 or later.")' apps/ios/Sources/Authentication/PasskeyClient.swift
 grep -Fq 'testValidatedLinkWaitsForSessionBootstrap' apps/ios/Tests/ColdStartDeepLinkTests.swift
 grep -Eq 'StructuredApprovalsAvailable:[[:space:]]*true' services/control-plane/internal/application/passkeys.go
 grep -Fq '0x2028...0x202E' apps/ios/Sources/Security/HostileDisplayText.swift
@@ -212,6 +216,12 @@ grep -Fq 'testTerminalDerivedTitlesAndCloseReasonsAreSafeDisplayText' apps/ios/T
 grep -Fq 'isServerUnavailable = Self.isServerAvailabilityFailure' apps/ios/Sources/App/AppModel.swift
 grep -Fq 'Server unavailable — cached data is read only' apps/ios/Sources/App/RootView.swift
 grep -Fq 'This app cannot recreate the server' apps/ios/Sources/App/RootView.swift
+grep -Fq 'List(selection: $selection)' apps/ios/Sources/App/RootView.swift
+grep -Fq 'ForEach(AppSection.allCases)' apps/ios/Sources/App/RootView.swift
+if grep -Fq 'List(AppSection.allCases, selection: $selection)' apps/ios/Sources/App/RootView.swift; then
+  echo "regular-width navigation must use the iOS-supported List(selection:) content initializer" >&2
+  exit 1
+fi
 grep -Fq 'repository_id' apps/ios/Tests/JSONCodingContractTests.swift
 grep -Fq 'content_base64' apps/ios/Tests/JSONCodingContractTests.swift
 grep -Fq 'SecureField("Secret value"' apps/ios/Sources/Features/Settings/SecretsSettingsView.swift
