@@ -13,6 +13,8 @@ grep -Eq 'exactVersion: 0\.1\.10' apps/ios/project.yml
 grep -Eq 'exactVersion: 1\.11\.1' apps/ios/project.yml
 grep -Eq 'exactVersion: 1\.11\.0' apps/ios/project.yml
 grep -Eq 'plugin: OpenAPIGenerator' apps/ios/project.yml
+grep -Eq 'PRODUCT_NAME: CodexMobile' apps/ios/project.yml
+grep -Fq 'CFBundleDisplayName: $(APP_DISPLAY_NAME)' apps/ios/project.yml
 grep -Fq '592434a103a4d1ab83e14f87ac6eef569dd7a99d' apps/ios/Package.resolved
 grep -Fq '849e8a4f3d6f79ddee07152400137f1370c32621' apps/ios/Package.resolved
 grep -Fq '15cf3a9ec3ab95e0d058b7df9f35619123c9e02d' apps/ios/Package.resolved

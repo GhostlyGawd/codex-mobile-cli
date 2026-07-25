@@ -16,6 +16,8 @@ Assert-Contains (Join-Path $ios 'project.yml') 'SwiftOpenAPIGenerator:[\s\S]*exa
 Assert-Contains (Join-Path $ios 'project.yml') 'OpenAPIRuntime:[\s\S]*exactVersion:\s*1\.11\.0' 'Swift OpenAPI Runtime must remain pinned to 1.11.0.'
 Assert-Contains (Join-Path $ios 'project.yml') 'buildToolPlugins:[\s\S]*plugin:\s*OpenAPIGenerator' 'The native target must compile a generated OpenAPI client.'
 Assert-Contains (Join-Path $ios 'project.yml') 'deploymentTarget:\s*"17\.0"' 'The iOS deployment target must remain 17.0.'
+Assert-Contains (Join-Path $ios 'project.yml') 'PRODUCT_NAME:\s*CodexMobile' 'The executable product name must remain stable for the unit-test host.'
+Assert-Contains (Join-Path $ios 'project.yml') 'CFBundleDisplayName:\s*\$\(APP_DISPLAY_NAME\)' 'The user-facing app name must remain separate from the executable product name.'
 Assert-Contains (Join-Path $ios 'Package.resolved') '592434a103a4d1ab83e14f87ac6eef569dd7a99d' 'Runestone lockfile revision changed.'
 Assert-Contains (Join-Path $ios 'Package.resolved') '849e8a4f3d6f79ddee07152400137f1370c32621' 'SwiftTerm lockfile revision changed.'
 Assert-Contains (Join-Path $ios 'Package.resolved') '15cf3a9ec3ab95e0d058b7df9f35619123c9e02d' 'TreeSitterLanguages lockfile revision changed.'

@@ -125,6 +125,23 @@ write_compressed_checkpoint() {
     return 1
   }
   if [ "$checkpoint_format" = tar ]; then
+    # GNU tar treats input shorter than one complete 1,024-byte end marker as
+    # an empty archive and exits successfully. Probe at most the first KiB so
+    # truncated or plain-text producer output cannot pass that permissive case,
+    # without expanding an attacker-controlled archive into memory or disk.
+    tar_probe_bytes=$(
+      gzip -dc "$temporary" 2>/dev/null |
+        dd bs=1024 count=1 2>/dev/null |
+        wc -c |
+        awk '{print $1}'
+    )
+    case "$tar_probe_bytes" in
+      ''|*[!0-9]*) tar_probe_bytes=0 ;;
+    esac
+    [ "$tar_probe_bytes" -eq 1024 ] || {
+      echo "workspace checkpoint is not a valid tar archive" >&2
+      return 1
+    }
     tar -tzf "$temporary" >/dev/null || {
       echo "workspace checkpoint is not a valid tar archive" >&2
       return 1

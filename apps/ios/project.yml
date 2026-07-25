@@ -88,7 +88,7 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: $(IOS_BUNDLE_ID)
-        PRODUCT_NAME: $(APP_DISPLAY_NAME)
+        PRODUCT_NAME: CodexMobile
         PRODUCT_MODULE_NAME: CodexMobile
         DEVELOPMENT_TEAM: $(APPLE_TEAM_ID)
         CODE_SIGN_STYLE: Automatic
