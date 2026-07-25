@@ -21,46 +21,59 @@ final class CodexMobileUITests: XCTestCase {
         file: StaticString = #filePath,
         line: UInt = #line
     ) {
-        var lastFrame = CGRect.null
+        var lastFiniteFrame: CGRect?
+        var upward = true
+        var previousAttemptHadFiniteFrame = false
+
         for attempt in 0...maximumSwipes {
             let timeout = attempt == 0 ? 2.0 : 0.5
             let exists = element.waitForExistence(timeout: timeout)
-            if exists {
-                lastFrame = element.frame
+            let frame = exists ? element.frame : .null
+            let hasFiniteFrame = isFiniteNonempty(frame)
+
+            if hasFiniteFrame {
+                lastFiniteFrame = frame
                 if element.isHittable {
                     return
                 }
+
+                upward = frame.midY >= app.frame.midY
+            } else if previousAttemptHadFiniteFrame {
+                // Lazy lists remove an overscrolled row from the accessibility
+                // tree. Reverse once, then preserve that direction until it
+                // appears again.
+                upward.toggle()
             }
+
+            previousAttemptHadFiniteFrame = hasFiniteFrame
+
             if attempt < maximumSwipes {
-                let container = activeScrollContainer()
-                let targetIsAbove = exists
-                    && !lastFrame.isEmpty
-                    && lastFrame.midY < container.frame.midY
-                drag(container, upward: !targetIsAbove)
+                dragApplication(upward: upward)
             }
         }
+
+        let frameDescription = lastFiniteFrame.map { "\($0)" } ?? "none"
         XCTFail(
-            "Could not scroll \(element) into a hittable position after \(maximumSwipes) swipes; last frame: \(lastFrame)",
+            "Could not scroll \(element) into a hittable position after \(maximumSwipes) drags; last finite frame: \(frameDescription)",
             file: file,
             line: line
         )
     }
 
-    private func activeScrollContainer() -> XCUIElement {
-        for query in [app.collectionViews, app.tables, app.scrollViews] {
-            let container = query.firstMatch
-            if container.exists, !container.frame.isEmpty {
-                return container
-            }
-        }
-        return app
+    private func isFiniteNonempty(_ frame: CGRect) -> Bool {
+        !frame.isNull
+            && !frame.isEmpty
+            && frame.minX.isFinite
+            && frame.minY.isFinite
+            && frame.maxX.isFinite
+            && frame.maxY.isFinite
     }
 
-    private func drag(_ container: XCUIElement, upward: Bool) {
-        let start = container.coordinate(
+    private func dragApplication(upward: Bool) {
+        let start = app.coordinate(
             withNormalizedOffset: CGVector(dx: 0.5, dy: upward ? 0.70 : 0.30)
         )
-        let end = container.coordinate(
+        let end = app.coordinate(
             withNormalizedOffset: CGVector(dx: 0.5, dy: upward ? 0.40 : 0.60)
         )
         start.press(forDuration: 0.05, thenDragTo: end)
