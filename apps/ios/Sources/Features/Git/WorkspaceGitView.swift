@@ -13,13 +13,20 @@ private final class NoRedirectSessionDelegate: NSObject, URLSessionTaskDelegate,
     }
 }
 
+private struct DiffSelection: Identifiable {
+    let path: String
+
+    var id: String { path }
+}
+
 struct WorkspaceGitView: View {
     @Environment(AppModel.self) private var model
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let workspaceID: String
     let baseBranch: String
 
     @State private var status: GitStatusDetail?
-    @State private var selectedDiffPath: String?
+    @State private var selectedDiff: DiffSelection?
     @State private var showsCommit = false
     @State private var showsPullRequest = false
     @State private var pullRequestResult: PullRequestResult?
@@ -136,7 +143,7 @@ struct WorkspaceGitView: View {
             } else if !cachedDiffs.isEmpty {
                 List(cachedDiffs) { diff in
                     Button {
-                        selectedDiffPath = diff.path
+                        selectedDiff = DiffSelection(path: diff.path)
                     } label: {
                         Label(HostileDisplayText.sanitized(diff.path), systemImage: "doc.text.magnifyingglass")
                             .font(.subheadline.monospaced())
@@ -157,13 +164,8 @@ struct WorkspaceGitView: View {
         }
         .refreshable { await load() }
         .task(id: model.network.isConnected) { await load() }
-        .sheet(isPresented: Binding(
-            get: { selectedDiffPath != nil },
-            set: { if !$0 { selectedDiffPath = nil } }
-        )) {
-            if let path = selectedDiffPath {
-                NavigationStack { GitDiffView(workspaceID: workspaceID, path: path) }
-            }
+        .sheet(item: $selectedDiff) { selection in
+            NavigationStack { GitDiffView(workspaceID: workspaceID, path: selection.path) }
         }
         .sheet(isPresented: $showsCommit) {
             CommitSheet { request in
@@ -240,37 +242,59 @@ struct WorkspaceGitView: View {
         if !changes.isEmpty {
             Section(title) {
                 ForEach(changes) { change in
-                    HStack {
-                        Button {
-                            selectedDiffPath = change.path
-                        } label: {
-                            VStack(alignment: .leading) {
-                                Text(HostileDisplayText.sanitized(change.path)).font(.subheadline.monospaced()).foregroundStyle(.primary)
-                                Text(HostileDisplayText.sanitized(change.status)).font(.caption).foregroundStyle(.secondary)
+                    if dynamicTypeSize.isAccessibilitySize {
+                        VStack(alignment: .leading, spacing: 12) {
+                            diffButton(for: change)
+                            if group != .conflicted {
+                                changeActions(for: change, group: group)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
                             }
                         }
-                        .buttonStyle(.plain)
-                        .accessibilityIdentifier("git.diff.\(HostileDisplayText.sanitized(change.path))")
-                        .accessibilityHint("Opens the read-only diff for this file")
-                        Spacer()
-                        if group != .conflicted {
-                            Button(group == .staged ? "Unstage" : "Stage") {
-                                Task { await stage(change, staged: group != .staged) }
-                            }
-                            .buttonStyle(.bordered)
-                            .controlSize(.small)
-                            .disabled(isWorking || !model.network.isConnected)
-                        }
-                        if group == .staged || group == .unstaged {
-                            Button("Discard…", role: .destructive) {
-                                pendingDiscardPath = change.path
-                            }
-                            .buttonStyle(.bordered)
-                            .controlSize(.small)
-                            .disabled(isWorking || !model.network.isConnected)
+                    } else {
+                        HStack {
+                            diffButton(for: change)
+                            Spacer()
+                            changeActions(for: change, group: group)
                         }
                     }
                 }
+            }
+        }
+    }
+
+    private func diffButton(for change: GitFileChange) -> some View {
+        Button {
+            selectedDiff = DiffSelection(path: change.path)
+        } label: {
+            VStack(alignment: .leading) {
+                Text(HostileDisplayText.sanitized(change.path)).font(.subheadline.monospaced()).foregroundStyle(.primary)
+                Text(HostileDisplayText.sanitized(change.status)).font(.caption).foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("git.diff.\(HostileDisplayText.sanitized(change.path))")
+        .accessibilityHint("Opens the read-only diff for this file")
+    }
+
+    private func changeActions(for change: GitFileChange, group: GitChangeGroup) -> some View {
+        HStack(spacing: 8) {
+            if group != .conflicted {
+                Button(group == .staged ? "Unstage" : "Stage") {
+                    Task { await stage(change, staged: group != .staged) }
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .disabled(isWorking || !model.network.isConnected)
+            }
+            if group == .staged || group == .unstaged {
+                Button("Discard…", role: .destructive) {
+                    pendingDiscardPath = change.path
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .disabled(isWorking || !model.network.isConnected)
             }
         }
     }
