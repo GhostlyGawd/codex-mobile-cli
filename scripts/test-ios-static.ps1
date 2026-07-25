@@ -84,6 +84,7 @@ Assert-Contains $openAPI 'expected_e_tag:' 'OpenAPI expected_e_tag spelling chan
 Assert-Contains $openAPI 'SecretValue:\s*\{type:\s*string,\s*minLength:\s*4,\s*maxLength:\s*8192,\s*writeOnly:\s*true\}' 'Secret values must remain 4-8192 bytes so mandatory terminal redaction can fail closed.'
 Assert-Contains $openAPI 'value_bytes:\s*\{type:\s*integer,\s*minimum:\s*4,\s*maximum:\s*8192\}' 'Secret metadata bounds must match the accepted plaintext contract.'
 Assert-Contains $openAPI 'enum:\s*\[sandbox, production\]' 'OpenAPI APNs environments must remain sandbox and production.'
+Assert-Contains $openAPI '''200'':\s*\{description:\s*''Restore result, updated Git status, and pre-restore recovery identity'',\s*content:' 'OpenAPI response descriptions containing flow-mapping commas must remain quoted.'
 
 $expectedRoutes = @(
     'GET /v1/capabilities getCapabilities'

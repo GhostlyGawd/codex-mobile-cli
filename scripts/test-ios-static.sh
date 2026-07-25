@@ -57,6 +57,7 @@ grep -Fq 'expected_e_tag:' packages/api-contract/openapi.yaml
 grep -Eq 'SecretValue: \{type: string, minLength: 4, maxLength: 8192, writeOnly: true\}' packages/api-contract/openapi.yaml
 grep -Eq 'value_bytes: \{type: integer, minimum: 4, maximum: 8192\}' packages/api-contract/openapi.yaml
 grep -Eq 'enum: \[sandbox, production\]' packages/api-contract/openapi.yaml
+grep -Fq "'200': {description: 'Restore result, updated Git status, and pre-restore recovery identity', content:" packages/api-contract/openapi.yaml
 
 expected_routes="$(printf '%s\n' \
   'GET /v1/capabilities getCapabilities' \
