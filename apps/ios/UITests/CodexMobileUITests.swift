@@ -22,7 +22,7 @@ final class CodexMobileUITests: XCTestCase {
         line: UInt = #line
     ) {
         var lastFiniteFrame: CGRect?
-        var upward = true
+        var correctionUpward: Bool?
         var previousAttemptHadFiniteFrame = false
 
         for attempt in 0...maximumSwipes {
@@ -37,18 +37,22 @@ final class CodexMobileUITests: XCTestCase {
                     return
                 }
 
-                upward = frame.midY >= app.frame.midY
-            } else if previousAttemptHadFiniteFrame {
+                correctionUpward = frame.midY >= app.frame.midY
+            } else if previousAttemptHadFiniteFrame, let direction = correctionUpward {
                 // Lazy lists remove an overscrolled row from the accessibility
                 // tree. Reverse once, then preserve that direction until it
                 // appears again.
-                upward.toggle()
+                correctionUpward = !direction
             }
 
             previousAttemptHadFiniteFrame = hasFiniteFrame
 
             if attempt < maximumSwipes {
-                dragApplication(upward: upward)
+                if let correctionUpward {
+                    dragApplication(upward: correctionUpward)
+                } else {
+                    app.swipeUp()
+                }
             }
         }
 
