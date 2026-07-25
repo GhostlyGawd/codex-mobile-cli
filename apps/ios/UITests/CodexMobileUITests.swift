@@ -21,17 +21,26 @@ final class CodexMobileUITests: XCTestCase {
         file: StaticString = #filePath,
         line: UInt = #line
     ) {
+        var lastFrame = CGRect.null
         for attempt in 0...maximumSwipes {
             let timeout = attempt == 0 ? 2.0 : 0.5
-            if element.waitForExistence(timeout: timeout), element.isHittable {
-                return
+            let exists = element.waitForExistence(timeout: timeout)
+            if exists {
+                lastFrame = element.frame
+                if element.isHittable {
+                    return
+                }
             }
             if attempt < maximumSwipes {
-                activeScrollContainer().swipeUp()
+                let container = activeScrollContainer()
+                let targetIsAbove = exists
+                    && !lastFrame.isEmpty
+                    && lastFrame.midY < container.frame.midY
+                drag(container, upward: !targetIsAbove)
             }
         }
         XCTFail(
-            "Could not scroll \(element) into a hittable position after \(maximumSwipes) swipes",
+            "Could not scroll \(element) into a hittable position after \(maximumSwipes) swipes; last frame: \(lastFrame)",
             file: file,
             line: line
         )
@@ -39,11 +48,22 @@ final class CodexMobileUITests: XCTestCase {
 
     private func activeScrollContainer() -> XCUIElement {
         for query in [app.collectionViews, app.tables, app.scrollViews] {
-            if let container = query.allElementsBoundByIndex.first(where: { $0.isHittable }) {
+            let container = query.firstMatch
+            if container.exists, !container.frame.isEmpty {
                 return container
             }
         }
         return app
+    }
+
+    private func drag(_ container: XCUIElement, upward: Bool) {
+        let start = container.coordinate(
+            withNormalizedOffset: CGVector(dx: 0.5, dy: upward ? 0.70 : 0.30)
+        )
+        let end = container.coordinate(
+            withNormalizedOffset: CGVector(dx: 0.5, dy: upward ? 0.40 : 0.60)
+        )
+        start.press(forDuration: 0.05, thenDragTo: end)
     }
 
     func testWorkspaceDashboardAndCreationFlowAreAccessible() {
