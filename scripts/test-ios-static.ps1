@@ -249,9 +249,15 @@ $rootView = Join-Path $ios 'Sources/App/RootView.swift'
 Assert-Contains $appModel 'isServerUnavailable = Self.isServerAvailabilityFailure' 'Server reachability must be tracked independently from device network reachability.'
 Assert-Contains $rootView 'Server unavailable — cached data is read only' 'The native app must persistently distinguish an unreachable server from device offline state.'
 Assert-Contains $rootView 'This app cannot recreate the server' 'The server-unavailable surface must explain the VPS-loss recovery boundary.'
-Assert-Contains $rootView 'List\(selection:\s*\$selection\)' 'Regular-width navigation must use the iOS-supported List(selection:) content initializer.'
+Assert-Contains $rootView 'List\(selection:\s*sidebarSelection\)' 'Regular-width navigation must use the iOS-supported optional selection binding.'
 Assert-Contains $rootView 'ForEach\(AppSection\.allCases\)' 'Regular-width navigation must render every application section inside List(selection:).'
-if ((Get-Content -Raw $rootView) -match 'List\(AppSection\.allCases,\s*selection:\s*\$selection\)') {
+Assert-Contains $rootView 'private var sidebarSelection:\s*Binding<AppSection\?>' 'The sidebar must adapt shared nonoptional navigation state to the optional selection binding available on iOS.'
+Assert-Contains $rootView 'guard let proposedSelection else \{ return \}' 'Clearing the sidebar selection must not erase the shared TabView and detail selection.'
+$rootViewText = Get-Content -Raw $rootView
+if ($rootViewText -match 'List\(selection:\s*\$selection\)') {
+    throw 'The nonoptional List selection overload is unavailable on iOS; pass an explicit Binding<AppSection?>.'
+}
+if ($rootViewText -match 'List\(AppSection\.allCases,\s*selection:\s*\$selection\)') {
     throw 'The data-and-selection List initializer is unavailable on iOS; use List(selection:) with ForEach.'
 }
 Assert-Contains $codingTests 'repository_id' 'JSON coding tests must cover secret repository scope.'

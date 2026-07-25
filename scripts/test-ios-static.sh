@@ -216,8 +216,14 @@ grep -Fq 'testTerminalDerivedTitlesAndCloseReasonsAreSafeDisplayText' apps/ios/T
 grep -Fq 'isServerUnavailable = Self.isServerAvailabilityFailure' apps/ios/Sources/App/AppModel.swift
 grep -Fq 'Server unavailable — cached data is read only' apps/ios/Sources/App/RootView.swift
 grep -Fq 'This app cannot recreate the server' apps/ios/Sources/App/RootView.swift
-grep -Fq 'List(selection: $selection)' apps/ios/Sources/App/RootView.swift
+grep -Fq 'List(selection: sidebarSelection)' apps/ios/Sources/App/RootView.swift
 grep -Fq 'ForEach(AppSection.allCases)' apps/ios/Sources/App/RootView.swift
+grep -Fq 'private var sidebarSelection: Binding<AppSection?>' apps/ios/Sources/App/RootView.swift
+grep -Fq 'guard let proposedSelection else { return }' apps/ios/Sources/App/RootView.swift
+if grep -Fq 'List(selection: $selection)' apps/ios/Sources/App/RootView.swift; then
+  echo "iOS sidebar selection must use an optional Binding because the nonoptional List selection overload is unavailable" >&2
+  exit 1
+fi
 if grep -Fq 'List(AppSection.allCases, selection: $selection)' apps/ios/Sources/App/RootView.swift; then
   echo "regular-width navigation must use the iOS-supported List(selection:) content initializer" >&2
   exit 1

@@ -143,7 +143,7 @@ private struct AdaptiveApplicationView: View {
         Group {
             if horizontalSizeClass == .regular {
                 NavigationSplitView {
-                    List(selection: $selection) {
+                    List(selection: sidebarSelection) {
                         ForEach(AppSection.allCases) { section in
                             Label(section.title, systemImage: section.symbol)
                                 .tag(section)
@@ -189,6 +189,16 @@ private struct AdaptiveApplicationView: View {
                     .presentationDetents([.medium, .large])
             }
         }
+    }
+
+    private var sidebarSelection: Binding<AppSection?> {
+        Binding(
+            get: { selection },
+            set: { proposedSelection in
+                guard let proposedSelection else { return }
+                selection = proposedSelection
+            }
+        )
     }
 
     @ViewBuilder
