@@ -1,0 +1,71 @@
+{
+	admin 127.0.0.1:2019
+	log default {
+		output stdout
+		format json
+		level INFO
+	}
+	servers {
+		protocols h1 h2 h3
+		timeouts {
+			read_body 30s
+			read_header 10s
+			write 0s
+			idle 2m
+		}
+		max_header_size 32KB
+	}
+}
+
+{$API_SITE_ADDRESS:http://localhost} {
+	encode zstd gzip
+
+	header {
+		-Server
+		X-Content-Type-Options nosniff
+		Referrer-Policy no-referrer
+		Permissions-Policy "camera=(), geolocation=(), microphone=()"
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+	}
+
+	request_body {
+		max_size 32MB
+	}
+
+	reverse_proxy control-plane:8080 {
+		health_uri /healthz
+		health_interval 30s
+		health_timeout 5s
+		transport http {
+			dial_timeout 5s
+			response_header_timeout 30s
+			keepalive 30s
+		}
+	}
+}
+
+# Preview traffic has a separate wildcard origin and never shares the API
+# site's cookies. The control plane validates the exact host, exchanges the
+# URL-fragment grant for a host-only cookie, and owns the private Coder tunnel.
+{$PREVIEW_SITE_ADDRESS:http://*.preview.localhost} {
+	encode zstd gzip
+
+	header {
+		-Server
+		X-Content-Type-Options nosniff
+		Referrer-Policy no-referrer
+		Permissions-Policy "camera=(), geolocation=(), microphone=()"
+		Strict-Transport-Security "max-age=31536000"
+	}
+
+	reverse_proxy control-plane:8080 {
+		# Host is the preview route identifier and is part of the control
+		# plane's authorization boundary. Preserve it explicitly.
+		header_up Host {http.request.host}
+		transport http {
+			dial_timeout 5s
+			response_header_timeout 30s
+			keepalive 30s
+		}
+	}
+}

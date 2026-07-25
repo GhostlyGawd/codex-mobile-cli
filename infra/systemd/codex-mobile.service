@@ -1,0 +1,52 @@
+[Unit]
+Description=Codex Mobile local control stack
+Documentation=https://github.com/GhostlyGawd/codex-mobile-cli
+Wants=network-online.target docker.service codex-mobile-docker-firewall.service
+After=network-online.target docker.service codex-mobile-docker-firewall.service
+Requires=docker.service codex-mobile-docker-firewall.service
+ConditionPathExists=/opt/codex-mobile/current/infra/compose.yaml
+ConditionPathExists=/etc/codex-mobile/production.env
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/opt/codex-mobile/current
+EnvironmentFile=/etc/codex-mobile/production.env
+EnvironmentFile=/opt/codex-mobile/current/infra/release.env
+Environment=HOME=/run/codex-mobile-compose
+RuntimeDirectory=codex-mobile-compose
+RuntimeDirectoryMode=0700
+UMask=0077
+ExecStartPre=/usr/bin/python3 /opt/codex-mobile/current/scripts/check-billing-policy.py --repo-root /opt/codex-mobile/current
+ExecStartPre=/usr/bin/python3 /opt/codex-mobile/current/scripts/infra-preflight.py --env-file /etc/codex-mobile/production.env --repo-root /opt/codex-mobile/current
+ExecStartPre=/bin/sh /opt/codex-mobile/current/scripts/infra-compose.sh config --quiet
+ExecStart=/bin/sh /opt/codex-mobile/current/scripts/infra-compose.sh up --detach --no-build --remove-orphans --wait --wait-timeout 180
+ExecReload=/bin/sh /opt/codex-mobile/current/scripts/infra-compose.sh up --detach --no-build --remove-orphans --wait --wait-timeout 180
+ExecStop=/bin/sh /opt/codex-mobile/current/scripts/infra-compose.sh down --timeout 60
+TimeoutStartSec=15min
+TimeoutStopSec=2min
+
+# The CLI only needs the Docker API socket. Containers receive their narrowly
+# scoped bind mounts through compose; the socket is never mounted into one.
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+PrivateTmp=yes
+ProtectHome=yes
+ProtectSystem=strict
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+ProtectKernelLogs=yes
+ProtectClock=yes
+ProtectHostname=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+RestrictRealtime=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+SystemCallArchitectures=native
+ReadOnlyPaths=/opt/codex-mobile/current /etc/codex-mobile
+ReadWritePaths=/run/codex-mobile-compose
+
+[Install]
+WantedBy=multi-user.target

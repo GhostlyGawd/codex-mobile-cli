@@ -1,0 +1,45 @@
+[Unit]
+Description=Codex Mobile external Coder provisioner
+Documentation=https://coder.com/docs/admin/provisioners
+Wants=network-online.target codex-mobile.service
+After=network-online.target codex-mobile.service codex-mobile-workspace-runtime.service
+Requires=codex-mobile-workspace-runtime.service
+ConditionPathExists=/usr/local/bin/coder
+ConditionPathExists=/etc/codex-mobile/secrets/coder_provisioner_key
+
+[Service]
+Type=simple
+User=coder-provisioner
+Group=coder-provisioner
+Environment=HOME=/srv/codex-mobile/workspaces/.provisioner-home
+Environment=DOCKER_HOST=unix:///run/codex-mobile-podman/podman.sock
+EnvironmentFile=/etc/codex-mobile/production.env
+EnvironmentFile=-/opt/codex-mobile/current/infra/release.env
+LoadCredential=coder_provisioner_key:/etc/codex-mobile/secrets/coder_provisioner_key
+UMask=0077
+ExecStart=/usr/local/libexec/codex-mobile/start-provisioner
+Restart=on-failure
+RestartSec=10s
+TimeoutStopSec=90s
+
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+PrivateDevices=yes
+PrivateTmp=yes
+ProtectHome=yes
+ProtectSystem=strict
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectClock=yes
+ProtectControlGroups=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+RestrictRealtime=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+SystemCallArchitectures=native
+ReadWritePaths=/srv/codex-mobile/workspaces /run/codex-mobile-podman
+
+[Install]
+WantedBy=multi-user.target

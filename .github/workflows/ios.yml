@@ -1,0 +1,61 @@
+name: iOS
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Keep this job off billable private-repository minutes. It starts only when
+# GitHub reports that the repository is public and the owner has explicitly
+# enabled the public CI contract.
+jobs:
+  ios-simulator:
+    if: ${{ github.event.repository.private == false && vars.PUBLIC_CI_ENABLED == 'true' }}
+    runs-on: macos-26
+    timeout-minutes: 45
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Verify pinned Xcode
+        run: |
+          test "$(xcodebuild -version | awk 'NR == 1 { print $2 }')" = "26.6"
+
+      - name: Install checksum-verified XcodeGen
+        env:
+          XCODEGEN_VERSION: 2.45.4
+          XCODEGEN_SHA256: 090ec29491aad50aec10631bf6e62253fed733c50f3aab0f5ffc86bc170bdbef
+        run: |
+          archive="${RUNNER_TEMP}/xcodegen.zip"
+          curl --fail --location --proto '=https' --tlsv1.2 \
+            "https://github.com/yonaskolb/XcodeGen/releases/download/${XCODEGEN_VERSION}/xcodegen.zip" \
+            --output "${archive}"
+          echo "${XCODEGEN_SHA256}  ${archive}" | shasum -a 256 --check
+          ditto -x -k "${archive}" "${RUNNER_TEMP}"
+          test -x "${RUNNER_TEMP}/xcodegen/bin/xcodegen"
+          echo "${RUNNER_TEMP}/xcodegen/bin" >> "${GITHUB_PATH}"
+
+      - name: Generate the pinned iOS project
+        run: ./scripts/generate-ios-project.sh
+
+      - name: Test on the iPhone simulator without signing
+        run: |
+          xcodebuild \
+            -project apps/ios/CodexMobile.xcodeproj \
+            -scheme CodexMobile \
+            -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
+            CODE_SIGNING_ALLOWED=NO \
+            test

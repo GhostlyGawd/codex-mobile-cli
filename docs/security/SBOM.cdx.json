@@ -1,0 +1,3132 @@
+{
+  "$schema": "https://cyclonedx.org/schema/bom-1.6.schema.json",
+  "bomFormat": "CycloneDX",
+  "components": [
+    {
+      "bom-ref": "dc1c446105587d8e9fcaf868e575d7a2171da67c0c1c92c3ca1ac06949a9f552",
+      "licenses": [
+        {
+          "expression": "LicenseRef-Tooling-Not-Distributed"
+        }
+      ],
+      "name": "gitleaks",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Build tool"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "true"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": ".tool-versions"
+        }
+      ],
+      "type": "library",
+      "version": "8.30.1"
+    },
+    {
+      "bom-ref": "fbc2584880f10d9c8a25d65530bf37df6d8c7be24c162e7e75683203161d1625",
+      "licenses": [
+        {
+          "expression": "LicenseRef-Tooling-Not-Distributed"
+        }
+      ],
+      "name": "go-licenses",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Build tool"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "true"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": ".tool-versions"
+        }
+      ],
+      "type": "library",
+      "version": "2.0.1"
+    },
+    {
+      "bom-ref": "bbb5d188350296543734c53ad89a81b376e11cac8a418e9d9ec16e27fc5241fa",
+      "licenses": [
+        {
+          "expression": "LicenseRef-Tooling-Not-Distributed"
+        }
+      ],
+      "name": "golang",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Build tool"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "true"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": ".tool-versions"
+        }
+      ],
+      "type": "library",
+      "version": "1.26.5"
+    },
+    {
+      "bom-ref": "1fd9ec0ef8578a457a04086542171f1a5a7a1233b64ad45cd5961acaea966765",
+      "licenses": [
+        {
+          "expression": "LicenseRef-Tooling-Not-Distributed"
+        }
+      ],
+      "name": "govulncheck",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Build tool"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "true"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": ".tool-versions"
+        }
+      ],
+      "type": "library",
+      "version": "1.6.0"
+    },
+    {
+      "bom-ref": "3cbb8ac9769ca28621aadf0a303d465fd396d001b0d2b9956d7937f576d61ad9",
+      "licenses": [
+        {
+          "expression": "LicenseRef-Tooling-Not-Distributed"
+        }
+      ],
+      "name": "python",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Build tool"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "true"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": ".tool-versions"
+        }
+      ],
+      "type": "library",
+      "version": "3.12.10"
+    },
+    {
+      "bom-ref": "ca89e57171c1ad8f63cbce20ecbc2165cb5c915642525bbc4b281a0add8fceb7",
+      "licenses": [
+        {
+          "expression": "LicenseRef-Tooling-Not-Distributed"
+        }
+      ],
+      "name": "syft",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Build tool"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "true"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": ".tool-versions"
+        }
+      ],
+      "type": "library",
+      "version": "1.46.0"
+    },
+    {
+      "bom-ref": "1632a53afd132d21dd6ad3fe42d7afb03cfa88ee5848c24ec269f13facd9594e",
+      "licenses": [
+        {
+          "expression": "LicenseRef-Tooling-Not-Distributed"
+        }
+      ],
+      "name": "trivy",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Build tool"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "true"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": ".tool-versions"
+        }
+      ],
+      "type": "library",
+      "version": "0.72.0"
+    },
+    {
+      "bom-ref": "3aa7126e0feb692fabd773a3f6a25414694c3ec0f58b335623c29eba7b98873e",
+      "licenses": [
+        {
+          "expression": "LicenseRef-Tooling-Not-Distributed"
+        }
+      ],
+      "name": "xcodegen",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Build tool"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "true"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": ".tool-versions"
+        }
+      ],
+      "type": "library",
+      "version": "2.45.4"
+    },
+    {
+      "bom-ref": "9da062e1af925a2c8487cd5e4b219687af5cb578716be0476ec0862bc9d2db9d",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "f67c75bce83056f5f598d0560eef77faf69c79e7696ec0eaa3e5ee0462f8d1bf"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MPL-2.0"
+        }
+      ],
+      "name": "cyphar.com/go-pathrs",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Go module"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://cyphar.com/go-pathrs"
+        }
+      ],
+      "purl": "pkg:golang/cyphar.com/go-pathrs@v0.2.1",
+      "type": "library",
+      "version": "v0.2.1"
+    },
+    {
+      "bom-ref": "7afc4c20099ce53f5fd6ef55b29fbd9aeb7afcf1e994aaec135de06556757a4e",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "00608dabd12fb23df598e80d3dc2f25dcfb83cd001b7dd39626baa3d86290569"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "BSD-3-Clause"
+        }
+      ],
+      "name": "dario.cat/mergo",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Go module"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://dario.cat/mergo"
+        }
+      ],
+      "purl": "pkg:golang/dario.cat/mergo@v1.0.0",
+      "type": "library",
+      "version": "v1.0.0"
+    },
+    {
+      "bom-ref": "5c886ee2d78a5c1b8421511e17174cbef9a30217ee63d06fb32facdcee9275f6",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "f407938a53dc6408c214822672d15a3a39d321abe0f3bad6efcbd33e442a2c8f"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "github.com/anmitsu/go-shlex",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Go module"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://github.com/anmitsu/go-shlex"
+        }
+      ],
+      "purl": "pkg:golang/github.com/anmitsu/go-shlex@v0.0.0-20200514113438-38f4b401e2be",
+      "type": "library",
+      "version": "v0.0.0-20200514113438-38f4b401e2be"
+    },
+    {
+      "bom-ref": "cded1ba17ebbed2756757778caf3ab4ef8e6ee10a6f07e03ad8414dbc61cfd42",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "d02c193596f1a7af521cf74f24037f859226d02e0e22d764942166311598a62a"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "github.com/armon/go-socks5",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Go module"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://github.com/armon/go-socks5"
+        }
+      ],
+      "purl": "pkg:golang/github.com/armon/go-socks5@v0.0.0-20160902184237-e75332964ef5",
+      "type": "library",
+      "version": "v0.0.0-20160902184237-e75332964ef5"
+    },
+    {
+      "bom-ref": "747dfaac530e0de98c4f97a55311fbc3f31db9970df45329198be6e945668cdf",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "d70e77b429068424397636dab77f8c1f404043929f81bb79e94650fc93339e0c"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "github.com/bwesterb/go-ristretto",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Go module"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://github.com/bwesterb/go-ristretto"
+        }
+      ],
+      "purl": "pkg:golang/github.com/bwesterb/go-ristretto@v1.2.3",
+      "type": "library",
+      "version": "v1.2.3"
+    },
+    {
+      "bom-ref": "83c314bb093bddd35cef769288e12a46eb7deea6ef695c8bd0888f77da1f0ecc",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "f463ce850185f4c09851e5f231896a4d1e9ae604eb811fdf04b5ef520b55720f"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "BSD-3-Clause"
+        }
+      ],
+      "name": "github.com/cloudflare/circl",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Go module"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://github.com/cloudflare/circl"
+        }
+      ],
+      "purl": "pkg:golang/github.com/cloudflare/circl@v1.6.3",
+      "type": "library",
+      "version": "v1.6.3"
+    },
+    {
+      "bom-ref": "43647e6d88b57888f3f91f7befbeafffec0e9ce3f432ae15d852b8f606e0e958",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "e81d893de3869697dfd94cfabce107d55ce98b4894cf6d00fa53d584f1ed3540"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "ISC"
+        }
+      ],
+      "name": "github.com/coder/websocket",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Go module"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "true"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://github.com/coder/websocket"
+        }
+      ],
+      "purl": "pkg:golang/github.com/coder/websocket@v1.8.15",
+      "type": "library",
+      "version": "v1.8.15"
+    },
+    {
+      "bom-ref": "d838f7f09591b6ef2566088ca81f7a873702662c3fe61ff26a10224f44b14c26",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "e42799d633d712262ddfe67aceaa6b4808125a28209a9572722bfcb328c8a551"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "BSD-3-Clause AND MPL-2.0"
+        }
+      ],
+      "name": "github.com/cyphar/filepath-securejoin",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Go module"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://github.com/cyphar/filepath-securejoin"
+        }
+      ],
+      "purl": "pkg:golang/github.com/cyphar/filepath-securejoin@v0.6.1",
+      "type": "library",
+      "version": "v0.6.1"
+    },
+    {
+      "bom-ref": "b8c5b41e6f106c72a8dfe65ae7e9e10ec4ffbf0d49029b710bf343178aef89ee",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "53da8f488d8f216492d55c285d04fd0375b2f4c3375a0bea4b11567a7a8976e3"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "ISC"
+        }
+      ],
+      "name": "github.com/davecgh/go-spew",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Go module"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://github.com/davecgh/go-spew"
+        }
+      ],
+      "purl": "pkg:golang/github.com/davecgh/go-spew@v1.1.2-0.20180830191138-d8f796af33cc",
+      "type": "library",
+      "version": "v1.1.2-0.20180830191138-d8f796af33cc"
+    },
+    {
+      "bom-ref": "e32cd2fa7aa93bdb8444f3e66a1656639c4e20e4b8d1c2f530a83887eda53906",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "636a3abab6fb12e95ed3d3e396141118db2a45f3e6608dca2902c5a42015dfea"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "BSD-3-Clause"
+        }
+      ],
+      "name": "github.com/elazarl/goproxy",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Go module"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://github.com/elazarl/goproxy"
+        }
+      ],
+      "purl": "pkg:golang/github.com/elazarl/goproxy@v1.7.2",
+      "type": "library",
+      "version": "v1.7.2"
+    },
+    {
+      "bom-ref": "7af3b18eeda23219cfc4763e13caac191c8ce5af3deedabbc3e39ec5ec8d9ce7",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "157b621d828318a096d8acf064ac74882d0f426765a2b6207451bd8cf5c9d417"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "BSD-2-Clause AND ISC"
+        }
+      ],
+      "name": "github.com/emirpasic/gods",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Go module"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://github.com/emirpasic/gods"
+        }
+      ],
+      "purl": "pkg:golang/github.com/emirpasic/gods@v1.18.1",
+      "type": "library",
+      "version": "v1.18.1"
+    },
+    {
+      "bom-ref": "96b331d59de5a8c7a1bb073e0722c989c1797685d0d06819b23725e285e42d63",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "5f82ac9e8f7ec77733d1366febd79cd61c4fffeb729ae47c3d7409c83c1f87bf"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "github.com/fxamacker/cbor/v2",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Go module"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://github.com/fxamacker/cbor/v2"
+        }
+      ],
+      "purl": "pkg:golang/github.com/fxamacker/cbor/v2@v2.9.2",
+      "type": "library",
+      "version": "v2.9.2"
+    },
+    {
+      "bom-ref": "c44e6c88607e4c4ff021d00e1dee0972ee2057b724cf458089b53bab3476fa76",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "6b86170f557bc4c17d8399d391d7e78dadd2c72d4f5430a3d5983859bf2f63a7"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "BSD-3-Clause"
+        }
+      ],
+      "name": "github.com/gliderlabs/ssh",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Go module"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://github.com/gliderlabs/ssh"
+        }
+      ],
+      "purl": "pkg:golang/github.com/gliderlabs/ssh@v0.3.8",
+      "type": "library",
+      "version": "v0.3.8"
+    },
+    {
+      "bom-ref": "d4b17c392c5888010ed28f4aec89290a14a6970f4623829f3ebee99571d80068",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "fb3b3fb4f9a40e41f1dd4eba0c06f4950149ae94baef7d4e69ad768a473e0e22"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "BSD-3-Clause"
+        }
+      ],
+      "name": "github.com/go-git/gcfg",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Go module"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://github.com/go-git/gcfg"
+        }
+      ],
+      "purl": "pkg:golang/github.com/go-git/gcfg@v1.5.1-0.20230307220236-3a3c6141e376",
+      "type": "library",
+      "version": "v1.5.1-0.20230307220236-3a3c6141e376"
+    },
+    {
+      "bom-ref": "ad879673c4b35cafca4a3990994ba4a5128c05a5a7365c397b097de50532bb5d",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "8c8b465eccd40d1b51fc095f7ab58f4cc3788f7f0143cf179d729b8a59a604f0"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "Apache-2.0"
+        }
+      ],
+      "name": "github.com/go-git/go-billy/v5",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Go module"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://github.com/go-git/go-billy/v5"
+        }
+      ],
+      "purl": "pkg:golang/github.com/go-git/go-billy/v5@v5.9.0",
+      "type": "library",
+      "version": "v5.9.0"
+    },
+    {
+      "bom-ref": "61cb8d16ca312cec9285df82d6452a0a5f45047fbd81e246cd18e0115471d875",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "78c8dedf562095206a09d22a7612815bc96891a32b2f7b93929198944d8e393e"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "Apache-2.0"
+        }
+      ],
+      "name": "github.com/go-git/go-git-fixtures/v4",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Go module"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://github.com/go-git/go-git-fixtures/v4"
+        }
+      ],
+      "purl": "pkg:golang/github.com/go-git/go-git-fixtures/v4@v4.3.2-0.20231010084843-55a94097c399",
+      "type": "library",
+      "version": "v4.3.2-0.20231010084843-55a94097c399"
+    },
+    {
+      "bom-ref": "b30965102807a68f485aa6fe527f7a5847d9b1ec797778786f0359d681234f45",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "9d7dbb027694e37fcae5b2a4b4ac2006647d95ac286157b50a4834ae0cf3374d"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "Apache-2.0"
+        }
+      ],
+      "name": "github.com/go-git/go-git/v5",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Go module"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "true"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://github.com/go-git/go-git/v5"
+        }
+      ],
+      "purl": "pkg:golang/github.com/go-git/go-git/v5@v5.19.1",
+      "type": "library",
+      "version": "v5.19.1"
+    },
+    {
+      "bom-ref": "d15041a3d062973497a717a6415b221227ac55976beed804e7e3b8fd8ef56d0f",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "bcce48268500cb777bcd1495b48c108018fb0625ad30f7e63c48005e7be3d51a"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "github.com/go-viper/mapstructure/v2",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Go module"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://github.com/go-viper/mapstructure/v2"
+        }
+      ],
+      "purl": "pkg:golang/github.com/go-viper/mapstructure/v2@v2.5.0",
+      "type": "library",
+      "version": "v2.5.0"
+    },
+    {
+      "bom-ref": "6617279791ded069834d5660a31a639460822faeafb80c09032433eb93b414c4",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "2854d2cf74764580e2527ff47038b75d326015e9d21bbe1e2934c796a5a19719"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "BSD-3-Clause"
+        }
+      ],
+      "name": "github.com/go-webauthn/webauthn",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Go module"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "true"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://github.com/go-webauthn/webauthn"
+        }
+      ],
+      "purl": "pkg:golang/github.com/go-webauthn/webauthn@v0.17.4",
+      "type": "library",
+      "version": "v0.17.4"
+    },
+    {
+      "bom-ref": "b17b0f51bff36cf17517dd646740444d2165cc2790433f46510225c7e73261f4",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "4c4c83b90008884818a71eb49ca8812485ffe674940bc2f135b1feb9fe54f6e9"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "BSD-2-Clause AND BSD-3-Clause"
+        }
+      ],
+      "name": "github.com/go-webauthn/x",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Go module"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://github.com/go-webauthn/x"
+        }
+      ],
+      "purl": "pkg:golang/github.com/go-webauthn/x@v0.2.6",
+      "type": "library",
+      "version": "v0.2.6"
+    },
+    {
+      "bom-ref": "ec5b8700de016085a3cc4a3ca654f71bdbd8a7462062ac42d1f23eb937eb2a54",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "9187fcd434d615eeedfb556f2fb792fa32855566949caf5c075a9bc27eb76026"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "github.com/golang-jwt/jwt/v5",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Go module"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://github.com/golang-jwt/jwt/v5"
+        }
+      ],
+      "purl": "pkg:golang/github.com/golang-jwt/jwt/v5@v5.3.1",
+      "type": "library",
+      "version": "v5.3.1"
+    },
+    {
+      "bom-ref": "416ef9b62a880b028f395af0af36f1de2a83baab93e9da5223ca3d6427a30cfe",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "7fea16b0c3a634f73c266107559232702ee10684311c7f6934a40e449368cec4"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "Apache-2.0"
+        }
+      ],
+      "name": "github.com/golang/groupcache",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Go module"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://github.com/golang/groupcache"
+        }
+      ],
+      "purl": "pkg:golang/github.com/golang/groupcache@v0.0.0-20241129210726-2c02b8208cf8",
+      "type": "library",
+      "version": "v0.0.0-20241129210726-2c02b8208cf8"
+    },
+    {
+      "bom-ref": "3270828731cd1fbb8a740ae29056864377437946a395b675324f709719cd9fb2",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "8bb7892fca994e94845ce3d3c4d2a1012629327fbc7b943a01d9dd55ad5d59e9"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "BSD-3-Clause"
+        }
+      ],
+      "name": "github.com/golang/protobuf",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Go module"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://github.com/golang/protobuf"
+        }
+      ],
+      "purl": "pkg:golang/github.com/golang/protobuf@v1.5.4",
+      "type": "library",
+      "version": "v1.5.4"
+    },
+    {
+      "bom-ref": "adb6f9f0001273aaed8d9d2d1f00036e711b25a339d0e6b096fe095c0f9ac707",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "c24f37f36113b2fe0961467022c9fa6296225a206c60b489893b320726d5b8df"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "BSD-3-Clause"
+        }
+      ],
+      "name": "github.com/google/go-cmp",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Go module"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://github.com/google/go-cmp"
+        }
+      ],
+      "purl": "pkg:golang/github.com/google/go-cmp@v0.7.0",
+      "type": "library",
+      "version": "v0.7.0"
+    },
+    {
+      "bom-ref": "ffeeadb4e9effc992391a8e36c63c268e69970adfc68d71ea3fe72e092c04271",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "b2502b011f45b7ed726d9bb4941c294a6a708515da6bce615ad3229ccc91016a"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "Apache-2.0"
+        }
+      ],
+      "name": "github.com/google/go-tpm",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Go module"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://github.com/google/go-tpm"
+        }
+      ],
+      "purl": "pkg:golang/github.com/google/go-tpm@v0.9.8",
+      "type": "library",
+      "version": "v0.9.8"
+    },
+    {
+      "bom-ref": "4ba80e578536d2548bab186d14692ed178727c38b23ac3198539f4c32df5006d",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "a8910972e2f31f928347480a734cdc92d8a7e8a480c0befe8d628161c79d7537"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "Apache-2.0"
+        }
+      ],
+      "name": "github.com/google/go-tpm-tools",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Go module"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://github.com/google/go-tpm-tools"
+        }
+      ],
+      "purl": "pkg:golang/github.com/google/go-tpm-tools@v0.3.13-0.20230620182252-4639ecce2aba",
+      "type": "library",
+      "version": "v0.3.13-0.20230620182252-4639ecce2aba"
+    },
+    {
+      "bom-ref": "968538dec03a2dd8ebe50c44135702ad9f09ff7ebc10797bf2cec4316d795f67",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "348bda24330eb231c0f27d630212d2833ac0cf2d4782bfa136b6f9edefbde05d"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "BSD-3-Clause"
+        }
+      ],
+      "name": "github.com/google/uuid",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Go module"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://github.com/google/uuid"
+        }
+      ],
+      "purl": "pkg:golang/github.com/google/uuid@v1.6.0",
+      "type": "library",
+      "version": "v1.6.0"
+    },
+    {
+      "bom-ref": "6d72d433767f8b7e0c8709eb6a61db50832a328938625fe930eb57cff20817a6",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "ffa1e6ab2d774acdb30aaeb655d346f2d335c1c867f338d218e049ea2729b083"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "github.com/jackc/pgpassfile",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Go module"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://github.com/jackc/pgpassfile"
+        }
+      ],
+      "purl": "pkg:golang/github.com/jackc/pgpassfile@v1.0.0",
+      "type": "library",
+      "version": "v1.0.0"
+    },
+    {
+      "bom-ref": "c9d5e723b575309c14ea29821655679900e3b10ac3101c7abdd5d52a9751241c",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "882127a287bb525c0e418a4a16105a6cf322e1a3407e83833c414d8809c2971a"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "github.com/jackc/pgservicefile",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Go module"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://github.com/jackc/pgservicefile"
+        }
+      ],
+      "purl": "pkg:golang/github.com/jackc/pgservicefile@v0.0.0-20240606120523-5a60cdf6a761",
+      "type": "library",
+      "version": "v0.0.0-20240606120523-5a60cdf6a761"
+    },
+    {
+      "bom-ref": "8ea062bb051bc51e7374bea92671f55c9da6f1f0d1fa481b9277a9d54ee6d4f2",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "5614af814da34a58bca3702a20439326beeb670004515a381385e147de197ebd"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "github.com/jackc/pgx/v5",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Go module"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "true"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://github.com/jackc/pgx/v5"
+        }
+      ],
+      "purl": "pkg:golang/github.com/jackc/pgx/v5@v5.10.0",
+      "type": "library",
+      "version": "v5.10.0"
+    },
+    {
+      "bom-ref": "02951e34a326e96b7dc86c2b29b651d3e39ab8e6755abcfa461f12fedf492345",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "3d1f27c3e13fd70d062ee4454a68a2a18e94a28329e8a26fd3feb59c1ee2707a"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "github.com/jackc/puddle/v2",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Go module"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://github.com/jackc/puddle/v2"
+        }
+      ],
+      "purl": "pkg:golang/github.com/jackc/puddle/v2@v2.2.2",
+      "type": "library",
+      "version": "v2.2.2"
+    },
+    {
+      "bom-ref": "c5121b510d4b9281b03c2685fa422b6772c573aad1a7d3d6ba1ee85c5476f9db",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "05048578f03545624e968707e85c72f0c9b00edfb25506142ca7cdd11a1337c0"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "github.com/jbenet/go-context",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Go module"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://github.com/jbenet/go-context"
+        }
+      ],
+      "purl": "pkg:golang/github.com/jbenet/go-context@v0.0.0-20150711004518-d14ea06fba99",
+      "type": "library",
+      "version": "v0.0.0-20150711004518-d14ea06fba99"
+    },
+    {
+      "bom-ref": "2d80f62885a799f96248ee91f54e3ec8afbb8a33d0521e911707f5cbaedc171f",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "c79f381634c6c07cccc2f1f1d7c3d7c5b055cdf9f1a201da011794e207f5ddae"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "github.com/kevinburke/ssh_config",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Go module"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://github.com/kevinburke/ssh_config"
+        }
+      ],
+      "purl": "pkg:golang/github.com/kevinburke/ssh_config@v1.2.0",
+      "type": "library",
+      "version": "v1.2.0"
+    },
+    {
+      "bom-ref": "223c2aa73f2b0e552391995764b456e230be3cb5a2d2aa6c314082aec5999bd3",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "4b809130b9d852119e0c50ea906ae260a75fa059439ccb6a4e223fb05ce103d6"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "github.com/klauspost/cpuid/v2",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Go module"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://github.com/klauspost/cpuid/v2"
+        }
+      ],
+      "purl": "pkg:golang/github.com/klauspost/cpuid/v2@v2.3.0",
+      "type": "library",
+      "version": "v2.3.0"
+    },
+    {
+      "bom-ref": "52cdb997536da82a6721f3240db474b389e96630f73ada585c588d8dba3c2b59",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "7e5443e0d3706005299298557351dcb6147828420527ae67f0cc39a9d467dcb1"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "github.com/kr/pretty",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Go module"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://github.com/kr/pretty"
+        }
+      ],
+      "purl": "pkg:golang/github.com/kr/pretty@v0.3.1",
+      "type": "library",
+      "version": "v0.3.1"
+    },
+    {
+      "bom-ref": "1ff5f1b1e4daa7bfccc8b6150485ad0c702ee2afef3318da0123e9a5c5a60be8",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "564a1723049ba01a6793df4efca15ab801082ee347bf90d514a64c04dfe0520c"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "github.com/kr/pty",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Go module"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://github.com/kr/pty"
+        }
+      ],
+      "purl": "pkg:golang/github.com/kr/pty@v1.1.1",
+      "type": "library",
+      "version": "v1.1.1"
+    },
+    {
+      "bom-ref": "bc669a3bd340e656a71249e6cf2024a3f1243394a1c5754f6db0c7b1b0f2dab3",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "e4dc7461ad19a98db2815dfae90cedbab1c8d7726af79029715689061a52f806"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "github.com/kr/text",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Go module"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://github.com/kr/text"
+        }
+      ],
+      "purl": "pkg:golang/github.com/kr/text@v0.2.0",
+      "type": "library",
+      "version": "v0.2.0"
+    },
+    {
+      "bom-ref": "4ee44303bf57fd62d73ff1fa1fa465182afde863237bc1f13411f54c3ab6a5c3",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "17655082d6bb79cc4660ef24dd9673dd14bc7d521757138d5543e5344468c9f6"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "github.com/Microsoft/go-winio",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Go module"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://github.com/Microsoft/go-winio"
+        }
+      ],
+      "purl": "pkg:golang/github.com/Microsoft/go-winio@v0.6.2",
+      "type": "library",
+      "version": "v0.6.2"
+    },
+    {
+      "bom-ref": "67ec029f22449eac7f517cf65a6a7c0540fbc93a425ffa4a6a427dda23af395e",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "11430920a52333cb0a8d86edc5023d038cf6a3eaebbb19f336fa649ce5e27ba9"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "github.com/onsi/gomega",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Go module"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://github.com/onsi/gomega"
+        }
+      ],
+      "purl": "pkg:golang/github.com/onsi/gomega@v1.34.1",
+      "type": "library",
+      "version": "v1.34.1"
+    },
+    {
+      "bom-ref": "51a8a6ffa219ca3a56755685c2277a984b80d996877ad471d621f424e5ce9842",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "7ba0e705397bbc663e1b3df6dbf0122f81b2a7516ca5e32fc7544d0e84e866e3"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "github.com/philhofer/fwd",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Go module"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://github.com/philhofer/fwd"
+        }
+      ],
+      "purl": "pkg:golang/github.com/philhofer/fwd@v1.2.0",
+      "type": "library",
+      "version": "v1.2.0"
+    },
+    {
+      "bom-ref": "a3a904179b36bae375df887ad1882b0f202606e9a8808cf8e59950f24173ff12",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "dd627c5b3f20bc3cf6f6ab97d4e7049a4025520f5d894e06c491eab34fd78b05"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "Apache-2.0"
+        }
+      ],
+      "name": "github.com/pjbgf/sha1cd",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Go module"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://github.com/pjbgf/sha1cd"
+        }
+      ],
+      "purl": "pkg:golang/github.com/pjbgf/sha1cd@v0.6.0",
+      "type": "library",
+      "version": "v0.6.0"
+    },
+    {
+      "bom-ref": "3a957a8abab32cab68c3307b7570540290d1b6e154e288df48b7960a7c7554c0",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "14404bc75cd2db5e28c298f2eeab017a2c5b51192e850030acae54c0b193c2de"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "BSD-2-Clause"
+        }
+      ],
+      "name": "github.com/pkg/errors",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Go module"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://github.com/pkg/errors"
+        }
+      ],
+      "purl": "pkg:golang/github.com/pkg/errors@v0.9.1",
+      "type": "library",
+      "version": "v0.9.1"
+    },
+    {
+      "bom-ref": "82f6bdf882025f53c37fc5c06802c63d0d93fa200df8259864ecc0c9880d3538",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "25a9af839a6c44871cb3b14635394844c913f3082da797825dd065aa16062fa5"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "BSD-3-Clause"
+        }
+      ],
+      "name": "github.com/pmezard/go-difflib",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Go module"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://github.com/pmezard/go-difflib"
+        }
+      ],
+      "purl": "pkg:golang/github.com/pmezard/go-difflib@v1.0.1-0.20181226105442-5d4384ee4fb2",
+      "type": "library",
+      "version": "v1.0.1-0.20181226105442-5d4384ee4fb2"
+    },
+    {
+      "bom-ref": "b65573ee18baf37961f0f8751380c65fca6fa91c84ba58b46dfeca48244d629a",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "65c57e468a70e909f4017f5bae540b0145dfa8b05cec197e7ff0e6371a4b7ddc"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "BSD-3-Clause"
+        }
+      ],
+      "name": "github.com/ProtonMail/go-crypto",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Go module"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://github.com/ProtonMail/go-crypto"
+        }
+      ],
+      "purl": "pkg:golang/github.com/ProtonMail/go-crypto@v1.1.6",
+      "type": "library",
+      "version": "v1.1.6"
+    },
+    {
+      "bom-ref": "3f5263c28155211eac8d941ee75aa464c786f66ea0da391366842c7bd9da8096",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "5100781c63c1ea8b15d124132f299c0784e0bf25aee99ca589a5b4b48fe8b444"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "BSD-3-Clause"
+        }
+      ],
+      "name": "github.com/rogpeppe/go-internal",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Go module"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://github.com/rogpeppe/go-internal"
+        }
+      ],
+      "purl": "pkg:golang/github.com/rogpeppe/go-internal@v1.14.1",
+      "type": "library",
+      "version": "v1.14.1"
+    },
+    {
+      "bom-ref": "190ad68a6ca64b21c6905c82069ccf13d9c957af5f212d63021d4d15d1ca49bc",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "9faeb576bc9c385b8f2c237751cf2c07a07fb3a678b76c6f06053586d487baaf"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "github.com/sergi/go-diff",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Go module"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://github.com/sergi/go-diff"
+        }
+      ],
+      "purl": "pkg:golang/github.com/sergi/go-diff@v1.3.2-0.20230802210424-5b0b94c5c0d3",
+      "type": "library",
+      "version": "v1.3.2-0.20230802210424-5b0b94c5c0d3"
+    },
+    {
+      "bom-ref": "45034b6e1f44f665bdac9540599c3332a292f5c95d8f570441594f11101655ec",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "76e794409d42daaf6813717bc2f992180695b539948b345ebba7e337cbaacdb4"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "github.com/sirupsen/logrus",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Go module"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://github.com/sirupsen/logrus"
+        }
+      ],
+      "purl": "pkg:golang/github.com/sirupsen/logrus@v1.9.3",
+      "type": "library",
+      "version": "v1.9.3"
+    },
+    {
+      "bom-ref": "d34bddd339985103744794baacc6556a0d7a43f981709faadecd5a62a591eb24",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "5f6a2c43e4408caefab2109bbe11c71d59776658039bc6a91c41c5a918e7058f"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "Apache-2.0"
+        }
+      ],
+      "name": "github.com/skeema/knownhosts",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Go module"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://github.com/skeema/knownhosts"
+        }
+      ],
+      "purl": "pkg:golang/github.com/skeema/knownhosts@v1.3.1",
+      "type": "library",
+      "version": "v1.3.1"
+    },
+    {
+      "bom-ref": "6d5a792ae617cfea06aa623522a309be642b41d6133f12dcb64ab53264a79b3a",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "e06e2fd9d3b7559c22c46211a10e4b7dba32ea75210b26336aa9c800f3e162ce"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "github.com/stretchr/objx",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Go module"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://github.com/stretchr/objx"
+        }
+      ],
+      "purl": "pkg:golang/github.com/stretchr/objx@v0.1.0",
+      "type": "library",
+      "version": "v0.1.0"
+    },
+    {
+      "bom-ref": "7791bcf21e330479c40087ce560ccde65fe453de95cc027948704cef97cc431a",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "eecda2181ce9e44c11eff68866bf1aa39f9dadadf0890c8a8e316ebe054abbb5"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "github.com/stretchr/testify",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Go module"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://github.com/stretchr/testify"
+        }
+      ],
+      "purl": "pkg:golang/github.com/stretchr/testify@v1.11.1",
+      "type": "library",
+      "version": "v1.11.1"
+    },
+    {
+      "bom-ref": "ec506c7bea231ad537c8fa505f54a508b604c250486435b80b8c9890a157234a",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "98ec186f26032cf8f7e66900d818e361e8e0264f41b87c4376f4676fabf665c4"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "github.com/tinylib/msgp",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Go module"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://github.com/tinylib/msgp"
+        }
+      ],
+      "purl": "pkg:golang/github.com/tinylib/msgp@v1.6.4",
+      "type": "library",
+      "version": "v1.6.4"
+    },
+    {
+      "bom-ref": "1bd89acea3975c573c7c7f4c07ba7b3172dab53385d54cdbf31ab9394588ebe6",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "a8bc08d48ef4f8d8d1154477cecd493d40a06825d2877496eb6b80293d664813"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "github.com/x448/float16",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Go module"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://github.com/x448/float16"
+        }
+      ],
+      "purl": "pkg:golang/github.com/x448/float16@v0.8.4",
+      "type": "library",
+      "version": "v0.8.4"
+    },
+    {
+      "bom-ref": "47072243b6e56b10fc48e04be5bb81fcebe4397658b97f6094c4ba5cd7e930d3",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "fbfd79a497e0fd1b13c6a61c5fa7c7a8e5d9c3030ffb657261625e58cdaa4053"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "Apache-2.0"
+        }
+      ],
+      "name": "github.com/xanzy/ssh-agent",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Go module"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://github.com/xanzy/ssh-agent"
+        }
+      ],
+      "purl": "pkg:golang/github.com/xanzy/ssh-agent@v0.3.3",
+      "type": "library",
+      "version": "v0.3.3"
+    },
+    {
+      "bom-ref": "56ff4dee82c7ee90432e85d39fb1b0dffb19433152a6747190acc7f04d5a543f",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "87217d75f99b8085f911f39d6aca8bb160fac6aa4d6655db94b07f0db9f0bf76"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "Apache-2.0"
+        }
+      ],
+      "name": "go.uber.org/mock",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Go module"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://go.uber.org/mock"
+        }
+      ],
+      "purl": "pkg:golang/go.uber.org/mock@v0.6.0",
+      "type": "library",
+      "version": "v0.6.0"
+    },
+    {
+      "bom-ref": "7d1127d191e188458063b8d556ee29615302ed27bdd3d1ed4ef66e709b0dbfeb",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "44cb3b7cfdab5dd7a9d027ed4252bc51ffa489b2e6eea90272b69d656633f7cf"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "BSD-3-Clause"
+        }
+      ],
+      "name": "golang.org/x/crypto",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Go module"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://golang.org/x/crypto"
+        }
+      ],
+      "purl": "pkg:golang/golang.org/x/crypto@v0.52.0",
+      "type": "library",
+      "version": "v0.52.0"
+    },
+    {
+      "bom-ref": "dd92e05092581a496b6074058b048165ee6dd154156882024b4d329e91cde515",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "5b717873ee8e2dce87da56fffcdd6ae16a49921cc908ae49ea4522d4d4d55df3"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "BSD-3-Clause"
+        }
+      ],
+      "name": "golang.org/x/exp",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Go module"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://golang.org/x/exp"
+        }
+      ],
+      "purl": "pkg:golang/golang.org/x/exp@v0.0.0-20260410095643-746e56fc9e2f",
+      "type": "library",
+      "version": "v0.0.0-20260410095643-746e56fc9e2f"
+    },
+    {
+      "bom-ref": "e826e38319295c308f4f7b12e02f2564077fbefb7a07af37d09f9a05caa16f94",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "5b0d43eb7edee8f83e65bd8aad67c74149c7d9d4112c143202da6bfe169a25e3"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "BSD-3-Clause"
+        }
+      ],
+      "name": "golang.org/x/mod",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Go module"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://golang.org/x/mod"
+        }
+      ],
+      "purl": "pkg:golang/golang.org/x/mod@v0.35.0",
+      "type": "library",
+      "version": "v0.35.0"
+    },
+    {
+      "bom-ref": "ec9fa57af116a59a4f6cc9ff225b1be74531bf75e0d923a3bd0eebd9927b117c",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "6dcbf16899f77b553a227b055add4952ad5a4a39d1c4bcd3dabb43d8a7e40c5f"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "BSD-3-Clause"
+        }
+      ],
+      "name": "golang.org/x/net",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Go module"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://golang.org/x/net"
+        }
+      ],
+      "purl": "pkg:golang/golang.org/x/net@v0.55.0",
+      "type": "library",
+      "version": "v0.55.0"
+    },
+    {
+      "bom-ref": "526a730730a124572fef0fc1d3d9d522e927b7525a8910dd3f561f6dfe65799c",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "7b43d3a5bee98cef0602d4ecd9d43a8d86b905662532e5f4e3b0dca3fa48b4ee"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "BSD-3-Clause"
+        }
+      ],
+      "name": "golang.org/x/sync",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Go module"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://golang.org/x/sync"
+        }
+      ],
+      "purl": "pkg:golang/golang.org/x/sync@v0.20.0",
+      "type": "library",
+      "version": "v0.20.0"
+    },
+    {
+      "bom-ref": "2936151f799bfd15ff998557339eb437c058cf4cff9980a9c442816729e5ead2",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "a3b5c63af6500800c1410e18ed536ad9d456411ec998e516f0ac71e19b0d816b"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "BSD-3-Clause"
+        }
+      ],
+      "name": "golang.org/x/sys",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Go module"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "true"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://golang.org/x/sys"
+        }
+      ],
+      "purl": "pkg:golang/golang.org/x/sys@v0.47.0",
+      "type": "library",
+      "version": "v0.47.0"
+    },
+    {
+      "bom-ref": "7b9ff8d6226a296095b5a620943db0522526f651f081aa3c638fed63941f5531",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "4b844b536b01df53bf34297ecc537d02bbbd03f0aad9aa8aa53649e81f83c13e"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "BSD-3-Clause"
+        }
+      ],
+      "name": "golang.org/x/term",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Go module"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://golang.org/x/term"
+        }
+      ],
+      "purl": "pkg:golang/golang.org/x/term@v0.43.0",
+      "type": "library",
+      "version": "v0.43.0"
+    },
+    {
+      "bom-ref": "beea336646f4db17fb703ff13f857cae97571971616ca83e72c7d5f9c59cf62e",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "0aa8e2c1df5e4a0f1ed10024c826904cd1c5208cd6b6274f6a115647cdeb4eb7"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "BSD-3-Clause"
+        }
+      ],
+      "name": "golang.org/x/text",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Go module"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://golang.org/x/text"
+        }
+      ],
+      "purl": "pkg:golang/golang.org/x/text@v0.37.0",
+      "type": "library",
+      "version": "v0.37.0"
+    },
+    {
+      "bom-ref": "d08842412fd26b1d65ff0ff148b26b25294680044f9c82df1dcdc448e35ed26c",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "50fe1a8c73c872e3234f51aacc359195a95412863ebb3a192a784e8db20f0f67"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "BSD-3-Clause"
+        }
+      ],
+      "name": "golang.org/x/tools",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Go module"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://golang.org/x/tools"
+        }
+      ],
+      "purl": "pkg:golang/golang.org/x/tools@v0.44.0",
+      "type": "library",
+      "version": "v0.44.0"
+    },
+    {
+      "bom-ref": "efc256c5729846364b90d9b94308b596891b90b2c4e9bb0d52592ba16e7ded5a",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "b8d3b6aec00836afc9945a5275810a219d2e283fd1f5ca5dbf44feca81b01a62"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "BSD-3-Clause"
+        }
+      ],
+      "name": "google.golang.org/protobuf",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Go module"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://google.golang.org/protobuf"
+        }
+      ],
+      "purl": "pkg:golang/google.golang.org/protobuf@v1.33.0",
+      "type": "library",
+      "version": "v1.33.0"
+    },
+    {
+      "bom-ref": "2a80287bf9db85858a992e59303d112ac10ed96285eebee5230d202799105ae0",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "1de8bfe000df756a8993564cc54369aa7b4dc1a59cba0ac18c088796aa918959"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "BSD-2-Clause"
+        }
+      ],
+      "name": "gopkg.in/check.v1",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Go module"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://gopkg.in/check.v1"
+        }
+      ],
+      "purl": "pkg:golang/gopkg.in/check.v1@v1.0.0-20201130134442-10cb98267c6c",
+      "type": "library",
+      "version": "v1.0.0-20201130134442-10cb98267c6c"
+    },
+    {
+      "bom-ref": "de854568536a4a612f1df82fc9d68dee3a0d1f18677815ea97380f670e181caf",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "c055d56c563c0d8e7fc4e7b510289674a0b3665c60b2171854d9011ecb4044c1"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "BSD-2-Clause"
+        }
+      ],
+      "name": "gopkg.in/warnings.v0",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Go module"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://gopkg.in/warnings.v0"
+        }
+      ],
+      "purl": "pkg:golang/gopkg.in/warnings.v0@v0.1.2",
+      "type": "library",
+      "version": "v0.1.2"
+    },
+    {
+      "bom-ref": "a26f8c0a6f84aa0d282e7f7c2e736eff466608b042a923e60f36a71fff48faad",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "0fcc60c04098ec262fc7e6369f8b01cfddc99fd251bf1762cb2a3c0937ee29a6"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "Apache-2.0 AND MIT"
+        }
+      ],
+      "name": "gopkg.in/yaml.v2",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Go module"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://gopkg.in/yaml.v2"
+        }
+      ],
+      "purl": "pkg:golang/gopkg.in/yaml.v2@v2.4.0",
+      "type": "library",
+      "version": "v2.4.0"
+    },
+    {
+      "bom-ref": "ef8c13def56d01403e446c36fc79e6bc289db58ab60cdc06debb337e26d3e90d",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "7f1566fc6cc0cc45aa2c7baf72d23dd4a4bd8613669963a85aed174d8252ec20"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "Apache-2.0 AND MIT"
+        }
+      ],
+      "name": "gopkg.in/yaml.v3",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Go module"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://gopkg.in/yaml.v3"
+        }
+      ],
+      "purl": "pkg:golang/gopkg.in/yaml.v3@v3.0.1",
+      "type": "library",
+      "version": "v3.0.1"
+    },
+    {
+      "bom-ref": "093e59867897ffded968a484ff43aa1b22c71e8de62c998f4634b8f9fc9d8187",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "5f5c8640aae01df9654968d946d8f1a56c497f1dd5c5cda4cf95ab7c14d58648"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "Apache-2.0"
+        }
+      ],
+      "name": "caddy",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "OCI image"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "true"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "caddy:2.11.4-alpine@sha256:5f5c8640aae01df9654968d946d8f1a56c497f1dd5c5cda4cf95ab7c14d58648"
+        }
+      ],
+      "purl": "pkg:oci/caddy@2.11.4-alpine",
+      "type": "container",
+      "version": "2.11.4-alpine"
+    },
+    {
+      "bom-ref": "f9ebb8d75bc515176ba9bc0eea65465175b545d4e86a573e50b2daf101b341bd",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "0ac9c07e9ff18ea9fecb07c08da838a032352e2b95c5fcd3bf279297cff1808a"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "AGPL-3.0-only AND LicenseRef-Coder-Enterprise-Components"
+        }
+      ],
+      "name": "ghcr.io/coder/coder",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "OCI image"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "true"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "ghcr.io/coder/coder:v2.34.6@sha256:0ac9c07e9ff18ea9fecb07c08da838a032352e2b95c5fcd3bf279297cff1808a"
+        }
+      ],
+      "purl": "pkg:oci/ghcr.io/coder/coder@v2.34.6",
+      "type": "container",
+      "version": "v2.34.6"
+    },
+    {
+      "bom-ref": "99ae04335349de79a4efa52c9accedbe4fe8d7575b70397fe7e36374c920827c",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "1ecb7edf62a0408027bd5729dfd6b1b8766e578e8df93995b225dfd0944eb651"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "BSD-3-Clause"
+        }
+      ],
+      "name": "golang",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "OCI image"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "true"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "golang:1.26.5-bookworm@sha256:1ecb7edf62a0408027bd5729dfd6b1b8766e578e8df93995b225dfd0944eb651"
+        }
+      ],
+      "purl": "pkg:oci/golang@1.26.5-bookworm",
+      "type": "container",
+      "version": "1.26.5-bookworm"
+    },
+    {
+      "bom-ref": "d087dc3ad8f70d845639ab77bcf28c842a2f59f3d14b5cedde403ad9a20677d4",
+      "licenses": [
+        {
+          "expression": "LicenseRef-First-Party-No-License"
+        }
+      ],
+      "name": "localhost/codex-mobile/control-plane",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "OCI image"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "true"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "localhost/codex-mobile/control-plane:local-2026-07-15"
+        }
+      ],
+      "purl": "pkg:oci/localhost/codex-mobile/control-plane@local-2026-07-15",
+      "type": "container",
+      "version": "local-2026-07-15"
+    },
+    {
+      "bom-ref": "b2211f51d837e58b9cdaf96380b3830a1bfd2b08a7524c742ed53dcc6fedf614",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "1961f96e6029a02c3812d7cb329a3b03a3ac2bb067058dec17b0f5596aca9296"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "PostgreSQL"
+        }
+      ],
+      "name": "postgres",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "OCI image"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "true"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "postgres:18.4-bookworm@sha256:1961f96e6029a02c3812d7cb329a3b03a3ac2bb067058dec17b0f5596aca9296"
+        }
+      ],
+      "purl": "pkg:oci/postgres@18.4-bookworm",
+      "type": "container",
+      "version": "18.4-bookworm"
+    },
+    {
+      "bom-ref": "87f12d1a9218d2a4ce541401cd40fdeef74a1966b87c5d839133a2782d82ad3f",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "4fbb8e6a8395de5a7550b33509421a2bafbc0aab6c06ba2cef9ebffbc7092d90"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "LicenseRef-Ubuntu-Distribution-Mixed"
+        }
+      ],
+      "name": "ubuntu",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "OCI image"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "true"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "ubuntu:24.04@sha256:4fbb8e6a8395de5a7550b33509421a2bafbc0aab6c06ba2cef9ebffbc7092d90"
+        }
+      ],
+      "purl": "pkg:oci/ubuntu@24.04",
+      "type": "container",
+      "version": "24.04"
+    },
+    {
+      "bom-ref": "242bb60b4a066668e53de924696b724e57bcdf381eda86b30ba949ca4cf715c6",
+      "hashes": [
+        {
+          "alg": "SHA-1",
+          "content": "343b2c1793058fcc53c1bd7e2907f8e3a4d640fb"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "openapikit",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Swift package"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://github.com/mattpolzin/OpenAPIKit"
+        }
+      ],
+      "purl": "pkg:swift/openapikit@3.9.0",
+      "type": "library",
+      "version": "3.9.0"
+    },
+    {
+      "bom-ref": "47955d4e972329ae0144d414828f2769805c4030d31afa6a91a0682cbedb8114",
+      "hashes": [
+        {
+          "alg": "SHA-1",
+          "content": "592434a103a4d1ab83e14f87ac6eef569dd7a99d"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "runestone",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Swift package"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "true"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://github.com/simonbs/Runestone.git"
+        }
+      ],
+      "purl": "pkg:swift/runestone@0.5.2",
+      "type": "library",
+      "version": "0.5.2"
+    },
+    {
+      "bom-ref": "fef1701e329a74fac3384e1f6a25021b76f913e9ac1ffd97737955dc689bce7f",
+      "hashes": [
+        {
+          "alg": "SHA-1",
+          "content": "87e50f483c54e6efd60e885f7f5aa946cee68023"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "Apache-2.0"
+        }
+      ],
+      "name": "swift-algorithms",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Swift package"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://github.com/apple/swift-algorithms"
+        }
+      ],
+      "purl": "pkg:swift/swift-algorithms@1.2.1",
+      "type": "library",
+      "version": "1.2.1"
+    },
+    {
+      "bom-ref": "bc90d8e88207e69ec74eaeeaa2e4449538bab1aad9b209238bcf01c75ff16be2",
+      "hashes": [
+        {
+          "alg": "SHA-1",
+          "content": "6a52f3251125d74daf04fcbd5e6f08a75d074382"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "Apache-2.0"
+        }
+      ],
+      "name": "swift-argument-parser",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Swift package"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://github.com/apple/swift-argument-parser"
+        }
+      ],
+      "purl": "pkg:swift/swift-argument-parser@1.8.2",
+      "type": "library",
+      "version": "1.8.2"
+    },
+    {
+      "bom-ref": "24f182df14ef5e622bcf72f7f134bdddd4f97be307169a5e2b405472dba95d0e",
+      "hashes": [
+        {
+          "alg": "SHA-1",
+          "content": "a0cb0954ecb21e4e31b0070e6ed5674e8556685a"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "Apache-2.0"
+        }
+      ],
+      "name": "swift-collections",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Swift package"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://github.com/apple/swift-collections"
+        }
+      ],
+      "purl": "pkg:swift/swift-collections@1.6.0",
+      "type": "library",
+      "version": "1.6.0"
+    },
+    {
+      "bom-ref": "c0fc43237b9a018dff5ece2eb18576ebb86c7fe8c39fe190ebfe510f6afdea0f",
+      "hashes": [
+        {
+          "alg": "SHA-1",
+          "content": "647c708be89f834fa6a6d4945442793a77ddf5b6"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "Apache-2.0"
+        }
+      ],
+      "name": "swift-docc-plugin",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Swift package"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://github.com/apple/swift-docc-plugin"
+        }
+      ],
+      "purl": "pkg:swift/swift-docc-plugin@1.5.0",
+      "type": "library",
+      "version": "1.5.0"
+    },
+    {
+      "bom-ref": "85c51a6f5481e182975a99d6de3b80033541a91fe6edd01a640c4f627e634ebb",
+      "hashes": [
+        {
+          "alg": "SHA-1",
+          "content": "b45d1f2ed151d057b54504d653e0da5552844e34"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "Apache-2.0"
+        }
+      ],
+      "name": "swift-docc-symbolkit",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Swift package"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://github.com/swiftlang/swift-docc-symbolkit"
+        }
+      ],
+      "purl": "pkg:swift/swift-docc-symbolkit@1.0.0",
+      "type": "library",
+      "version": "1.0.0"
+    },
+    {
+      "bom-ref": "35265b8844446796f3853a3d632f158aa8356c9bb9f85d21a5b05aaaa4aa38c7",
+      "hashes": [
+        {
+          "alg": "SHA-1",
+          "content": "db774a277f60063a32d854f2980299caf06da041"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "Apache-2.0"
+        }
+      ],
+      "name": "swift-http-types",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Swift package"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://github.com/apple/swift-http-types"
+        }
+      ],
+      "purl": "pkg:swift/swift-http-types@1.6.0",
+      "type": "library",
+      "version": "1.6.0"
+    },
+    {
+      "bom-ref": "f87f1c1e05685c3cc17761e940624fdfe28e47a31752db4c6256d791e5276cbe",
+      "hashes": [
+        {
+          "alg": "SHA-1",
+          "content": "0c0290ff6b24942dadb83a929ffaaa1481df04a2"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "Apache-2.0"
+        }
+      ],
+      "name": "swift-numerics",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Swift package"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://github.com/apple/swift-numerics"
+        }
+      ],
+      "purl": "pkg:swift/swift-numerics@1.1.1",
+      "type": "library",
+      "version": "1.1.1"
+    },
+    {
+      "bom-ref": "51c4cdaca0506186a5125c1ba81c8f13d1fc3cec3fa95dc47e7e44fbac1b9fa4",
+      "hashes": [
+        {
+          "alg": "SHA-1",
+          "content": "73997cc62c2193d5046e431c9d546119dda14502"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "Apache-2.0"
+        }
+      ],
+      "name": "swift-openapi-generator",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Swift package"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "true"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://github.com/apple/swift-openapi-generator"
+        }
+      ],
+      "purl": "pkg:swift/swift-openapi-generator@1.11.1",
+      "type": "library",
+      "version": "1.11.1"
+    },
+    {
+      "bom-ref": "cd99688cee635a64f3b8db54c1f28cafbfbf2cb56f82b31ebcc078894a7aeca4",
+      "hashes": [
+        {
+          "alg": "SHA-1",
+          "content": "f039fa6d6338aab5164f3d1be16281524c9a8f89"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "Apache-2.0"
+        }
+      ],
+      "name": "swift-openapi-runtime",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Swift package"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "true"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://github.com/apple/swift-openapi-runtime"
+        }
+      ],
+      "purl": "pkg:swift/swift-openapi-runtime@1.11.0",
+      "type": "library",
+      "version": "1.11.0"
+    },
+    {
+      "bom-ref": "793d4aae209d8e4a37f612adb27ed3f7811e188b47ce3c85088737137720945e",
+      "hashes": [
+        {
+          "alg": "SHA-1",
+          "content": "849e8a4f3d6f79ddee07152400137f1370c32621"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "swiftterm",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Swift package"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "true"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://github.com/migueldeicaza/SwiftTerm.git"
+        }
+      ],
+      "purl": "pkg:swift/swiftterm@1.14.0",
+      "type": "library",
+      "version": "1.14.0"
+    },
+    {
+      "bom-ref": "708b293e6392390623ec6ed86882d4ac358fbe5e93d6f2856297791ef3bb2ea6",
+      "hashes": [
+        {
+          "alg": "SHA-1",
+          "content": "98be227227af10cc7a269cb3ffb23686c0610b17"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "tree-sitter",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Swift package"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://github.com/tree-sitter/tree-sitter"
+        }
+      ],
+      "purl": "pkg:swift/tree-sitter@0.20.9",
+      "type": "library",
+      "version": "0.20.9"
+    },
+    {
+      "bom-ref": "784809b3fbb96c3de1a5145c8c25d9eda6cd59bfcc217abc19a403faa05ffabb",
+      "hashes": [
+        {
+          "alg": "SHA-1",
+          "content": "15cf3a9ec3ab95e0d058b7df9f35619123c9e02d"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "treesitterlanguages",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Swift package"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "true"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://github.com/simonbs/TreeSitterLanguages.git"
+        }
+      ],
+      "purl": "pkg:swift/treesitterlanguages@0.1.10",
+      "type": "library",
+      "version": "0.1.10"
+    },
+    {
+      "bom-ref": "e778c2c987e7090595015cf82d28b6f7e4ea4503f0e96354c51527b9e9b915aa",
+      "hashes": [
+        {
+          "alg": "SHA-1",
+          "content": "a27b21e0c81c5bf42049b897a62aaf387e80f279"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "yams",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Swift package"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "false"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://github.com/jpsim/Yams"
+        }
+      ],
+      "purl": "pkg:swift/yams@6.2.2",
+      "type": "library",
+      "version": "6.2.2"
+    },
+    {
+      "bom-ref": "e43d22ed8ed5318597099eb5ec92be8467ca822c8f276593213747d60584378e",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "de113a9629011b5144b7f77a411aa6e3e12c9ccb31ba9308f2881ff5ab4d1a46"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MPL-2.0"
+        }
+      ],
+      "name": "registry.terraform.io/coder/coder",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Terraform provider"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "true"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://registry.terraform.io/coder/coder"
+        }
+      ],
+      "purl": "pkg:terraform/registry.terraform.io/coder/coder@2.18.0",
+      "type": "library",
+      "version": "2.18.0"
+    },
+    {
+      "bom-ref": "886c9fedfb3b01766aea349a241ee1b85397d09527b2b4d994f70fe2f1b6f446",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "7973ccc4d7198f3e600bb35cd6810f26576923a0796ed6ef95d8cb3a025035b2"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MPL-2.0"
+        }
+      ],
+      "name": "registry.terraform.io/kreuzwerker/docker",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Terraform provider"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "true"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "https://registry.terraform.io/kreuzwerker/docker"
+        }
+      ],
+      "purl": "pkg:terraform/registry.terraform.io/kreuzwerker/docker@4.5.0",
+      "type": "library",
+      "version": "4.5.0"
+    }
+  ],
+  "metadata": {
+    "component": {
+      "bom-ref": "codex-mobile-source",
+      "name": "codex-mobile",
+      "type": "application",
+      "version": "0.1.0-private-mvp"
+    },
+    "tools": {
+      "components": [
+        {
+          "name": "generate-supply-chain.py",
+          "type": "application",
+          "version": "1.0"
+        }
+      ]
+    }
+  },
+  "serialNumber": "urn:uuid:7030289c-4b8a-4251-bc07-ce08b546b4c0",
+  "specVersion": "1.6",
+  "version": 1
+}

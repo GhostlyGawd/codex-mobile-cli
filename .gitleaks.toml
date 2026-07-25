@@ -1,0 +1,16 @@
+title = "Codex Mobile secret-scanning policy"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Ignored local build, scanner, coverage, and Python cache output"
+condition = "AND"
+paths = ['''(?:^|[\\/])(?:tmp|artifacts|coverage|__pycache__)(?:[\\/]|$)''']
+
+[[allowlists]]
+description = "Deliberately invalid single-line PEM fixtures in preflight tests"
+condition = "AND"
+regexTarget = "line"
+paths = ['''infra/tests/test_infra_policy\.py''']
+regexes = ['''"(?:github_app|apns_(?:sandbox|production))_private_key":\s*"-----BEGIN PRIVATE KEY-----\\n(?:github|sandbox|production)\\n-----END PRIVATE KEY-----"''']

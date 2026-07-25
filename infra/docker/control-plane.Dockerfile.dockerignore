@@ -1,0 +1,9 @@
+**
+!go.work
+!go.work.sum
+!services/
+!services/control-plane/
+!services/control-plane/**
+!infra/
+!infra/docker/
+!infra/docker/http-healthcheck.go

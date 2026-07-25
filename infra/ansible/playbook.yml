@@ -1,0 +1,578 @@
+---
+- name: Harden an existing Ubuntu 24.04 host for Codex Mobile
+  hosts: all
+  become: true
+  gather_facts: true
+
+  vars:
+    codex_data_root: /srv/codex-mobile
+    codex_release_root: /opt/codex-mobile
+    codex_config_root: /etc/codex-mobile
+    codex_ssh_port: 22
+    codex_require_encrypted_data_mount: true
+    # Must be the exact findmnt SOURCE for codex_data_root. It is supplied to
+    # the Coder template as an administrator-managed variable; it is never
+    # guessed from a conventional /dev name.
+    codex_workspace_io_device: ""
+    coder_version: "2.34.6"
+    coder_architecture:
+      x86_64: amd64
+      aarch64: arm64
+    coder_sha256:
+      amd64: 091acfd4356ab2f02bcaf561928841e9aecc630a28bc9678658d4ae47632df09
+      arm64: d16b0f9393404e1d85669ec620aa90d2a0c10b1977c11c95e11b2d6b9bb0917d
+    codex_packages:
+      - apparmor
+      - apparmor-utils
+      - auditd
+      - ca-certificates
+      - chrony
+      - curl
+      - docker.io
+      - docker-compose-v2
+      - fail2ban
+      - jq
+      - needrestart
+      - openssl
+      - passt
+      - podman
+      - python3-yaml
+      - slirp4netns
+      - uidmap
+      - unattended-upgrades
+      - ufw
+      - xfsprogs
+
+  pre_tasks:
+    - name: Refuse any host other than explicitly confirmed Ubuntu 24.04
+      ansible.builtin.assert:
+        that:
+          - codex_confirm_existing_ubuntu_host | default('') == 'CONFIGURE_EXISTING_UBUNTU_24_04'
+          - ansible_facts.distribution == 'Ubuntu'
+          - ansible_facts.distribution_version is version('24.04', '>=')
+          - ansible_facts.distribution_version is version('25.04', '<')
+          - ansible_facts.architecture in coder_architecture
+          - codex_data_root == '/srv/codex-mobile'
+          - codex_release_root == '/opt/codex-mobile'
+          - codex_config_root == '/etc/codex-mobile'
+        fail_msg: >-
+          This automation only hardens an explicitly confirmed, existing Ubuntu
+          24.04 amd64/arm64 host at the fixed audited data, release, and config
+          roots. It does not provision a VPS.
+
+    - name: Validate SSH lockout-prevention inputs
+      ansible.builtin.assert:
+        that:
+          - codex_admin_users | default([]) | length > 0
+          - codex_ssh_admin_cidrs | default([]) | length > 0
+          - codex_admin_users | select('search', 'REPLACE') | list | length == 0
+          - codex_ssh_admin_cidrs | select('search', 'REPLACE') | list | length == 0
+          - codex_ssh_port | int >= 1
+          - codex_ssh_port | int <= 65535
+        fail_msg: Supply existing key-authenticated admin users and trusted SSH CIDRs.
+
+    - name: Read account database before changing SSH
+      ansible.builtin.getent:
+        database: passwd
+
+    - name: Confirm every allowed administrator already exists
+      ansible.builtin.assert:
+        that:
+          - item in ansible_facts.getent_passwd
+        fail_msg: "Admin account {{ item }} does not exist; refusing to change SSH."
+      loop: "{{ codex_admin_users }}"
+
+    - name: Inspect existing administrator authorized_keys
+      ansible.builtin.stat:
+        path: "{{ ansible_facts.getent_passwd[item][4] }}/.ssh/authorized_keys"
+      loop: "{{ codex_admin_users }}"
+      register: codex_admin_key_files
+
+    - name: Refuse SSH hardening unless every administrator has a public key
+      ansible.builtin.assert:
+        that:
+          - item.stat.exists
+          - item.stat.isreg
+          - item.stat.size | int > 0
+        fail_msg: "{{ item.item }} lacks a non-empty authorized_keys file."
+      loop: "{{ codex_admin_key_files.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+
+    - name: Inspect production data mount target
+      ansible.builtin.command:
+        argv:
+          - findmnt
+          - --noheadings
+          - --output
+          - TARGET
+          - --target
+          - "{{ codex_data_root }}"
+      register: codex_data_mount_target
+      changed_when: false
+
+    - name: Inspect production data filesystem type
+      ansible.builtin.command:
+        argv:
+          - findmnt
+          - --noheadings
+          - --output
+          - FSTYPE
+          - --target
+          - "{{ codex_data_root }}"
+      register: codex_data_filesystem
+      changed_when: false
+
+    - name: Inspect production data mount options
+      ansible.builtin.command:
+        argv:
+          - findmnt
+          - --noheadings
+          - --output
+          - OPTIONS
+          - --target
+          - "{{ codex_data_root }}"
+      register: codex_data_mount_options
+      changed_when: false
+
+    - name: Require operator-mounted XFS project-quota storage
+      ansible.builtin.assert:
+        that:
+          - (codex_data_mount_target.stdout | trim) == codex_data_root
+          - (codex_data_filesystem.stdout | trim) == 'xfs'
+          - >-
+            'pquota' in (codex_data_mount_options.stdout | trim).split(',') or
+            'prjquota' in (codex_data_mount_options.stdout | trim).split(',')
+        fail_msg: >-
+          Mount an operator-managed XFS filesystem at {{ codex_data_root }}
+          with pquota or prjquota before running this playbook. Podman volume
+          creation fails closed without XFS project quotas; this automation
+          never partitions or formats disks.
+
+    - name: Inspect production data mount source
+      ansible.builtin.command:
+        argv:
+          - findmnt
+          - --noheadings
+          - --output
+          - SOURCE
+          - --target
+          - "{{ codex_data_root }}"
+      register: codex_data_source
+      changed_when: false
+
+    - name: Require an explicit I/O throttle device matching the data mount
+      ansible.builtin.assert:
+        that:
+          - codex_workspace_io_device is match('^/dev/[A-Za-z0-9._/+:-]+$')
+          - codex_workspace_io_device == (codex_data_source.stdout | trim)
+        fail_msg: >-
+          Set codex_workspace_io_device to the exact findmnt SOURCE for
+          {{ codex_data_root }}. The workspace I/O policy refuses to guess a
+          host block device.
+
+    - name: Inspect production data block-device type
+      ansible.builtin.command:
+        argv:
+          - lsblk
+          - --noheadings
+          - --output
+          - TYPE
+          - "{{ codex_data_source.stdout | trim }}"
+      register: codex_data_block_type
+      changed_when: false
+      when: codex_require_encrypted_data_mount | bool
+
+    - name: Require an operator-mounted encrypted data volume in production
+      ansible.builtin.assert:
+        that:
+          - "'crypt' in (codex_data_block_type.stdout_lines | map('trim') | list)"
+        fail_msg: >-
+          {{ codex_data_root }} has no dm-crypt/LUKS layer in its block-device stack.
+          Mount an encrypted volume there, or explicitly disable this production
+          gate only for a disposable development host.
+      when: codex_require_encrypted_data_mount | bool
+
+  tasks:
+    - name: Install security, container, and operational packages
+      ansible.builtin.apt:
+        name: "{{ codex_packages }}"
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Apply all available package updates
+      ansible.builtin.apt:
+        upgrade: dist
+        autoremove: true
+
+    - name: Download package metadata and upgrades without unattended installation
+      ansible.builtin.copy:
+        dest: /etc/apt/apt.conf.d/52codex-mobile-unattended-upgrades
+        owner: root
+        group: root
+        mode: "0644"
+        content: |
+          APT::Periodic::Update-Package-Lists "1";
+          APT::Periodic::Download-Upgradeable-Packages "1";
+          APT::Periodic::Unattended-Upgrade "0";
+          APT::Periodic::AutocleanInterval "7";
+          Unattended-Upgrade::Automatic-Reboot "false";
+
+    - name: Create non-Docker deployment group
+      ansible.builtin.group:
+        name: codex-mobile
+        system: true
+
+    - name: Create non-root deployment account
+      ansible.builtin.user:
+        name: codex-deploy
+        group: codex-mobile
+        system: true
+        create_home: true
+        home: /var/lib/codex-mobile-deploy
+        shell: /bin/bash
+
+    - name: Allow administrators to stage signed releases without Docker access
+      ansible.builtin.user:
+        name: "{{ item }}"
+        groups: codex-mobile
+        append: true
+      loop: "{{ codex_admin_users }}"
+
+    - name: Create isolated external provisioner group
+      ansible.builtin.group:
+        name: coder-provisioner
+        system: true
+
+    - name: Create isolated external provisioner account
+      ansible.builtin.user:
+        name: coder-provisioner
+        group: coder-provisioner
+        system: true
+        create_home: false
+        home: "{{ codex_data_root }}/workspaces/.provisioner-home"
+        shell: /usr/sbin/nologin
+
+    - name: Create release and configuration directories
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        state: directory
+        owner: "{{ item.owner }}"
+        group: "{{ item.group }}"
+        mode: "{{ item.mode }}"
+      loop:
+        - { path: "{{ codex_release_root }}", owner: root, group: root, mode: "0755" }
+        - { path: "{{ codex_release_root }}/releases", owner: root, group: root, mode: "0755" }
+        - { path: "{{ codex_release_root }}/staging", owner: codex-deploy, group: codex-mobile, mode: "02770" }
+        - { path: "{{ codex_config_root }}", owner: root, group: root, mode: "0750" }
+        - { path: "{{ codex_config_root }}/secrets", owner: root, group: root, mode: "0700" }
+        - { path: /usr/local/libexec/codex-mobile, owner: root, group: root, mode: "0755" }
+
+    - name: Create persistent service directories
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        state: directory
+        owner: "{{ item.owner }}"
+        group: "{{ item.group }}"
+        mode: "{{ item.mode }}"
+      loop:
+        - { path: "{{ codex_data_root }}", owner: root, group: root, mode: "0755" }
+        - { path: "{{ codex_data_root }}/postgres", owner: "999", group: "999", mode: "0700" }
+        - { path: "{{ codex_data_root }}/coder", owner: "1000", group: "1000", mode: "0700" }
+        - { path: "{{ codex_data_root }}/caddy", owner: root, group: root, mode: "0755" }
+        - { path: "{{ codex_data_root }}/caddy/data", owner: "1000", group: "1000", mode: "0700" }
+        - { path: "{{ codex_data_root }}/caddy/config", owner: "1000", group: "1000", mode: "0700" }
+        - { path: "{{ codex_data_root }}/workspaces", owner: root, group: root, mode: "0711" }
+        - { path: "{{ codex_data_root }}/workspaces/.runtime-home", owner: root, group: root, mode: "0700" }
+        - { path: "{{ codex_data_root }}/workspaces/.containers", owner: root, group: root, mode: "0700" }
+        - { path: "{{ codex_data_root }}/workspaces/.networks", owner: root, group: root, mode: "0700" }
+        - { path: "{{ codex_data_root }}/workspaces/.provisioner-home", owner: coder-provisioner, group: coder-provisioner, mode: "0700" }
+        # Empty, non-sensitive mount on the same filesystem as Podman volumes.
+        # The control plane uses statfs here without access to workspace data.
+        - { path: "{{ codex_data_root }}/workspace-disk-probe", owner: root, group: root, mode: "0555" }
+        # Root-only operational backups and app-owned file checkpoints share no
+        # writable directory. The parent is traversable but not listable;
+        # each child remains private to its owning identity.
+        - { path: "{{ codex_data_root }}/checkpoints", owner: root, group: root, mode: "0711" }
+        - { path: "{{ codex_data_root }}/checkpoints/workspace-files", owner: "65532", group: "65532", mode: "0700" }
+        - { path: "{{ codex_data_root }}/logs", owner: root, group: adm, mode: "0750" }
+
+    - name: Install dedicated Podman storage policy
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../containers-storage.conf"
+        dest: "{{ codex_config_root }}/containers-storage.conf"
+        owner: root
+        group: root
+        mode: "0600"
+      notify: Restart workspace runtime
+
+    - name: Install dedicated Podman container defaults
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../containers.conf"
+        dest: "{{ codex_config_root }}/containers.conf"
+        owner: root
+        group: root
+        mode: "0600"
+      notify: Restart workspace runtime
+
+    - name: Detect existing Docker daemon configuration
+      ansible.builtin.stat:
+        path: /etc/docker/daemon.json
+      register: codex_docker_daemon_file
+
+    - name: Read existing Docker daemon configuration
+      ansible.builtin.slurp:
+        path: /etc/docker/daemon.json
+      register: codex_docker_daemon_raw
+      when: codex_docker_daemon_file.stat.exists
+
+    - name: Merge safe Docker daemon defaults
+      ansible.builtin.set_fact:
+        codex_docker_daemon: >-
+          {{
+            (codex_docker_daemon_raw.content | b64decode | from_json
+             if codex_docker_daemon_file.stat.exists else {})
+            | combine({
+                'live-restore': true,
+                'no-new-privileges': true,
+                'userland-proxy': false,
+                'log-driver': 'local',
+                'log-opts': {'max-size': '10m', 'max-file': '3'}
+              }, recursive=True)
+          }}
+
+    - name: Write merged Docker daemon configuration
+      ansible.builtin.copy:
+        dest: /etc/docker/daemon.json
+        owner: root
+        group: root
+        mode: "0644"
+        content: "{{ codex_docker_daemon | to_nice_json }}\n"
+        validate: /usr/bin/dockerd --validate --config-file=%s
+      notify: Restart Docker
+
+    - name: Configure host kernel security controls
+      ansible.builtin.copy:
+        dest: /etc/sysctl.d/60-codex-mobile.conf
+        owner: root
+        group: root
+        mode: "0644"
+        content: |
+          kernel.dmesg_restrict = 1
+          kernel.kptr_restrict = 2
+          kernel.unprivileged_bpf_disabled = 1
+          kernel.yama.ptrace_scope = 1
+          fs.protected_fifos = 2
+          fs.protected_hardlinks = 1
+          fs.protected_regular = 2
+          fs.protected_symlinks = 1
+          user.max_user_namespaces = 15000
+          net.ipv4.ip_forward = 1
+      notify: Reload sysctl
+
+    - name: Install exact Coder CLI archive
+      ansible.builtin.get_url:
+        url: >-
+          https://github.com/coder/coder/releases/download/v{{ coder_version }}/coder_{{ coder_version }}_linux_{{ coder_architecture[ansible_facts.architecture] }}.tar.gz
+        dest: "/var/tmp/coder-{{ coder_version }}.tar.gz"
+        owner: root
+        group: root
+        mode: "0600"
+        checksum: "sha256:{{ coder_sha256[coder_architecture[ansible_facts.architecture]] }}"
+
+    - name: Unpack exact Coder CLI
+      ansible.builtin.unarchive:
+        src: "/var/tmp/coder-{{ coder_version }}.tar.gz"
+        dest: /usr/local/bin
+        remote_src: true
+        include:
+          - coder
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Verify installed Coder CLI version
+      ansible.builtin.command: /usr/local/bin/coder version
+      register: codex_coder_version_output
+      changed_when: false
+      failed_when: coder_version not in codex_coder_version_output.stdout
+
+    - name: Install service wrappers and systemd units
+      ansible.builtin.copy:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+        owner: root
+        group: root
+        mode: "{{ item.mode }}"
+      loop:
+        - { src: "{{ playbook_dir }}/../systemd/start-provisioner.sh", dest: /usr/local/libexec/codex-mobile/start-provisioner, mode: "0755" }
+        - { src: "{{ playbook_dir }}/../systemd/verify-workspace-storage.sh", dest: /usr/local/libexec/codex-mobile/verify-workspace-storage, mode: "0755" }
+        - { src: "{{ playbook_dir }}/../systemd/ensure-workspace-control-network.py", dest: /usr/local/libexec/codex-mobile/ensure-workspace-control-network, mode: "0755" }
+        - { src: "{{ playbook_dir }}/../systemd/apply-docker-firewall.sh", dest: /usr/local/libexec/codex-mobile/apply-docker-firewall, mode: "0755" }
+        - { src: "{{ playbook_dir }}/../systemd/codex-mobile.service", dest: /etc/systemd/system/codex-mobile.service, mode: "0644" }
+        - { src: "{{ playbook_dir }}/../systemd/codex-mobile-docker-firewall.service", dest: /etc/systemd/system/codex-mobile-docker-firewall.service, mode: "0644" }
+        - { src: "{{ playbook_dir }}/../systemd/codex-mobile-workspace-runtime.service", dest: /etc/systemd/system/codex-mobile-workspace-runtime.service, mode: "0644" }
+        - { src: "{{ playbook_dir }}/../systemd/codex-mobile-provisioner.service", dest: /etc/systemd/system/codex-mobile-provisioner.service, mode: "0644" }
+      notify: Reload systemd
+
+    - name: Render SSH, intrusion, audit, and log policies
+      ansible.builtin.template:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+        owner: root
+        group: root
+        mode: "0644"
+      loop:
+        - { src: "{{ playbook_dir }}/../security/sshd-hardening.conf", dest: /etc/ssh/sshd_config.d/60-codex-mobile.conf }
+        - { src: "{{ playbook_dir }}/../fail2ban/jail.local", dest: /etc/fail2ban/jail.d/codex-mobile.local }
+        - { src: "{{ playbook_dir }}/../audit/codex-mobile.rules", dest: /etc/audit/rules.d/codex-mobile.rules }
+        - { src: "{{ playbook_dir }}/../logrotate/codex-mobile", dest: /etc/logrotate.d/codex-mobile }
+      notify:
+        - Validate and restart SSH
+        - Restart fail2ban
+        - Reload audit rules
+
+    - name: Pre-authorize the configured SSH port before restarting SSH
+      ansible.builtin.command: >-
+        /usr/sbin/ufw allow from {{ item }} to any port {{ codex_ssh_port }} proto tcp
+        comment 'Codex Mobile administrator SSH transition'
+      changed_when: true
+      loop: "{{ codex_ssh_admin_cidrs }}"
+
+    - name: Apply the rendered SSH and fail2ban configuration before replacing firewall rules
+      ansible.builtin.meta: flush_handlers
+
+    - name: Read effective hardened SSH configuration before changing the firewall
+      ansible.builtin.command: /usr/sbin/sshd -T
+      changed_when: false
+      register: codex_sshd_effective
+
+    - name: Require SSH to use the same configured port as the firewall and fail2ban
+      ansible.builtin.assert:
+        that:
+          - >-
+            ('port ' ~ (codex_ssh_port | int | string)) in
+            (codex_sshd_effective.stdout_lines | map('trim') | list)
+        fail_msg: >-
+          Effective sshd port does not match codex_ssh_port; refusing to replace
+          firewall rules.
+
+    - name: Confirm SSH is listening on the configured port before changing the firewall
+      ansible.builtin.shell: >-
+        set -o pipefail &&
+        /usr/bin/ss -H -ltn 'sport = :{{ codex_ssh_port | int }}' |
+        /usr/bin/grep -q .
+      args:
+        executable: /bin/bash
+      changed_when: false
+
+    - name: Disable firewall before replacing the dedicated-host policy
+      ansible.builtin.command: /usr/sbin/ufw --force disable
+      changed_when: true
+
+    - name: Remove stale firewall rules on the dedicated application host
+      ansible.builtin.command: /usr/sbin/ufw --force reset
+      changed_when: true
+
+    - name: Set deny-by-default firewall policy
+      ansible.builtin.command: "/usr/sbin/ufw default {{ item.policy }} {{ item.direction }}"
+      changed_when: true
+      loop:
+        - { direction: incoming, policy: deny }
+        - { direction: outgoing, policy: allow }
+        - { direction: routed, policy: deny }
+
+    - name: Restrict SSH to operator-approved source networks
+      ansible.builtin.command: >-
+        /usr/sbin/ufw allow from {{ item }} to any port {{ codex_ssh_port }} proto tcp
+        comment 'Codex Mobile administrator SSH'
+      changed_when: true
+      loop: "{{ codex_ssh_admin_cidrs }}"
+
+    - name: Allow public HTTPS ingress through Caddy
+      ansible.builtin.command: >-
+        /usr/sbin/ufw allow {{ item }}/tcp comment 'Codex Mobile Caddy'
+      changed_when: true
+      loop:
+        - "80"
+        - "443"
+
+    - name: Allow HTTP/3 ingress through Caddy
+      ansible.builtin.command: >-
+        /usr/sbin/ufw allow 443/udp comment 'Codex Mobile Caddy HTTP3'
+      changed_when: true
+
+    - name: Enable firewall after allow rules exist
+      ansible.builtin.command: /usr/sbin/ufw --force enable
+      changed_when: true
+
+    - name: Enable core security services
+      ansible.builtin.systemd_service:
+        name: "{{ item }}"
+        enabled: true
+        state: started
+      loop:
+        - apparmor
+        - auditd
+        - chrony
+        - docker
+        - fail2ban
+
+    - name: Enable Codex Mobile units without starting an unstaged release
+      ansible.builtin.systemd_service:
+        name: "{{ item }}"
+        enabled: true
+        daemon_reload: true
+      loop:
+        - codex-mobile.service
+        - codex-mobile-docker-firewall.service
+        - codex-mobile-workspace-runtime.service
+        - codex-mobile-provisioner.service
+
+  handlers:
+    - name: Restart Docker
+      ansible.builtin.systemd_service:
+        name: docker
+        state: restarted
+      notify: Apply Docker firewall
+
+    - name: Reload systemd
+      ansible.builtin.systemd_service:
+        daemon_reload: true
+
+    - name: Restart workspace runtime
+      ansible.builtin.systemd_service:
+        name: codex-mobile-workspace-runtime.service
+        state: restarted
+      failed_when: false
+
+    - name: Validate and restart SSH
+      ansible.builtin.command: /usr/sbin/sshd -t
+      changed_when: false
+      notify: Restart SSH
+
+    - name: Restart SSH
+      ansible.builtin.systemd_service:
+        name: ssh
+        state: restarted
+
+    - name: Restart fail2ban
+      ansible.builtin.systemd_service:
+        name: fail2ban
+        state: restarted
+
+    - name: Reload audit rules
+      ansible.builtin.command: /sbin/augenrules --load
+      changed_when: true
+
+    - name: Reload sysctl
+      ansible.builtin.command: /usr/sbin/sysctl --system
+      changed_when: true
+
+    - name: Apply Docker firewall
+      ansible.builtin.systemd_service:
+        name: codex-mobile-docker-firewall.service
+        state: restarted
+        daemon_reload: true
+      failed_when: false

@@ -1,0 +1,50 @@
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+.codex-mobile-development.env
+*.pem
+*.p8
+*.key
+*.p12
+*.cer
+*.mobileprovision
+*.ipa
+*.xcarchive/
+/secrets/
+/.secrets/
+/.data/
+
+# Go
+bin/
+coverage/
+*.coverprofile
+
+# Swift/Xcode
+.build/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+apps/ios/CodexMobile.xcodeproj/
+apps/ios/Config/Local.xcconfig
+
+# Generated reports and local state
+artifacts/
+tmp/
+.cache/
+.ruff_cache/
+__pycache__/
+*.py[cod]
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+data/
+*.db
+*.sqlite*
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

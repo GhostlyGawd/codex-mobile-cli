@@ -1,0 +1,7 @@
+-w /etc/codex-mobile -p wa -k codex_mobile_config
+-w /opt/codex-mobile/current -p wa -k codex_mobile_release
+-w /usr/local/libexec/codex-mobile -p wa -k codex_mobile_helpers
+-w /etc/systemd/system/codex-mobile.service -p wa -k codex_mobile_systemd
+-w /etc/systemd/system/codex-mobile-docker-firewall.service -p wa -k codex_mobile_systemd
+-w /etc/systemd/system/codex-mobile-provisioner.service -p wa -k codex_mobile_systemd
+-w /etc/systemd/system/codex-mobile-workspace-runtime.service -p wa -k codex_mobile_systemd

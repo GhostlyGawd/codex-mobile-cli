@@ -1,0 +1,60 @@
+[Unit]
+Description=Codex Mobile dedicated root-owned Podman workspace API
+Documentation=man:podman-system-service(1)
+Wants=network-online.target
+After=network-online.target
+RequiresMountsFor=/srv/codex-mobile/workspaces
+
+[Service]
+Type=simple
+User=root
+Group=coder-provisioner
+Environment=HOME=/srv/codex-mobile/workspaces/.runtime-home
+Environment=XDG_RUNTIME_DIR=/run/codex-mobile-podman
+Environment=CONTAINERS_STORAGE_CONF=/etc/codex-mobile/containers-storage.conf
+Environment=CONTAINERS_CONF=/etc/codex-mobile/containers.conf
+# Supplies only operator configuration (including the exact verified
+# WORKSPACE_IO_DEVICE); credential values remain separate file secrets.
+EnvironmentFile=/etc/codex-mobile/production.env
+RuntimeDirectory=codex-mobile-podman
+RuntimeDirectoryMode=0710
+UMask=0007
+ExecStartPre=/usr/local/libexec/codex-mobile/verify-workspace-storage
+ExecStartPre=/usr/local/libexec/codex-mobile/ensure-workspace-control-network
+ExecStart=/usr/bin/podman --network-config-dir=/srv/codex-mobile/workspaces/.networks system service --time=0 unix:///run/codex-mobile-podman/podman.sock
+ExecStartPost=/usr/bin/chgrp coder-provisioner /run/codex-mobile-podman/podman.sock
+ExecStartPost=/usr/bin/chmod 0660 /run/codex-mobile-podman/podman.sock
+ExecStartPost=/usr/bin/test -S /run/codex-mobile-podman/podman.sock
+Restart=on-failure
+RestartSec=5s
+TimeoutStartSec=60s
+Delegate=yes
+
+# This root-owned engine is a narrow exception required for Podman's XFS
+# project-quota volume options. Its API grants root-equivalent host authority,
+# so the Unix socket is private to the unprivileged provisioner group and is
+# never mounted into Coder or workspace containers. Container resources retain
+# private user namespaces, non-root interactive users, capability drops,
+# no-new-privileges, AppArmor, seccomp, and no host paths/devices.
+# Podman must stat the exact operator-verified block device in order to map the
+# template's BPS/IOPS rules to a cgroup major:minor. Keep the host device nodes
+# visible for metadata lookup, but deny opens through the parent device cgroup;
+# workspaces receive no device mounts and cannot relax this parent policy.
+PrivateDevices=no
+DevicePolicy=closed
+PrivateTmp=yes
+ProtectHome=yes
+ProtectSystem=strict
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectClock=yes
+ProtectControlGroups=no
+LockPersonality=yes
+RestrictRealtime=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK AF_PACKET
+SystemCallArchitectures=native
+ReadWritePaths=/srv/codex-mobile/workspaces /run/codex-mobile-podman
+
+[Install]
+WantedBy=multi-user.target

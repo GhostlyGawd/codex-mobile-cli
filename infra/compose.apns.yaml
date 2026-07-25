@@ -1,0 +1,22 @@
+# Selected automatically by scripts/infra-compose.sh only when
+# APNS_ENABLED=true. TestFlight uses production APNs, while the sandbox key is
+# retained for owner-controlled development builds.
+services:
+  control-plane:
+    environment:
+      APNS_ENABLED: "true"
+      APNS_TEAM_ID: "${APNS_TEAM_ID:?set APNS_TEAM_ID when APNs is enabled}"
+      APNS_KEY_ID_SANDBOX: "${APNS_KEY_ID_SANDBOX:?set APNS_KEY_ID_SANDBOX when APNs is enabled}"
+      APNS_KEY_ID_PRODUCTION: "${APNS_KEY_ID_PRODUCTION:?set APNS_KEY_ID_PRODUCTION when APNs is enabled}"
+      IOS_BUNDLE_ID: "${IOS_BUNDLE_ID:?set IOS_BUNDLE_ID when APNs is enabled}"
+      APNS_SANDBOX_PRIVATE_KEY_FILE: "${APNS_SANDBOX_PRIVATE_KEY_FILE:-/run/secrets/apns_sandbox_private_key}"
+      APNS_PRODUCTION_PRIVATE_KEY_FILE: "${APNS_PRODUCTION_PRIVATE_KEY_FILE:-/run/secrets/apns_production_private_key}"
+    secrets:
+      - apns_sandbox_private_key
+      - apns_production_private_key
+
+secrets:
+  apns_sandbox_private_key:
+    file: ${SECRETS_DIR:?set SECRETS_DIR}/apns_sandbox_private_key
+  apns_production_private_key:
+    file: ${SECRETS_DIR:?set SECRETS_DIR}/apns_production_private_key

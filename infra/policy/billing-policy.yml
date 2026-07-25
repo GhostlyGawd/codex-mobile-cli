@@ -1,0 +1,62 @@
+schema_version: 1
+
+new_recurring_bills:
+  maximum: 1
+  only_allowed_kind: fixed_price_monthly_vps
+  minimum_monthly_price_usd: 25
+  maximum_monthly_price_usd: 75
+  required_confirmations:
+    - VPS_FIXED_PRICE_CONFIRMED
+    - VPS_INCLUDED_BACKUP_CONFIRMED
+    - VPS_NO_AUTOMATIC_OVERAGE_CONFIRMED
+
+allowed_runtime_services:
+  - caddy
+  - postgres
+  - coder
+  - control-plane
+
+allowed_terraform_providers:
+  - coder
+  - docker
+
+allowed_terraform_resource_prefixes:
+  - coder_
+  - docker_
+
+# These are deployment-system indicators, not prose matches. The checker
+# examines active Terraform blocks, Compose services, and exact manifest names.
+forbidden_deployment_manifests:
+  - app.yaml
+  - azuredeploy.json
+  - cloudbuild.yaml
+  - fly.toml
+  - netlify.toml
+  - railway.json
+  - render.yaml
+  - serverless.yml
+  - vercel.json
+
+forbidden_paid_runtime_environment:
+  - AWS_ACCESS_KEY_ID
+  - AZURE_CLIENT_SECRET
+  - DIGITALOCEAN_ACCESS_TOKEN
+  - FLY_API_TOKEN
+  - GOOGLE_APPLICATION_CREDENTIALS
+  - OPENAI_API_KEY
+  - RENDER_API_KEY
+  - STRIPE_SECRET_KEY
+  - VERCEL_TOKEN
+
+forbidden_provisioning_commands:
+  - aws
+  - az
+  - doctl
+  - flyctl
+  - gcloud
+  - hcloud
+  - linode-cli
+  - pulumi
+  - terraform apply
+  - vercel
+  - vultr-cli

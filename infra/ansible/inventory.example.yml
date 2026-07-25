@@ -1,0 +1,27 @@
+all:
+  hosts:
+    codex-mobile-vps:
+      ansible_host: REPLACE_WITH_EXISTING_VPS_IP
+      ansible_user: REPLACE_WITH_EXISTING_ADMIN_USER
+  vars:
+    # Deliberately awkward confirmation: this playbook configures an existing
+    # Ubuntu host. It never creates, resizes, or buys a server.
+    codex_confirm_existing_ubuntu_host: "CONFIGURE_EXISTING_UBUNTU_24_04"
+    codex_admin_users:
+      - REPLACE_WITH_EXISTING_ADMIN_USER
+    codex_ssh_admin_cidrs:
+      - REPLACE_WITH_ADMIN_IP_OR_VPN_CIDR
+    codex_ssh_port: 22
+
+    # Production should keep this true and mount an operator-managed encrypted
+    # XFS volume at the data root with pquota or prjquota before running the
+    # playbook. The playbook will not partition or format disks.
+    codex_require_encrypted_data_mount: true
+    # Exact output of: findmnt -n -o SOURCE --target /srv/codex-mobile
+    # The playbook rejects conventional-name guesses and mismatches.
+    codex_workspace_io_device: REPLACE_WITH_EXACT_DATA_MOUNT_SOURCE
+    # These roots are an audited fixed production contract; the playbook
+    # rejects overrides because systemd, log, audit, and recovery paths share it.
+    codex_data_root: /srv/codex-mobile
+    codex_release_root: /opt/codex-mobile
+    codex_config_root: /etc/codex-mobile

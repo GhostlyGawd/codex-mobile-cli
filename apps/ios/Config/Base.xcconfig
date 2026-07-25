@@ -1,0 +1,12 @@
+// Safe, non-production defaults. Override these in Config/Local.xcconfig, which is ignored.
+APP_DISPLAY_NAME = Codex Mobile
+IOS_BUNDLE_ID = com.example.CodexMobile
+APPLE_TEAM_ID =
+API_BASE_URL = https:/$()/api.codex.invalid
+PASSKEY_RP_ID = codex.invalid
+PREVIEW_HOST_SUFFIX = .preview.codex.invalid
+APNS_ENVIRONMENT = development
+
+IPHONEOS_DEPLOYMENT_TARGET = 17.0
+SWIFT_VERSION = 6.0
+ENABLE_BITCODE = NO

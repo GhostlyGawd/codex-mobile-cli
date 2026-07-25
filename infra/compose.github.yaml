@@ -1,0 +1,24 @@
+# Selected automatically by scripts/infra-compose.sh only when
+# GITHUB_ENABLED=true. Keeping it separate lets the default/local stack start
+# without owner-created GitHub App credentials.
+services:
+  control-plane:
+    environment:
+      GITHUB_ENABLED: "true"
+      GITHUB_APP_ID: "${GITHUB_APP_ID:?set GITHUB_APP_ID when GitHub is enabled}"
+      GITHUB_CLIENT_ID: "${GITHUB_CLIENT_ID:?set GITHUB_CLIENT_ID when GitHub is enabled}"
+      GITHUB_CLIENT_SECRET_FILE: "${GITHUB_CLIENT_SECRET_FILE:-/run/secrets/github_client_secret}"
+      GITHUB_WEBHOOK_SECRET_FILE: "${GITHUB_WEBHOOK_SECRET_FILE:-/run/secrets/github_webhook_secret}"
+      GITHUB_APP_PRIVATE_KEY_FILE: "${GITHUB_APP_PRIVATE_KEY_FILE:-/run/secrets/github_app_private_key}"
+    secrets:
+      - github_client_secret
+      - github_webhook_secret
+      - github_app_private_key
+
+secrets:
+  github_client_secret:
+    file: ${SECRETS_DIR:?set SECRETS_DIR}/github_client_secret
+  github_webhook_secret:
+    file: ${SECRETS_DIR:?set SECRETS_DIR}/github_webhook_secret
+  github_app_private_key:
+    file: ${SECRETS_DIR:?set SECRETS_DIR}/github_app_private_key

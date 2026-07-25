@@ -1,0 +1,8 @@
+golang 1.26.5
+python 3.12.10
+xcodegen 2.45.4
+syft 1.46.0
+trivy 0.72.0
+gitleaks 8.30.1
+go-licenses 2.0.1
+govulncheck 1.6.0

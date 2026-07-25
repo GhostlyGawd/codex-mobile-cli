@@ -1,0 +1,32 @@
+[Unit]
+Description=Codex Mobile Docker forwarding firewall
+Documentation=man:iptables(8)
+After=docker.service
+Requires=docker.service
+Before=codex-mobile.service
+ConditionPathExists=/etc/codex-mobile/production.env
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+EnvironmentFile=/etc/codex-mobile/production.env
+ExecStart=/usr/local/libexec/codex-mobile/apply-docker-firewall
+ExecReload=/usr/local/libexec/codex-mobile/apply-docker-firewall
+ExecStop=/usr/local/libexec/codex-mobile/apply-docker-firewall --remove
+NoNewPrivileges=yes
+CapabilityBoundingSet=CAP_NET_ADMIN
+AmbientCapabilities=CAP_NET_ADMIN
+PrivateDevices=yes
+PrivateTmp=yes
+ProtectHome=yes
+ProtectSystem=strict
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectClock=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_NETLINK
+SystemCallArchitectures=native
+
+[Install]
+WantedBy=multi-user.target

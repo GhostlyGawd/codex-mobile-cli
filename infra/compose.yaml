@@ -1,0 +1,306 @@
+name: codex-mobile
+
+x-service-security: &service-security
+  cap_drop:
+    - ALL
+  security_opt:
+    - no-new-privileges:true
+  init: true
+  restart: unless-stopped
+  logging:
+    driver: local
+    options:
+      max-size: 10m
+      max-file: "5"
+
+services:
+  # Exact upstream pins were checked against their official release/image pages
+  # on 2026-07-15. PostgreSQL 18.4 is the current stable official-image minor:
+  # https://hub.docker.com/_/postgres
+  postgres:
+    <<: *service-security
+    image: postgres:18.4-bookworm@sha256:1961f96e6029a02c3812d7cb329a3b03a3ac2bb067058dec17b0f5596aca9296
+    read_only: true
+    # The official entrypoint starts as root only long enough to initialize the
+    # bind-mounted database and drop to postgres. No runtime/network capability
+    # is granted.
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
+    shm_size: 256m
+    environment:
+      POSTGRES_USER: ${POSTGRES_ADMIN_USER:-codex_bootstrap_admin}
+      POSTGRES_DB: postgres
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_admin_password
+      PGDATA: /var/lib/postgresql/18/docker
+      APP_DB_USER: ${APP_DB_USER:-codex_app}
+      APP_DB_NAME: ${APP_DB_NAME:-codex_app}
+      APP_DB_PASSWORD_FILE: /run/secrets/app_db_password
+      CODER_DB_USER: ${CODER_DB_USER:-coder}
+      CODER_DB_NAME: ${CODER_DB_NAME:-coder}
+      CODER_DB_PASSWORD_FILE: /run/secrets/coder_db_password
+    secrets:
+      - postgres_admin_password
+      - app_db_password
+      - coder_db_password
+    volumes:
+      - type: bind
+        source: ${DATA_ROOT:-./.data}/postgres
+        target: /var/lib/postgresql
+      - type: bind
+        source: ./postgres/init
+        target: /docker-entrypoint-initdb.d
+        read_only: true
+    tmpfs:
+      - /tmp:rw,nosuid,nodev,noexec,size=64m
+      - /run/postgresql:rw,nosuid,nodev,noexec,size=16m,uid=999,gid=999
+    networks:
+      - data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -q -U "$${POSTGRES_USER}" -d postgres
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    stop_grace_period: 60s
+
+  # Coder Community v2.34.6: https://github.com/coder/coder/releases/tag/v2.34.6
+  # It is deliberately unreachable through Caddy. The optional host publish is
+  # loopback by default and may only be changed to an RFC1918 address after the
+  # host preflight validates it for workspace-agent connectivity.
+  coder:
+    <<: *service-security
+    image: ghcr.io/coder/coder:v2.34.6@sha256:0ac9c07e9ff18ea9fecb07c08da838a032352e2b95c5fcd3bf279297cff1808a
+    read_only: true
+    entrypoint:
+      - /bin/sh
+      - /opt/codex-mobile/start-coder.sh
+    environment:
+      CODER_HTTP_ADDRESS: 0.0.0.0:7080
+      CODER_ACCESS_URL: ${CODER_ACCESS_URL:-http://coder:7080}
+      CODER_PG_HOST: postgres
+      CODER_PG_PORT: "5432"
+      CODER_PG_USER: ${CODER_DB_USER:-coder}
+      CODER_PG_DATABASE: ${CODER_DB_NAME:-coder}
+      CODER_PG_PASSWORD_FILE: /run/secrets/coder_db_password
+      CODER_PROVISIONER_DAEMONS: "0"
+      CODER_TELEMETRY_ENABLE: "false"
+      CODER_UPDATE_CHECK: "false"
+      CODER_SWAGGER_ENABLE: "false"
+      CODER_DANGEROUS_ALLOW_PATH_APP_SHARING: "false"
+      CODER_DANGEROUS_ALLOW_PATH_APP_SITE_OWNER_ACCESS: "false"
+      CODER_MAX_ADMIN_TOKEN_LIFETIME: 168h
+      CODER_MAX_TOKEN_LIFETIME: 168h
+      CODER_PROMETHEUS_ENABLE: "true"
+      CODER_PROMETHEUS_ADDRESS: 0.0.0.0:2112
+    secrets:
+      - coder_db_password
+    volumes:
+      - type: bind
+        source: ${DATA_ROOT:-./.data}/coder
+        target: /home/coder
+      - type: bind
+        source: ./coder/start-coder.sh
+        target: /opt/codex-mobile/start-coder.sh
+        read_only: true
+    tmpfs:
+      - /tmp:rw,nosuid,nodev,noexec,size=256m,uid=1000,gid=1000
+    expose:
+      - "7080"
+      - "2112"
+    ports:
+      - ${CODER_BIND_ADDRESS:-127.0.0.1}:${CODER_BIND_PORT:-7080}:7080
+    networks:
+      - data
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - --fail
+        - --silent
+        - --show-error
+        - --max-time
+        - "5"
+        - http://127.0.0.1:7080/healthz
+      interval: 10s
+      timeout: 6s
+      retries: 12
+      start_period: 30s
+    stop_grace_period: 45s
+
+  control-plane:
+    <<: *service-security
+    image: localhost/codex-mobile/control-plane:${CONTROL_PLANE_IMAGE_TAG:-local-2026-07-15}
+    pull_policy: never
+    build:
+      context: ..
+      dockerfile: infra/docker/control-plane.Dockerfile
+      args:
+        GO_VERSION: "1.26.5"
+        CONTROL_PLANE_PACKAGE: ${CONTROL_PLANE_PACKAGE:-./services/control-plane/cmd/control-plane}
+    user: "65532:65532"
+    read_only: true
+    environment:
+      APP_ENV: ${APP_ENV:-development}
+      HTTP_ADDR: :8080
+      METRICS_ADDR: 127.0.0.1:9090
+      PUBLIC_ORIGIN: ${PUBLIC_ORIGIN:-http://localhost}
+      PASSKEY_RP_ID: ${PASSKEY_RP_ID:-localhost}
+      PASSKEY_ORIGINS: ${PASSKEY_ORIGINS:-http://localhost}
+      DATABASE_URL_FILE: /run/secrets/app_database_url
+      CODER_URL: http://coder:7080
+      CODER_TOKEN_FILE: /run/secrets/coder_api_token
+      CODER_ORGANIZATION_ID: ${CODER_ORGANIZATION_ID:-REPLACE_ME}
+      CODER_TEMPLATE_ID: ${CODER_TEMPLATE_ID:-REPLACE_ME}
+      CODER_OWNER_ID: ${CODER_OWNER_ID:-me}
+      # Empty bind mount on the workspace-volume filesystem; the service can
+      # measure free blocks without seeing any workspace data.
+      WORKSPACE_DISK_PROBE_PATH: /workspace-disk-probe
+      CHECKPOINT_ROOT: /checkpoints
+      CHECKPOINT_INTERVAL: ${CHECKPOINT_INTERVAL:-15m}
+      CHECKPOINT_RETENTION: ${CHECKPOINT_RETENTION:-720h}
+      CHECKPOINT_MAX_WORKSPACE_BYTES: ${CHECKPOINT_MAX_WORKSPACE_BYTES:-536870912}
+      CHECKPOINT_MAX_COUNT: ${CHECKPOINT_MAX_COUNT:-128}
+      MAINTENANCE_ENABLED: ${MAINTENANCE_ENABLED:-true}
+      MAINTENANCE_WEEKDAY: ${MAINTENANCE_WEEKDAY:-Sunday}
+      MAINTENANCE_HOUR_UTC: ${MAINTENANCE_HOUR_UTC:-4}
+      MAINTENANCE_WARNING_LEAD: ${MAINTENANCE_WARNING_LEAD:-24h}
+      MAINTENANCE_URGENT_WARNING_LEAD: ${MAINTENANCE_URGENT_WARNING_LEAD:-5m}
+      MAINTENANCE_SCAN_INTERVAL: ${MAINTENANCE_SCAN_INTERVAL:-1m}
+      MAX_RUNNING_WORKSPACES: "10"
+      MASTER_KEY_FILE: /run/secrets/control_plane_master_key
+      SESSION_PEPPER_FILE: /run/secrets/session_pepper
+      GITHUB_ENABLED: ${GITHUB_ENABLED:-false}
+      GITHUB_APP_ID: ${GITHUB_APP_ID:-}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
+      APNS_ENABLED: ${APNS_ENABLED:-false}
+      APNS_TEAM_ID: ${APNS_TEAM_ID:-}
+      APNS_KEY_ID_SANDBOX: ${APNS_KEY_ID_SANDBOX:-}
+      APNS_KEY_ID_PRODUCTION: ${APNS_KEY_ID_PRODUCTION:-}
+      IOS_BUNDLE_ID: ${IOS_BUNDLE_ID:-}
+      BASE_DOMAIN: ${BASE_DOMAIN:-localhost}
+      API_HOST: ${API_HOST:-localhost}
+      PREVIEW_DOMAIN: ${PREVIEW_DOMAIN:-preview.localhost}
+    secrets:
+      - app_database_url
+      - coder_api_token
+      - control_plane_master_key
+      - session_pepper
+    volumes:
+      - type: bind
+        source: ${DATA_ROOT:-./.data}/workspace-disk-probe
+        target: /workspace-disk-probe
+        read_only: true
+      - type: bind
+        source: ${DATA_ROOT:-./.data}/checkpoints/workspace-files
+        target: /checkpoints
+    tmpfs:
+      - /tmp:rw,nosuid,nodev,noexec,size=128m,uid=65532,gid=65532
+    expose:
+      - "8080"
+    networks:
+      - edge
+      - data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      coder:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - /usr/local/bin/http-healthcheck
+        - http://127.0.0.1:8080/healthz
+      interval: 10s
+      timeout: 6s
+      retries: 12
+      start_period: 20s
+    stop_grace_period: 45s
+
+  # Caddy 2.11.4: https://github.com/caddyserver/caddy/releases/tag/v2.11.4
+  # This is the only public entry point. Defaults bind to host loopback.
+  caddy:
+    <<: *service-security
+    image: caddy:2.11.4-alpine@sha256:5f5c8640aae01df9654968d946d8f1a56c497f1dd5c5cda4cf95ab7c14d58648
+    user: "1000:1000"
+    read_only: true
+    cap_add:
+      - NET_BIND_SERVICE
+    environment:
+      API_HOST: ${API_HOST:-localhost}
+      API_SITE_ADDRESS: ${API_SITE_ADDRESS:-http://localhost}
+      PREVIEW_DOMAIN: ${PREVIEW_DOMAIN:-preview.localhost}
+      PREVIEW_SITE_ADDRESS: ${PREVIEW_SITE_ADDRESS:-http://*.preview.localhost}
+    volumes:
+      - type: bind
+        source: ./caddy/Caddyfile
+        target: /etc/caddy/Caddyfile
+        read_only: true
+      - type: bind
+        source: ${DATA_ROOT:-./.data}/caddy/data
+        target: /data
+      - type: bind
+        source: ${DATA_ROOT:-./.data}/caddy/config
+        target: /config
+    tmpfs:
+      - /tmp:rw,nosuid,nodev,noexec,size=64m,uid=1000,gid=1000
+    ports:
+      - ${PUBLIC_BIND_ADDRESS:-127.0.0.1}:${PUBLIC_HTTP_PORT:-80}:80/tcp
+      - ${PUBLIC_BIND_ADDRESS:-127.0.0.1}:${PUBLIC_HTTPS_PORT:-443}:443/tcp
+      - ${PUBLIC_BIND_ADDRESS:-127.0.0.1}:${PUBLIC_HTTPS_PORT:-443}:443/udp
+    networks:
+      - edge
+    depends_on:
+      control-plane:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - caddy
+        - validate
+        - --config
+        - /etc/caddy/Caddyfile
+        - --adapter
+        - caddyfile
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    stop_grace_period: 30s
+
+networks:
+  # Egress-capable because Caddy needs ACME and the control plane needs GitHub
+  # and APNs. No container port is published from this bridge except Caddy.
+  edge:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: cm-edge0
+  # Database, Coder API, metrics, and admin surfaces cannot route off-host.
+  data:
+    driver: bridge
+    internal: true
+    driver_opts:
+      com.docker.network.bridge.name: cm-data0
+
+secrets:
+  postgres_admin_password:
+    file: ${SECRETS_DIR:-./.secrets}/postgres_admin_password
+  app_db_password:
+    file: ${SECRETS_DIR:-./.secrets}/app_db_password
+  coder_db_password:
+    file: ${SECRETS_DIR:-./.secrets}/coder_db_password
+  app_database_url:
+    file: ${SECRETS_DIR:-./.secrets}/app_database_url
+  coder_api_token:
+    file: ${SECRETS_DIR:-./.secrets}/coder_api_token
+  control_plane_master_key:
+    file: ${SECRETS_DIR:-./.secrets}/control_plane_master_key
+  session_pepper:
+    file: ${SECRETS_DIR:-./.secrets}/session_pepper

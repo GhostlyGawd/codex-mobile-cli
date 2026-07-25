@@ -1,0 +1,13 @@
+misconfigurations:
+  - id: AVD-DS-0002
+    paths:
+      - "infra/workspace/EnvBuilder.Dockerfile"
+    statement: >-
+      EnvBuilder must initially run as root inside a private user namespace on
+      the dedicated Podman runtime to construct the approved Dev Container
+      filesystem and then switch to the declared target user. The container
+      drops all capabilities except the fixed filesystem/user-switch set,
+      blocks privilege escalation, has AppArmor/seccomp confinement, exposes no
+      engine socket or host path, and never runs privileged. The root-owned
+      engine exists only to enforce XFS project quotas and is outside this
+      container. This exception does not apply to the normal workspace image.

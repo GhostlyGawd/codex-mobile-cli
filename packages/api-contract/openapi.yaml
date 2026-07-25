@@ -1,0 +1,1313 @@
+openapi: 3.1.0
+info:
+  title: Codex Mobile Control Plane API
+  version: 0.1.0
+  description: >-
+    Owner-only API for the Codex Mobile control plane. JSON keys are snake_case,
+    timestamps are RFC 3339, and terminal bytes use terminal-v1.md rather than JSON.
+servers:
+  - url: https://api.codex.example.com
+    description: Owner-configured production endpoint
+tags:
+  - {name: Auth}
+  - {name: Repositories}
+  - {name: Workspaces}
+  - {name: Terminal}
+  - {name: Files}
+  - {name: Git}
+  - {name: Checkpoints}
+  - {name: Activity}
+  - {name: Previews}
+  - {name: Maintenance}
+  - {name: Diagnostics}
+  - {name: Settings}
+  - {name: Secrets}
+  - {name: Connections}
+paths:
+  /v1/capabilities:
+    get:
+      operationId: getCapabilities
+      security: []
+      responses:
+        '200': {description: Public capability flags, content: {application/json: {schema: {$ref: '#/components/schemas/ClientCapabilities'}}}}
+  /v1/auth/passkeys/registration/options:
+    post:
+      operationId: beginPasskeyRegistration
+      tags: [Auth]
+      security: []
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/BootstrapRegistrationRequest'}}}}
+      responses:
+        '200': {description: Registration ceremony, content: {application/json: {schema: {$ref: '#/components/schemas/PasskeyRegistrationChallenge'}}}}
+        default: {$ref: '#/components/responses/Problem'}
+  /v1/auth/passkeys/registration/verify:
+    post:
+      operationId: finishPasskeyRegistration
+      tags: [Auth]
+      security: []
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/PasskeyRegistrationCredential'}}}}
+      responses:
+        '200': {description: New device session, content: {application/json: {schema: {$ref: '#/components/schemas/SessionTokens'}}}}
+        default: {$ref: '#/components/responses/Problem'}
+  /v1/auth/passkeys/authentication/options:
+    post:
+      operationId: beginPasskeyAuthentication
+      tags: [Auth]
+      security: []
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/DeviceIdentityRequest'}}}}
+      responses:
+        '200': {description: Authentication ceremony, content: {application/json: {schema: {$ref: '#/components/schemas/PasskeyAuthenticationChallenge'}}}}
+        default: {$ref: '#/components/responses/Problem'}
+  /v1/auth/passkeys/authentication/verify:
+    post:
+      operationId: finishPasskeyAuthentication
+      tags: [Auth]
+      security: []
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/PasskeyAssertionCredential'}}}}
+      responses:
+        '200': {description: New device session, content: {application/json: {schema: {$ref: '#/components/schemas/SessionTokens'}}}}
+        default: {$ref: '#/components/responses/Problem'}
+  /v1/passkeys/registration/options:
+    post:
+      operationId: beginAdditionalPasskeyRegistration
+      tags: [Auth]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/DeviceIdentityRequest'}}}}
+      responses:
+        '200': {description: Authenticated registration ceremony excluding existing credentials, content: {application/json: {schema: {$ref: '#/components/schemas/PasskeyRegistrationChallenge'}}}}
+        default: {$ref: '#/components/responses/Problem'}
+  /v1/passkeys/registration/verify:
+    post:
+      operationId: finishAdditionalPasskeyRegistration
+      tags: [Auth]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/PasskeyRegistrationCredential'}}}}
+      responses:
+        '201': {description: Additional passkey metadata, content: {application/json: {schema: {$ref: '#/components/schemas/PasskeyMetadata'}}}}
+        default: {$ref: '#/components/responses/Problem'}
+  /v1/passkeys:
+    get:
+      operationId: listPasskeys
+      tags: [Settings]
+      responses:
+        '200': {description: Owner passkey metadata; public keys and credential material are never returned, content: {application/json: {schema: {type: array, maxItems: 20, items: {$ref: '#/components/schemas/PasskeyMetadata'}}}}}
+        default: {$ref: '#/components/responses/Problem'}
+  /v1/passkeys/{credential_id}:
+    parameters:
+      - {name: credential_id, in: path, required: true, schema: {$ref: '#/components/schemas/PasskeyCredentialID'}}
+    delete:
+      operationId: revokePasskey
+      tags: [Settings]
+      responses:
+        '204': {description: Owner passkey revoked idempotently; the final passkey cannot be revoked}
+        default: {$ref: '#/components/responses/Problem'}
+  /v1/auth/session/refresh:
+    post:
+      operationId: refreshSession
+      tags: [Auth]
+      security: []
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/RefreshSessionRequest'}}}}
+      responses:
+        '200': {description: Rotated token family, content: {application/json: {schema: {$ref: '#/components/schemas/SessionTokens'}}}}
+        default: {$ref: '#/components/responses/Problem'}
+  /v1/auth/session:
+    delete:
+      operationId: revokeCurrentSession
+      tags: [Auth]
+      responses:
+        '204': {description: Session and refresh family revoked}
+        default: {$ref: '#/components/responses/Problem'}
+  /v1/devices:
+    get:
+      operationId: listDevices
+      tags: [Settings]
+      responses:
+        '200': {description: Active app installations, content: {application/json: {schema: {type: array, maxItems: 128, items: {$ref: '#/components/schemas/DeviceSummary'}}}}}
+        default: {$ref: '#/components/responses/Problem'}
+  /v1/devices/{device_id}:
+    parameters:
+      - {name: device_id, in: path, required: true, schema: {$ref: '#/components/schemas/Identifier'}}
+    delete:
+      operationId: revokeDevice
+      tags: [Settings]
+      responses:
+        '204': {description: Device sessions and push endpoints revoked idempotently}
+        default: {$ref: '#/components/responses/Problem'}
+  /v1/secrets:
+    get:
+      operationId: listSecrets
+      tags: [Secrets]
+      parameters:
+        - {name: repository_id, in: query, required: false, schema: {$ref: '#/components/schemas/Identifier'}}
+      responses:
+        '200': {description: Global and applicable repository secret metadata; values are never returned, content: {application/json: {schema: {type: array, maxItems: 100, items: {$ref: '#/components/schemas/SecretMetadata'}}}}}
+        default: {$ref: '#/components/responses/Problem'}
+    post:
+      operationId: createSecret
+      tags: [Secrets]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/CreateSecretRequest'}}}}
+      responses:
+        '201': {description: Encrypted secret metadata, content: {application/json: {schema: {$ref: '#/components/schemas/SecretMetadata'}}}}
+        default: {$ref: '#/components/responses/Problem'}
+  /v1/secrets/{secret_id}:
+    parameters:
+      - {name: secret_id, in: path, required: true, schema: {$ref: '#/components/schemas/Identifier'}}
+    put:
+      operationId: updateSecret
+      tags: [Secrets]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/UpdateSecretRequest'}}}}
+      responses:
+        '200': {description: Rotated encrypted secret metadata, content: {application/json: {schema: {$ref: '#/components/schemas/SecretMetadata'}}}}
+        default: {$ref: '#/components/responses/Problem'}
+    delete:
+      operationId: deleteSecret
+      tags: [Secrets]
+      responses:
+        '204': {description: Secret soft-deleted and all grants revoked idempotently}
+        default: {$ref: '#/components/responses/Problem'}
+  /v1/connections:
+    get:
+      operationId: getConnections
+      tags: [Connections]
+      responses:
+        '200': {description: Owner-scoped GitHub installation and per-workspace ChatGPT Codex connection status, content: {application/json: {schema: {$ref: '#/components/schemas/ConnectionStatus'}}}}
+        default: {$ref: '#/components/responses/Problem'}
+  /v1/connections/github/{installation_id}:
+    parameters:
+      - {name: installation_id, in: path, required: true, schema: {type: integer, format: int64, minimum: 1}}
+    delete:
+      operationId: disconnectGitHub
+      tags: [Connections]
+      responses:
+        '204': {description: Local installation authority revoked idempotently; the external GitHub App installation is not mutated}
+        default: {$ref: '#/components/responses/Problem'}
+  /v1/repositories:
+    get:
+      operationId: listRepositories
+      tags: [Repositories]
+      parameters:
+        - {name: search, in: query, required: false, schema: {type: string, maxLength: 200}}
+      responses:
+        '200': {description: Repositories visible to verified GitHub App installations, content: {application/json: {schema: {type: array, maxItems: 1000, items: {$ref: '#/components/schemas/RepositorySummary'}}}}}
+        default: {$ref: '#/components/responses/Problem'}
+  /v1/workspaces:
+    get:
+      operationId: listWorkspaces
+      tags: [Workspaces]
+      responses:
+        '200': {description: Owner workspaces, content: {application/json: {schema: {type: array, maxItems: 1000, items: {$ref: '#/components/schemas/WorkspaceSummary'}}}}}
+        default: {$ref: '#/components/responses/Problem'}
+    post:
+      operationId: createWorkspace
+      tags: [Workspaces]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/NewWorkspaceRequest'}}}}
+      responses:
+        '202': {description: Queued or provisioning workspace, content: {application/json: {schema: {$ref: '#/components/schemas/WorkspaceDetail'}}}}
+        default: {$ref: '#/components/responses/Problem'}
+  /v1/workspaces/{workspace_id}:
+    parameters: [{$ref: '#/components/parameters/WorkspaceID'}]
+    get:
+      operationId: getWorkspace
+      tags: [Workspaces]
+      responses:
+        '200': {description: Workspace detail, content: {application/json: {schema: {$ref: '#/components/schemas/WorkspaceDetail'}}}}
+        default: {$ref: '#/components/responses/Problem'}
+  /v1/workspaces/{workspace_id}/actions:
+    parameters: [{$ref: '#/components/parameters/WorkspaceID'}]
+    post:
+      operationId: performWorkspaceAction
+      tags: [Workspaces]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/WorkspaceActionRequest'}}}}
+      responses:
+        '200': {description: Updated workspace, content: {application/json: {schema: {$ref: '#/components/schemas/WorkspaceDetail'}}}}
+        '202': {description: Accepted asynchronous action, content: {application/json: {schema: {$ref: '#/components/schemas/WorkspaceDetail'}}}}
+        default: {$ref: '#/components/responses/Problem'}
+  /v1/workspaces/{workspace_id}/secret-grants:
+    parameters: [{$ref: '#/components/parameters/WorkspaceID'}]
+    get:
+      operationId: listWorkspaceSecretGrants
+      tags: [Secrets]
+      responses:
+        '200': {description: Eligible global and repository secrets with explicit grant state; values are never returned, content: {application/json: {schema: {type: array, maxItems: 100, items: {$ref: '#/components/schemas/WorkspaceSecretGrant'}}}}}
+        default: {$ref: '#/components/responses/Problem'}
+  /v1/workspaces/{workspace_id}/secret-grants/{secret_id}:
+    parameters:
+      - {$ref: '#/components/parameters/WorkspaceID'}
+      - {name: secret_id, in: path, required: true, schema: {$ref: '#/components/schemas/Identifier'}}
+    put:
+      operationId: grantWorkspaceSecret
+      tags: [Secrets]
+      responses:
+        '204': {description: Secret explicitly granted to the workspace idempotently}
+        default: {$ref: '#/components/responses/Problem'}
+    delete:
+      operationId: revokeWorkspaceSecret
+      tags: [Secrets]
+      responses:
+        '204': {description: Workspace secret grant revoked idempotently}
+        default: {$ref: '#/components/responses/Problem'}
+  /v1/workspaces/{workspace_id}/connections/codex:
+    parameters: [{$ref: '#/components/parameters/WorkspaceID'}]
+    get:
+      operationId: getCodexConnection
+      tags: [Connections]
+      responses:
+        '200': {description: Authenticated validation of this workspace's ChatGPT Codex credential state when its runtime is available, content: {application/json: {schema: {$ref: '#/components/schemas/CodexWorkspaceConnection'}}}}
+        default: {$ref: '#/components/responses/Problem'}
+    delete:
+      operationId: disconnectCodex
+      tags: [Connections]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/ConfirmConnectionDisconnectRequest'}}}}
+      responses:
+        '204': {description: App-owned Codex processes stopped and runtime plus encrypted-at-rest credentials removed; conversation history remains}
+        default: {$ref: '#/components/responses/Problem'}
+  /v1/activity:
+    get:
+      operationId: listActivity
+      tags: [Activity]
+      responses:
+        '200': {description: Redacted activity feed, content: {application/json: {schema: {type: array, maxItems: 1000, items: {$ref: '#/components/schemas/ActivityItem'}}}}}
+        default: {$ref: '#/components/responses/Problem'}
+  /v1/approvals/{approval_id}:
+    parameters: [{$ref: '#/components/parameters/ApprovalID'}]
+    get:
+      operationId: getApproval
+      tags: [Activity]
+      responses:
+        '200': {description: Authenticated approval context, content: {application/json: {schema: {$ref: '#/components/schemas/ApprovalReview'}}}}
+        default: {$ref: '#/components/responses/Problem'}
+  /v1/approvals/{approval_id}/decision:
+    parameters: [{$ref: '#/components/parameters/ApprovalID'}]
+    post:
+      operationId: resolveApproval
+      tags: [Activity]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/ApprovalDecisionRequest'}}}}
+      responses:
+        '200': {description: Resolved approval, content: {application/json: {schema: {$ref: '#/components/schemas/ApprovalReview'}}}}
+        default: {$ref: '#/components/responses/Problem'}
+  /v1/workspaces/{workspace_id}/terminal-tabs:
+    parameters: [{$ref: '#/components/parameters/WorkspaceID'}]
+    get:
+      operationId: listTerminalTabs
+      tags: [Terminal]
+      responses:
+        '200': {description: Persistent terminal tabs, content: {application/json: {schema: {type: array, maxItems: 64, items: {$ref: '#/components/schemas/TerminalTab'}}}}}
+        default: {$ref: '#/components/responses/Problem'}
+    post:
+      operationId: createTerminalTab
+      tags: [Terminal]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/CreateTerminalTabRequest'}}}}
+      responses:
+        '201': {description: Persistent terminal tab, content: {application/json: {schema: {$ref: '#/components/schemas/TerminalTab'}}}}
+        default: {$ref: '#/components/responses/Problem'}
+  /v1/workspaces/{workspace_id}/terminal-tabs/order:
+    parameters: [{$ref: '#/components/parameters/WorkspaceID'}]
+    put:
+      operationId: reorderTerminalTabs
+      tags: [Terminal]
+      description: Atomically replaces the order of the complete active tab set. Stale subsets, duplicates, foreign tabs, and more than 64 tabs are rejected.
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/ReorderTerminalTabsRequest'}}}}
+      responses:
+        '200': {description: Reordered persistent terminal tabs, content: {application/json: {schema: {type: array, minItems: 1, maxItems: 64, items: {$ref: '#/components/schemas/TerminalTab'}}}}}
+        default: {$ref: '#/components/responses/Problem'}
+  /v1/workspaces/{workspace_id}/terminal-tabs/{tab_id}:
+    parameters:
+      - {$ref: '#/components/parameters/WorkspaceID'}
+      - {$ref: '#/components/parameters/TabID'}
+    patch:
+      operationId: renameTerminalTab
+      tags: [Terminal]
+      description: Stores a trimmed, bounded display title after rejecting control and bidirectional-override characters. Audit records contain only the title length.
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/RenameTerminalTabRequest'}}}}
+      responses:
+        '200': {description: Renamed persistent terminal tab, content: {application/json: {schema: {$ref: '#/components/schemas/TerminalTab'}}}}
+        default: {$ref: '#/components/responses/Problem'}
+    delete:
+      operationId: closeTerminalTab
+      tags: [Terminal]
+      description: Idempotently closes a non-primary terminal tab, revokes terminal connection credentials, and terminates its persistent PTY. Explicit owner confirmation is required.
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/CloseTerminalTabRequest'}}}}
+      responses:
+        '204': {description: Terminal tab closed or already closed}
+        default: {$ref: '#/components/responses/Problem'}
+  /v1/workspaces/{workspace_id}/terminal-tabs/{tab_id}/connection:
+    parameters:
+      - {$ref: '#/components/parameters/WorkspaceID'}
+      - {$ref: '#/components/parameters/TabID'}
+    post:
+      operationId: createTerminalConnection
+      tags: [Terminal]
+      description: Issues a short-lived, one-use ticket for the terminal-v1 WebSocket gateway.
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/TerminalConnectRequest'}}}}
+      responses:
+        '200': {description: WebSocket connection descriptor, content: {application/json: {schema: {$ref: '#/components/schemas/TerminalConnectionDescriptor'}}}}
+        default: {$ref: '#/components/responses/Problem'}
+  /v1/workspaces/{workspace_id}/terminal-tabs/{tab_id}/attachments:
+    parameters:
+      - {$ref: '#/components/parameters/WorkspaceID'}
+      - {$ref: '#/components/parameters/TabID'}
+    post:
+      operationId: stageTerminalAttachments
+      tags: [Terminal]
+      description: Validates a bounded attachment batch and stages it on a randomized private noexec tmpfs outside the repository for 30 minutes. Attachment bytes are never persisted by the control plane or included in offline caches.
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/StageAttachmentsRequest'}}}}
+      responses:
+        '201': {description: Temporary staged attachment paths, content: {application/json: {schema: {$ref: '#/components/schemas/StageAttachmentsResult'}}}}
+        default: {$ref: '#/components/responses/Problem'}
+  /v1/workspaces/{workspace_id}/files:
+    parameters: [{$ref: '#/components/parameters/WorkspaceID'}]
+    get:
+      operationId: getFileTree
+      tags: [Files]
+      responses:
+        '200': {description: Root-confined file tree, content: {application/json: {schema: {type: array, maxItems: 10000, items: {$ref: '#/components/schemas/FileEntry'}}}}}
+        default: {$ref: '#/components/responses/Problem'}
+  /v1/workspaces/{workspace_id}/file-search:
+    parameters: [{$ref: '#/components/parameters/WorkspaceID'}]
+    get:
+      operationId: searchFiles
+      tags: [Files]
+      parameters:
+        - {name: query, in: query, required: true, schema: {type: string, minLength: 1, maxLength: 256}}
+      responses:
+        '200': {description: Bounded fixed-string results, content: {application/json: {schema: {type: array, maxItems: 500, items: {$ref: '#/components/schemas/FileSearchResult'}}}}}
+        default: {$ref: '#/components/responses/Problem'}
+  /v1/workspaces/{workspace_id}/file:
+    parameters:
+      - {$ref: '#/components/parameters/WorkspaceID'}
+      - {name: path, in: query, required: true, schema: {$ref: '#/components/schemas/RelativePath'}}
+    get:
+      operationId: getFile
+      tags: [Files]
+      responses:
+        '200': {description: Bounded text file, content: {application/json: {schema: {$ref: '#/components/schemas/FileDocument'}}}}
+        default: {$ref: '#/components/responses/Problem'}
+    put:
+      operationId: saveFile
+      tags: [Files]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/SaveFileRequest'}}}}
+      responses:
+        '200': {description: Saved file with a new ETag, content: {application/json: {schema: {$ref: '#/components/schemas/FileDocument'}}}}
+        default: {$ref: '#/components/responses/Problem'}
+  /v1/workspaces/{workspace_id}/git/status:
+    parameters: [{$ref: '#/components/parameters/WorkspaceID'}]
+    get:
+      operationId: getGitStatus
+      tags: [Git]
+      responses:
+        '200': {description: Git status, content: {application/json: {schema: {$ref: '#/components/schemas/GitStatusDetail'}}}}
+        default: {$ref: '#/components/responses/Problem'}
+  /v1/workspaces/{workspace_id}/git/diff:
+    parameters: [{$ref: '#/components/parameters/WorkspaceID'}]
+    get:
+      operationId: getGitDiff
+      tags: [Git]
+      parameters:
+        - {name: path, in: query, required: true, schema: {$ref: '#/components/schemas/RelativePath'}}
+      responses:
+        '200': {description: Bounded diff, content: {application/json: {schema: {$ref: '#/components/schemas/DiffDocument'}}}}
+        default: {$ref: '#/components/responses/Problem'}
+  /v1/workspaces/{workspace_id}/git/stage:
+    parameters: [{$ref: '#/components/parameters/WorkspaceID'}]
+    post:
+      operationId: setGitStaged
+      tags: [Git]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/StageRequest'}}}}
+      responses:
+        '200': {description: Updated Git status, content: {application/json: {schema: {$ref: '#/components/schemas/GitStatusDetail'}}}}
+        default: {$ref: '#/components/responses/Problem'}
+  /v1/workspaces/{workspace_id}/git/commits:
+    parameters: [{$ref: '#/components/parameters/WorkspaceID'}]
+    post:
+      operationId: createCommit
+      tags: [Git]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/CommitRequest'}}}}
+      responses:
+        '200': {description: Updated Git status, content: {application/json: {schema: {$ref: '#/components/schemas/GitStatusDetail'}}}}
+        default: {$ref: '#/components/responses/Problem'}
+  /v1/workspaces/{workspace_id}/git/pull:
+    parameters: [{$ref: '#/components/parameters/WorkspaceID'}]
+    post:
+      operationId: pullWorkspace
+      tags: [Git]
+      responses:
+        '200': {description: Updated Git status, content: {application/json: {schema: {$ref: '#/components/schemas/GitStatusDetail'}}}}
+        default: {$ref: '#/components/responses/Problem'}
+  /v1/workspaces/{workspace_id}/git/push:
+    parameters: [{$ref: '#/components/parameters/WorkspaceID'}]
+    post:
+      operationId: pushWorkspace
+      tags: [Git]
+      responses:
+        '200': {description: Updated Git status, content: {application/json: {schema: {$ref: '#/components/schemas/GitStatusDetail'}}}}
+        default: {$ref: '#/components/responses/Problem'}
+  /v1/workspaces/{workspace_id}/git/discard:
+    parameters: [{$ref: '#/components/parameters/WorkspaceID'}]
+    post:
+      operationId: discardGitChanges
+      tags: [Git]
+      description: Restores selected tracked paths from HEAD only after persisting a verified local recovery checkpoint. This operation never resets or rewrites history.
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/GitDiscardRequest'}}}}
+      responses:
+        '200': {description: Updated Git status and recovery checkpoint link, content: {application/json: {schema: {$ref: '#/components/schemas/GitDiscardResult'}}}}
+        default: {$ref: '#/components/responses/Problem'}
+  /v1/workspaces/{workspace_id}/pull-requests:
+    parameters: [{$ref: '#/components/parameters/WorkspaceID'}]
+    post:
+      operationId: createPullRequest
+      tags: [Git]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/PullRequestRequest'}}}}
+      responses:
+        '201': {description: Created pull request, content: {application/json: {schema: {$ref: '#/components/schemas/PullRequestResult'}}}}
+        default: {$ref: '#/components/responses/Problem'}
+  /v1/workspaces/{workspace_id}/checkpoints:
+    parameters: [{$ref: '#/components/parameters/WorkspaceID'}]
+    get:
+      operationId: listCheckpoints
+      tags: [Checkpoints]
+      responses:
+        '200': {description: Local checkpoints with archive hash verification status, content: {application/json: {schema: {type: array, maxItems: 128, items: {$ref: '#/components/schemas/CheckpointSummary'}}}}}
+        default: {$ref: '#/components/responses/Problem'}
+  /v1/workspaces/{workspace_id}/checkpoints/{checkpoint_id}/restore-file:
+    parameters:
+      - {$ref: '#/components/parameters/WorkspaceID'}
+      - {$ref: '#/components/parameters/CheckpointID'}
+    post:
+      operationId: restoreCheckpointFile
+      tags: [Checkpoints]
+      description: Creates a pre-restore checkpoint and atomically restores one recorded file. Legacy v1 archives remain eligible for this narrow operation.
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/CheckpointRestoreFileRequest'}}}}
+      responses:
+        '200': {description: Restore result and pre-restore recovery identity, content: {application/json: {schema: {$ref: '#/components/schemas/CheckpointRestoreResult'}}}}
+        default: {$ref: '#/components/responses/Problem'}
+  /v1/workspaces/{workspace_id}/checkpoints/{checkpoint_id}/restore-workspace:
+    parameters:
+      - {$ref: '#/components/parameters/WorkspaceID'}
+      - {$ref: '#/components/parameters/CheckpointID'}
+    post:
+      operationId: restoreCheckpointWorkspace
+      tags: [Checkpoints]
+      description: Creates a pre-restore checkpoint, then applies the identity-bound v2 checkpoint delta over the current workspace. Paths outside the recorded delta are unchanged.
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/CheckpointRestoreWorkspaceRequest'}}}}
+      responses:
+        '200': {description: Restore result, updated Git status, and pre-restore recovery identity, content: {application/json: {schema: {$ref: '#/components/schemas/CheckpointRestoreResult'}}}}
+        default: {$ref: '#/components/responses/Problem'}
+  /v1/workspaces/{workspace_id}/previews:
+    parameters: [{$ref: '#/components/parameters/WorkspaceID'}]
+    get:
+      operationId: listPreviews
+      tags: [Previews]
+      responses:
+        '200': {description: Detected private listeners, content: {application/json: {schema: {type: array, maxItems: 128, items: {$ref: '#/components/schemas/PreviewEndpoint'}}}}}
+        default: {$ref: '#/components/responses/Problem'}
+  /v1/workspaces/{workspace_id}/previews/access:
+    parameters: [{$ref: '#/components/parameters/WorkspaceID'}]
+    post:
+      operationId: createPreviewAccess
+      tags: [Previews]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/PreviewAccessRequest'}}}}
+      responses:
+        '201': {description: Short-lived audience-bound preview URL, content: {application/json: {schema: {$ref: '#/components/schemas/PreviewAccess'}}}}
+        default: {$ref: '#/components/responses/Problem'}
+  /v1/workspaces/{workspace_id}/previews/{preview_id}/access:
+    parameters:
+      - {$ref: '#/components/parameters/WorkspaceID'}
+      - {$ref: '#/components/parameters/PreviewID'}
+    delete:
+      operationId: revokePreviewAccess
+      tags: [Previews]
+      responses:
+        '204': {description: Preview access revoked}
+        default: {$ref: '#/components/responses/Problem'}
+  /v1/maintenance:
+    get:
+      operationId: getMaintenance
+      tags: [Maintenance]
+      responses:
+        '200': {description: Current or most recent metadata-only maintenance state, content: {application/json: {schema: {$ref: '#/components/schemas/MaintenanceStatus'}}}}
+        default: {$ref: '#/components/responses/Problem'}
+  /v1/maintenance/schedule:
+    post:
+      operationId: scheduleMaintenance
+      tags: [Maintenance]
+      description: Schedules the configured weekly window or a warned, best-effort urgent security window. Host package updates and reboots remain root-owned operations.
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/ScheduleMaintenanceRequest'}}}}
+      responses:
+        '202': {description: Maintenance scheduled, content: {application/json: {schema: {$ref: '#/components/schemas/MaintenanceStatus'}}}}
+        default: {$ref: '#/components/responses/Problem'}
+  /v1/maintenance/{maintenance_id}:
+    parameters: [{$ref: '#/components/parameters/MaintenanceID'}]
+    delete:
+      operationId: cancelMaintenance
+      tags: [Maintenance]
+      description: Cancels only a scheduled, warned, or failed run; updating or rebooting host work cannot be cancelled through the app.
+      responses:
+        '200': {description: Cancelled maintenance state, content: {application/json: {schema: {$ref: '#/components/schemas/MaintenanceStatus'}}}}
+        default: {$ref: '#/components/responses/Problem'}
+  /v1/maintenance/{maintenance_id}/actions:
+    parameters: [{$ref: '#/components/parameters/MaintenanceID'}]
+    post:
+      operationId: advanceMaintenance
+      tags: [Maintenance]
+      description: Records deliberate operator hand-offs around root-owned update, reboot, and post-update health-check stages. It does not execute host commands.
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/MaintenanceActionRequest'}}}}
+      responses:
+        '200': {description: Advanced maintenance state, content: {application/json: {schema: {$ref: '#/components/schemas/MaintenanceStatus'}}}}
+        default: {$ref: '#/components/responses/Problem'}
+  /v1/diagnostics:
+    get:
+      operationId: getDiagnostics
+      tags: [Diagnostics]
+      description: Returns bounded service/configuration counters only. It excludes prompts, commands, terminal data, file content, paths, repository names, credentials, tokens, and secret metadata.
+      responses:
+        '200': {description: Redacted metadata-only diagnostics, content: {application/json: {schema: {$ref: '#/components/schemas/DiagnosticsReport'}}}}
+        default: {$ref: '#/components/responses/Problem'}
+  /v1/settings:
+    get:
+      operationId: getSettings
+      tags: [Settings]
+      responses:
+        '200': {description: Owner settings, content: {application/json: {schema: {$ref: '#/components/schemas/UserSettings'}}}}
+        default: {$ref: '#/components/responses/Problem'}
+    put:
+      operationId: updateSettings
+      tags: [Settings]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/UserSettings'}}}}
+      responses:
+        '200': {description: Updated settings, content: {application/json: {schema: {$ref: '#/components/schemas/UserSettings'}}}}
+        default: {$ref: '#/components/responses/Problem'}
+  /v1/devices/push:
+    put:
+      operationId: registerPushDevice
+      tags: [Settings]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/PushDeviceRegistration'}}}}
+      responses:
+        '204': {description: APNs device registration replaced idempotently}
+        default: {$ref: '#/components/responses/Problem'}
+components:
+  securitySchemes:
+    bearerSession:
+      type: http
+      scheme: bearer
+      bearerFormat: opaque
+  parameters:
+    WorkspaceID: {name: workspace_id, in: path, required: true, schema: {$ref: '#/components/schemas/Identifier'}}
+    TabID: {name: tab_id, in: path, required: true, schema: {$ref: '#/components/schemas/Identifier'}}
+    ApprovalID: {name: approval_id, in: path, required: true, schema: {$ref: '#/components/schemas/Identifier'}}
+    PreviewID: {name: preview_id, in: path, required: true, schema: {$ref: '#/components/schemas/Identifier'}}
+    CheckpointID: {name: checkpoint_id, in: path, required: true, schema: {$ref: '#/components/schemas/Identifier'}}
+    MaintenanceID: {name: maintenance_id, in: path, required: true, schema: {$ref: '#/components/schemas/MaintenanceID'}}
+  responses:
+    Problem:
+      description: RFC 9457 problem detail
+      content:
+        application/problem+json: {schema: {$ref: '#/components/schemas/Problem'}}
+  schemas:
+    Identifier: {type: string, minLength: 1, maxLength: 128, pattern: '^[A-Za-z0-9][A-Za-z0-9._:-]*$'}
+    MaintenanceID: {type: string, minLength: 30, maxLength: 30, pattern: '^maint_[0-9a-f]{24}$'}
+    RelativePath: {type: string, minLength: 1, maxLength: 4096, description: Clean UTF-8 path relative to the workspace root; absolute paths, backslashes, traversal, symlinks, and sensitive paths are rejected.}
+    Problem:
+      type: object
+      required: [type, title, status]
+      properties:
+        type: {type: string, format: uri-reference}
+        title: {type: string, maxLength: 200}
+        status: {type: integer, minimum: 400, maximum: 599}
+        detail: {type: string, maxLength: 4096}
+        instance: {type: string, format: uri-reference}
+        code: {type: string, maxLength: 100}
+        git_precondition: {$ref: '#/components/schemas/GitOperationPrecondition'}
+    ClientCapabilities:
+      type: object
+      additionalProperties: false
+      required: [github_configured, passkey_bootstrap_available, apns_configured, previews_configured, structured_approvals_available, maximum_running_workspaces]
+      properties:
+        github_configured: {type: boolean}
+        passkey_bootstrap_available: {type: boolean}
+        apns_configured: {type: boolean}
+        previews_configured: {type: boolean}
+        structured_approvals_available: {type: boolean}
+        maximum_running_workspaces: {type: integer, minimum: 1, maximum: 10}
+    ConnectionStatus:
+      type: object
+      additionalProperties: false
+      required: [github, codex]
+      properties:
+        github: {$ref: '#/components/schemas/GitHubConnectionStatus'}
+        codex: {$ref: '#/components/schemas/CodexConnectionStatus'}
+    GitHubConnectionStatus:
+      type: object
+      additionalProperties: false
+      required: [configured, connected, installations]
+      properties:
+        configured: {type: boolean}
+        connected: {type: boolean}
+        installations: {type: array, maxItems: 100, items: {$ref: '#/components/schemas/GitHubInstallationConnection'}}
+    GitHubInstallationConnection:
+      type: object
+      additionalProperties: false
+      required: [installation_id, account_login, account_type, repository_selection, updated_at]
+      properties:
+        installation_id: {type: integer, format: int64, minimum: 1}
+        account_login: {type: string, minLength: 1, maxLength: 255}
+        account_type: {type: string, enum: [User, Organization, Enterprise, Bot]}
+        repository_selection: {type: string, enum: [all, selected]}
+        updated_at: {type: string, format: date-time}
+    CodexConnectionStatus:
+      type: object
+      additionalProperties: false
+      required: [scope, connected_workspace_count, authenticating_workspace_count, disconnected_workspace_count, unavailable_workspace_count, workspaces]
+      properties:
+        scope: {type: string, const: per_workspace}
+        connected_workspace_count: {type: integer, minimum: 0, maximum: 1000}
+        authenticating_workspace_count: {type: integer, minimum: 0, maximum: 1000}
+        disconnected_workspace_count: {type: integer, minimum: 0, maximum: 1000}
+        unavailable_workspace_count: {type: integer, minimum: 0, maximum: 1000}
+        workspaces: {type: array, maxItems: 1000, items: {$ref: '#/components/schemas/CodexWorkspaceConnection'}}
+    CodexWorkspaceConnection:
+      type: object
+      additionalProperties: false
+      required: [workspace_id, workspace_name, state, checked_at]
+      properties:
+        workspace_id: {$ref: '#/components/schemas/Identifier'}
+        workspace_name: {type: string, minLength: 1, maxLength: 120}
+        state: {type: string, enum: [connected, authenticating, disconnected, unavailable]}
+        checked_at: {type: string, format: date-time}
+    ConfirmConnectionDisconnectRequest:
+      type: object
+      additionalProperties: false
+      required: [confirmed]
+      properties:
+        confirmed: {type: boolean, const: true}
+    BootstrapRegistrationRequest:
+      type: object
+      additionalProperties: false
+      required: [bootstrap_token, device_instance_id, device_name]
+      properties:
+        bootstrap_token: {type: string, minLength: 32, maxLength: 512, writeOnly: true}
+        device_instance_id: {$ref: '#/components/schemas/DeviceInstanceID'}
+        device_name: {$ref: '#/components/schemas/DeviceName'}
+    DeviceIdentityRequest:
+      type: object
+      additionalProperties: false
+      required: [device_instance_id, device_name]
+      properties:
+        device_instance_id: {$ref: '#/components/schemas/DeviceInstanceID'}
+        device_name: {$ref: '#/components/schemas/DeviceName'}
+    PasskeyRegistrationChallenge:
+      type: object
+      additionalProperties: false
+      required: [ceremony_id, challenge, relying_party_id, user_id, user_name, user_display_name, excluded_credential_ids]
+      properties:
+        ceremony_id: {$ref: '#/components/schemas/Identifier'}
+        challenge: {$ref: '#/components/schemas/Base64URL'}
+        relying_party_id: {type: string, format: hostname}
+        user_id: {$ref: '#/components/schemas/Base64URL'}
+        user_name: {type: string, maxLength: 200}
+        user_display_name: {type: string, maxLength: 200}
+        excluded_credential_ids: {type: array, maxItems: 100, items: {$ref: '#/components/schemas/PasskeyCredentialID'}}
+    PasskeyAuthenticationChallenge:
+      type: object
+      additionalProperties: false
+      required: [ceremony_id, challenge, relying_party_id, allowed_credential_ids]
+      properties:
+        ceremony_id: {$ref: '#/components/schemas/Identifier'}
+        challenge: {$ref: '#/components/schemas/Base64URL'}
+        relying_party_id: {type: string, format: hostname}
+        allowed_credential_ids: {type: array, maxItems: 100, items: {$ref: '#/components/schemas/PasskeyCredentialID'}}
+    PasskeyRegistrationCredential:
+      type: object
+      additionalProperties: false
+      required: [ceremony_id, credential_id, raw_id, client_data_json, attestation_object, device_instance_id, device_name]
+      properties:
+        ceremony_id: {$ref: '#/components/schemas/Identifier'}
+        credential_id: {$ref: '#/components/schemas/PasskeyCredentialID'}
+        raw_id: {$ref: '#/components/schemas/PasskeyCredentialID'}
+        client_data_json: {$ref: '#/components/schemas/Base64URL'}
+        attestation_object: {$ref: '#/components/schemas/Base64URL'}
+        device_instance_id: {$ref: '#/components/schemas/DeviceInstanceID'}
+        device_name: {$ref: '#/components/schemas/DeviceName'}
+    PasskeyAssertionCredential:
+      type: object
+      additionalProperties: false
+      required: [ceremony_id, credential_id, raw_id, client_data_json, authenticator_data, signature, device_instance_id, device_name]
+      properties:
+        ceremony_id: {$ref: '#/components/schemas/Identifier'}
+        credential_id: {$ref: '#/components/schemas/PasskeyCredentialID'}
+        raw_id: {$ref: '#/components/schemas/PasskeyCredentialID'}
+        client_data_json: {$ref: '#/components/schemas/Base64URL'}
+        authenticator_data: {$ref: '#/components/schemas/Base64URL'}
+        signature: {$ref: '#/components/schemas/Base64URL'}
+        user_handle: {oneOf: [{$ref: '#/components/schemas/Base64URL'}, {type: 'null'}]}
+        device_instance_id: {$ref: '#/components/schemas/DeviceInstanceID'}
+        device_name: {$ref: '#/components/schemas/DeviceName'}
+    DeviceInstanceID: {type: string, minLength: 43, maxLength: 43, pattern: '^[A-Za-z0-9_-]{43}$', writeOnly: true}
+    DeviceName: {type: string, minLength: 1, maxLength: 120}
+    Base64URL: {type: string, minLength: 1, maxLength: 1048576, pattern: '^[A-Za-z0-9_-]+$'}
+    PasskeyCredentialID: {type: string, minLength: 1, maxLength: 1366, pattern: '^[A-Za-z0-9_-]+$'}
+    SessionTokens:
+      type: object
+      additionalProperties: false
+      required: [access_token, access_expires_at, refresh_token, refresh_expires_at, device_id]
+      properties:
+        access_token: {type: string, minLength: 32, maxLength: 512, writeOnly: true}
+        access_expires_at: {type: string, format: date-time}
+        refresh_token: {type: string, minLength: 32, maxLength: 512, writeOnly: true}
+        refresh_expires_at: {type: string, format: date-time}
+        device_id: {$ref: '#/components/schemas/Identifier'}
+    RefreshSessionRequest:
+      type: object
+      additionalProperties: false
+      required: [refresh_token]
+      properties: {refresh_token: {type: string, minLength: 32, maxLength: 512, writeOnly: true}}
+    DeviceSummary:
+      type: object
+      additionalProperties: false
+      required: [id, name, platform, current, created_at, last_seen_at]
+      properties:
+        id: {$ref: '#/components/schemas/Identifier'}
+        name: {$ref: '#/components/schemas/DeviceName'}
+        platform: {type: string, enum: [ios]}
+        current: {type: boolean}
+        created_at: {type: string, format: date-time}
+        last_seen_at: {type: string, format: date-time}
+    PasskeyMetadata:
+      type: object
+      additionalProperties: false
+      required: [id, device_name, created_at]
+      properties:
+        id: {$ref: '#/components/schemas/PasskeyCredentialID'}
+        device_name: {$ref: '#/components/schemas/DeviceName'}
+        created_at: {type: string, format: date-time}
+        last_used_at: {type: string, format: date-time}
+    SecretName: {type: string, minLength: 1, maxLength: 128, pattern: '^[A-Za-z_][A-Za-z0-9_]{0,127}$'}
+    SecretValue: {type: string, minLength: 4, maxLength: 8192, writeOnly: true}
+    SecretMetadata:
+      type: object
+      additionalProperties: false
+      required: [id, name, scope, value_bytes, created_at, updated_at]
+      properties:
+        id: {$ref: '#/components/schemas/Identifier'}
+        name: {$ref: '#/components/schemas/SecretName'}
+        scope: {type: string, enum: [global, repository]}
+        repository_id: {$ref: '#/components/schemas/Identifier'}
+        value_bytes: {type: integer, minimum: 4, maximum: 8192}
+        created_at: {type: string, format: date-time}
+        updated_at: {type: string, format: date-time}
+    CreateSecretRequest:
+      type: object
+      additionalProperties: false
+      required: [name, value]
+      properties:
+        name: {$ref: '#/components/schemas/SecretName'}
+        value: {$ref: '#/components/schemas/SecretValue'}
+        repository_id: {$ref: '#/components/schemas/Identifier'}
+    UpdateSecretRequest:
+      type: object
+      additionalProperties: false
+      required: [value]
+      properties:
+        value: {$ref: '#/components/schemas/SecretValue'}
+    WorkspaceSecretGrant:
+      type: object
+      additionalProperties: false
+      required: [secret, granted]
+      properties:
+        secret: {$ref: '#/components/schemas/SecretMetadata'}
+        granted: {type: boolean}
+        granted_at: {type: string, format: date-time}
+    RepositorySummary:
+      type: object
+      additionalProperties: false
+      required: [id, owner, name, default_branch, is_private, installation_account, is_favorite]
+      properties:
+        id: {$ref: '#/components/schemas/Identifier'}
+        owner: {type: string, maxLength: 100}
+        name: {type: string, maxLength: 100}
+        default_branch: {type: string, maxLength: 255}
+        is_private: {type: boolean}
+        installation_account: {type: string, maxLength: 100}
+        is_favorite: {type: boolean}
+        last_used_at: {oneOf: [{type: string, format: date-time}, {type: 'null'}]}
+    WorkspaceLifecycle: {type: string, enum: [queued, provisioning, awaiting_setup_approval, ready, running, needs_attention, idle, suspending, suspended, failed, maintenance, deleting]}
+    ConnectivityState: {type: string, enum: [connected, reconnecting, offline, unavailable]}
+    ResourcePressure: {type: string, enum: [nominal, elevated, constrained]}
+    AutonomyMode: {type: string, enum: [safe, balanced, full_access]}
+    RetentionPolicy: {type: string, enum: [7_days, 30_days, 90_days, keep_forever]}
+    ResourceShare:
+      type: object
+      additionalProperties: false
+      required: [cpu_cores, memory_gi_b, writable_disk_gi_b, pressure]
+      properties:
+        cpu_cores: {type: number, minimum: 0}
+        memory_gi_b: {type: number, minimum: 0}
+        writable_disk_gi_b: {type: number, minimum: 0}
+        pressure: {$ref: '#/components/schemas/ResourcePressure'}
+    GitSummary:
+      type: object
+      additionalProperties: false
+      required: [staged_count, unstaged_count, untracked_count, ahead, behind, has_conflicts, has_unpushed_commits]
+      properties:
+        staged_count: {type: integer, minimum: 0}
+        unstaged_count: {type: integer, minimum: 0}
+        untracked_count: {type: integer, minimum: 0}
+        ahead: {type: integer, minimum: 0}
+        behind: {type: integer, minimum: 0}
+        has_conflicts: {type: boolean}
+        has_unpushed_commits: {type: boolean}
+    WorkspaceSummary:
+      type: object
+      additionalProperties: false
+      required: [id, repository_owner, repository_name, task_name, branch, worktree_label, lifecycle, connectivity, unread_activity_count, pending_approval_count, git, resource_share, updated_at, elapsed_seconds]
+      properties:
+        id: {$ref: '#/components/schemas/Identifier'}
+        repository_owner: {type: string, maxLength: 100}
+        repository_name: {type: string, maxLength: 100}
+        task_name: {type: string, maxLength: 200}
+        branch: {type: string, maxLength: 255}
+        worktree_label: {type: string, maxLength: 255}
+        task_summary: {oneOf: [{type: string, maxLength: 1000}, {type: 'null'}]}
+        lifecycle: {$ref: '#/components/schemas/WorkspaceLifecycle'}
+        connectivity: {$ref: '#/components/schemas/ConnectivityState'}
+        unread_activity_count: {type: integer, minimum: 0}
+        pending_approval_count: {type: integer, minimum: 0}
+        failure_message: {oneOf: [{type: string, maxLength: 4096}, {type: 'null'}]}
+        git: {$ref: '#/components/schemas/GitSummary'}
+        resource_share: {$ref: '#/components/schemas/ResourceShare'}
+        updated_at: {type: string, format: date-time}
+        elapsed_seconds: {type: integer, minimum: 0}
+    ProvisioningStep:
+      type: object
+      additionalProperties: false
+      required: [id, title, state]
+      properties:
+        id: {$ref: '#/components/schemas/Identifier'}
+        title: {type: string, maxLength: 200}
+        state: {type: string, enum: [pending, running, succeeded, failed, awaiting_approval]}
+        detail: {oneOf: [{type: string, maxLength: 4096}, {type: 'null'}]}
+    WorkspaceDetail:
+      type: object
+      additionalProperties: false
+      required: [id, summary, base_branch, autonomy, retention, idle_timeout_minutes, nested_docker_enabled, provisioning_steps]
+      properties:
+        id: {$ref: '#/components/schemas/Identifier'}
+        summary: {$ref: '#/components/schemas/WorkspaceSummary'}
+        base_branch: {type: string, maxLength: 255}
+        autonomy: {$ref: '#/components/schemas/AutonomyMode'}
+        retention: {$ref: '#/components/schemas/RetentionPolicy'}
+        idle_timeout_minutes: {type: integer, minimum: 5, maximum: 10080}
+        nested_docker_enabled: {type: boolean}
+        environment_detected: {oneOf: [{type: string, maxLength: 500}, {type: 'null'}]}
+        provisioning_steps: {type: array, maxItems: 100, items: {$ref: '#/components/schemas/ProvisioningStep'}}
+    NewWorkspaceRequest:
+      type: object
+      additionalProperties: false
+      required: [repository_id, autonomy, nested_docker, retention, environment_variables]
+      properties:
+        repository_id: {$ref: '#/components/schemas/Identifier'}
+        initial_prompt: {oneOf: [{type: string, maxLength: 100000}, {type: 'null'}]}
+        base_branch: {oneOf: [{type: string, maxLength: 255}, {type: 'null'}]}
+        task_name: {oneOf: [{type: string, maxLength: 200}, {type: 'null'}]}
+        autonomy: {$ref: '#/components/schemas/AutonomyMode'}
+        nested_docker: {type: boolean}
+        retention: {$ref: '#/components/schemas/RetentionPolicy'}
+        environment_variables: {type: object, maxProperties: 100, additionalProperties: {type: string, maxLength: 8192}}
+        requested_disk_gi_b: {oneOf: [{type: integer, minimum: 8, maximum: 16, default: 12}, {type: 'null'}]}
+    WorkspaceActionRequest:
+      type: object
+      description: update_autonomy requires autonomy and a suspended workspace; the next resume applies provider egress and managed Codex policy together.
+      additionalProperties: false
+      required: [action]
+      properties:
+        action: {type: string, enum: [start, suspend, resume, stop, retry_provisioning, delete, keep_alive, update_policy, update_autonomy]}
+        retention: {type: string, enum: [7_days, 30_days, 90_days, keep_forever]}
+        autonomy: {$ref: '#/components/schemas/AutonomyMode'}
+        idle_timeout_minutes:
+          type: integer
+          minimum: 0
+          maximum: 10080
+          description: Zero inherits the owner's default; non-zero values must be at least five minutes. Required with retention for update_policy.
+    ActivityItem:
+      type: object
+      additionalProperties: false
+      required: [id, kind, state, title, generic_summary, created_at, structured_detail_available]
+      properties:
+        id: {$ref: '#/components/schemas/Identifier'}
+        workspace_id: {oneOf: [{$ref: '#/components/schemas/Identifier'}, {type: 'null'}]}
+        kind: {type: string, enum: [approval, question, completion, failure, maintenance, security]}
+        state: {$ref: '#/components/schemas/ActivityState'}
+        title: {type: string, maxLength: 200}
+        generic_summary: {type: string, maxLength: 500}
+        created_at: {type: string, format: date-time}
+        deep_link_path: {oneOf: [{type: string, maxLength: 1000}, {type: 'null'}]}
+        structured_detail_available: {type: boolean}
+    ActivityState: {type: string, enum: [unread, read, pending, resolved, expired]}
+    ApprovalReview:
+      type: object
+      additionalProperties: false
+      required: [id, workspace_id, workspace_name, filesystem_scope, network_scope, affected_paths, structured_detail_available, state]
+      properties:
+        id: {$ref: '#/components/schemas/Identifier'}
+        workspace_id: {$ref: '#/components/schemas/Identifier'}
+        workspace_name: {type: string, maxLength: 200}
+        requested_action: {oneOf: [{type: string, maxLength: 1000}, {type: 'null'}]}
+        reason: {oneOf: [{type: string, maxLength: 4096}, {type: 'null'}]}
+        filesystem_scope: {type: array, maxItems: 100, items: {type: string, maxLength: 4096}}
+        network_scope: {type: array, maxItems: 100, items: {type: string, maxLength: 500}}
+        affected_paths: {type: array, maxItems: 1000, items: {type: string, maxLength: 4096}}
+        risk_explanation: {oneOf: [{type: string, maxLength: 4096}, {type: 'null'}]}
+        structured_detail_available: {type: boolean}
+        state: {$ref: '#/components/schemas/ActivityState'}
+    ApprovalDecisionRequest:
+      type: object
+      additionalProperties: false
+      required: [decision]
+      properties: {decision: {type: string, enum: [approve, deny]}}
+    TerminalTab:
+      type: object
+      additionalProperties: false
+      required: [id, workspace_id, title, kind, order, is_running]
+      properties:
+        id: {$ref: '#/components/schemas/Identifier'}
+        workspace_id: {$ref: '#/components/schemas/Identifier'}
+        title: {type: string, minLength: 1, maxLength: 120}
+        kind: {type: string, enum: [codex, shell, server, test, log]}
+        order: {type: integer, minimum: 0, maximum: 63}
+        is_running: {type: boolean}
+    CreateTerminalTabRequest:
+      type: object
+      additionalProperties: false
+      required: [kind]
+      properties: {kind: {type: string, enum: [codex, shell, server, test, log]}}
+    RenameTerminalTabRequest:
+      type: object
+      additionalProperties: false
+      required: [title]
+      properties:
+        title: {type: string, minLength: 1, maxLength: 120, description: Leading and trailing whitespace is removed; control and bidirectional-override characters are rejected.}
+    ReorderTerminalTabsRequest:
+      type: object
+      additionalProperties: false
+      required: [tab_ids]
+      properties:
+        tab_ids: {type: array, minItems: 1, maxItems: 64, uniqueItems: true, items: {$ref: '#/components/schemas/Identifier'}, description: The exact complete active-tab membership in desired order.}
+    CloseTerminalTabRequest:
+      type: object
+      additionalProperties: false
+      required: [confirmed]
+      properties:
+        confirmed: {type: boolean, enum: [true], description: Must be true after an explicit destructive-action confirmation.}
+    TerminalConnectRequest:
+      type: object
+      additionalProperties: false
+      required: [after_sequence]
+      properties:
+        after_sequence: {type: integer, format: int64, minimum: 0}
+        reconnect_token: {oneOf: [{type: string, minLength: 32, maxLength: 512}, {type: 'null'}], writeOnly: true}
+    TerminalConnectionDescriptor:
+      type: object
+      additionalProperties: false
+      required: [websocket_url, connection_ticket, device_id, protocol_version, maximum_frame_bytes]
+      properties:
+        websocket_url: {type: string, format: uri, pattern: '^wss://'}
+        connection_ticket: {type: string, minLength: 32, maxLength: 512, writeOnly: true}
+        device_id: {$ref: '#/components/schemas/Identifier'}
+        reconnect_token: {oneOf: [{type: string, minLength: 32, maxLength: 512}, {type: 'null'}], writeOnly: true}
+        protocol_version: {type: integer, minimum: 1, maximum: 255}
+        maximum_frame_bytes: {type: integer, minimum: 1024, maximum: 1048576, description: Maximum terminal-v1 payload bytes; the fixed 36-byte header is additional.}
+        lease_holder_device_id: {oneOf: [{$ref: '#/components/schemas/Identifier'}, {type: 'null'}]}
+    AttachmentMediaType: {type: string, enum: [image/png, image/jpeg, image/heic, application/pdf, application/json, text/plain, text/markdown, text/csv]}
+    AttachmentUpload:
+      type: object
+      additionalProperties: false
+      required: [media_type, content_base64]
+      properties:
+        media_type: {$ref: '#/components/schemas/AttachmentMediaType'}
+        content_base64: {type: string, format: byte, minLength: 1, maxLength: 6990508, writeOnly: true, description: Base64 for at most 5 MiB of signature-validated content.}
+    StageAttachmentsRequest:
+      type: object
+      additionalProperties: false
+      required: [attachments]
+      properties:
+        attachments: {type: array, minItems: 1, maxItems: 4, items: {$ref: '#/components/schemas/AttachmentUpload'}, description: Decoded content is capped at 8 MiB across the batch.}
+    StagedAttachment:
+      type: object
+      additionalProperties: false
+      required: [id, path, media_type, size_bytes, expires_at]
+      properties:
+        id: {type: string, minLength: 28, maxLength: 28, pattern: '^att_[A-Za-z0-9_-]{24}$'}
+        path: {type: string, minLength: 80, maxLength: 512, pattern: '^/codex-mobile-attachments/stage-[0-9]+-[A-Za-z0-9_-]+/att_[A-Za-z0-9_-]{24}\.(?:png|jpg|heic|pdf|json|txt|md|csv)$', description: Randomized temporary path on the workspace noexec tmpfs, never beneath the repository.}
+        media_type: {$ref: '#/components/schemas/AttachmentMediaType'}
+        size_bytes: {type: integer, minimum: 1, maximum: 5242880}
+        expires_at: {type: string, format: date-time}
+    StageAttachmentsResult:
+      type: object
+      additionalProperties: false
+      required: [attachments]
+      properties:
+        attachments: {type: array, minItems: 1, maxItems: 4, items: {$ref: '#/components/schemas/StagedAttachment'}}
+    FileKind: {type: string, enum: [directory, text, image, binary, too_large, sensitive]}
+    FileEntry:
+      type: object
+      additionalProperties: false
+      required: [path, name, kind, is_ignored]
+      properties:
+        path: {$ref: '#/components/schemas/RelativePath'}
+        name: {type: string, maxLength: 1024}
+        kind: {$ref: '#/components/schemas/FileKind'}
+        is_ignored: {type: boolean}
+        size_bytes: {oneOf: [{type: integer, format: int64, minimum: 0}, {type: 'null'}]}
+        children: {oneOf: [{type: array, maxItems: 10000, items: {$ref: '#/components/schemas/FileEntry'}}, {type: 'null'}]}
+    CacheDirective: {type: string, enum: [ordinary, never]}
+    FileDocument:
+      type: object
+      additionalProperties: false
+      required: [path, content, etag, kind, is_read_only, cache_directive]
+      properties:
+        path: {$ref: '#/components/schemas/RelativePath'}
+        content: {type: string, maxLength: 8388608}
+        etag: {type: string, maxLength: 200}
+        language_hint: {oneOf: [{type: string, maxLength: 100}, {type: 'null'}]}
+        kind: {$ref: '#/components/schemas/FileKind'}
+        is_read_only: {type: boolean}
+        cache_directive: {$ref: '#/components/schemas/CacheDirective'}
+    SaveFileRequest:
+      type: object
+      additionalProperties: false
+      required: [content, expected_e_tag]
+      properties:
+        content: {type: string, maxLength: 8388608}
+        expected_e_tag: {type: string, minLength: 1, maxLength: 200}
+    FileSearchResult:
+      type: object
+      additionalProperties: false
+      required: [path, line, column, preview]
+      properties:
+        path: {$ref: '#/components/schemas/RelativePath'}
+        line: {type: integer, minimum: 1}
+        column: {type: integer, minimum: 1}
+        preview: {type: string, maxLength: 4096}
+    GitStatusDetail:
+      type: object
+      additionalProperties: false
+      required: [branch, ahead, behind, changes]
+      properties:
+        branch: {type: string, maxLength: 255}
+        upstream: {oneOf: [{type: string, maxLength: 255}, {type: 'null'}]}
+        ahead: {type: integer, minimum: 0}
+        behind: {type: integer, minimum: 0}
+        changes: {type: array, maxItems: 10000, items: {$ref: '#/components/schemas/GitFileChange'}}
+        operation_in_progress: {oneOf: [{type: string, maxLength: 200}, {type: 'null'}]}
+    GitFileChange:
+      type: object
+      additionalProperties: false
+      required: [path, status, group, is_binary]
+      properties:
+        path: {$ref: '#/components/schemas/RelativePath'}
+        status: {type: string, maxLength: 20}
+        group: {type: string, enum: [staged, unstaged, untracked, conflicted]}
+        is_binary: {type: boolean}
+    GitOperationPrecondition:
+      type: object
+      additionalProperties: false
+      required: [reason, ahead, behind, has_conflicts, dirty, terminal_fallback]
+      properties:
+        reason: {type: string, minLength: 1, maxLength: 100}
+        ahead: {type: integer, minimum: 0}
+        behind: {type: integer, minimum: 0}
+        has_conflicts: {type: boolean}
+        dirty: {type: boolean}
+        terminal_fallback: {type: string, minLength: 1, maxLength: 1000}
+    DiffDocument:
+      type: object
+      additionalProperties: false
+      required: [path, is_binary, cache_directive]
+      properties:
+        path: {$ref: '#/components/schemas/RelativePath'}
+        unified_diff: {oneOf: [{type: string, maxLength: 8388608}, {type: 'null'}]}
+        image_before_url: {oneOf: [{type: string, format: uri}, {type: 'null'}]}
+        image_after_url: {oneOf: [{type: string, format: uri}, {type: 'null'}]}
+        is_binary: {type: boolean}
+        cache_directive: {$ref: '#/components/schemas/CacheDirective'}
+    StageRequest:
+      type: object
+      additionalProperties: false
+      required: [path, staged]
+      properties: {path: {$ref: '#/components/schemas/RelativePath'}, staged: {type: boolean}}
+    CommitRequest:
+      type: object
+      additionalProperties: false
+      required: [message, author_name, author_email]
+      properties:
+        message: {type: string, minLength: 1, maxLength: 10000}
+        author_name: {type: string, minLength: 1, maxLength: 200}
+        author_email: {type: string, format: email, maxLength: 320}
+    PullRequestRequest:
+      type: object
+      additionalProperties: false
+      required: [title, body, base_branch]
+      properties:
+        title: {type: string, minLength: 1, maxLength: 256}
+        body: {type: string, maxLength: 65536}
+        base_branch: {type: string, minLength: 1, maxLength: 255}
+    PullRequestResult:
+      type: object
+      additionalProperties: false
+      required: [number, url, state]
+      properties:
+        number: {type: integer, minimum: 1}
+        url: {type: string, format: uri}
+        state: {type: string, enum: [open, closed, merged]}
+    GitDiscardRequest:
+      type: object
+      additionalProperties: false
+      required: [paths, confirmed]
+      properties:
+        paths: {type: array, minItems: 1, maxItems: 500, uniqueItems: true, items: {$ref: '#/components/schemas/RelativePath'}}
+        confirmed: {type: boolean, const: true}
+    GitDiscardResult:
+      type: object
+      additionalProperties: false
+      required: [recovery_checkpoint_id, status, restore_url]
+      properties:
+        recovery_checkpoint_id: {$ref: '#/components/schemas/Identifier'}
+        status: {$ref: '#/components/schemas/GitStatusDetail'}
+        restore_url: {type: string, format: uri-reference}
+    CheckpointSummary:
+      type: object
+      additionalProperties: false
+      required: [id, reason, created_at, archive_sha256, hash_status, archive_version, workspace_restore_supported, compressed_bytes, expanded_bytes, file_count, deleted_count, omitted_sensitive, omitted_unsafe]
+      properties:
+        id: {$ref: '#/components/schemas/Identifier'}
+        reason: {type: string, minLength: 1, maxLength: 64}
+        created_at: {type: string, format: date-time}
+        archive_sha256: {type: string, pattern: '^[0-9a-f]{64}$'}
+        hash_status: {type: string, enum: [verified, failed]}
+        archive_version: {type: integer, minimum: 0, maximum: 2}
+        workspace_restore_supported: {type: boolean}
+        compressed_bytes: {type: integer, minimum: 1, maximum: 5242880}
+        expanded_bytes: {type: integer, minimum: 0, maximum: 33554432}
+        file_count: {type: integer, minimum: 0, maximum: 5000}
+        deleted_count: {type: integer, minimum: 0, maximum: 5000}
+        omitted_sensitive: {type: integer, minimum: 0}
+        omitted_unsafe: {type: integer, minimum: 0}
+        head: {type: string, pattern: '^(?:[0-9a-f]{40}|[0-9a-f]{64})$'}
+    CheckpointRestoreFileRequest:
+      type: object
+      additionalProperties: false
+      required: [path, confirmed]
+      properties:
+        path: {$ref: '#/components/schemas/RelativePath'}
+        confirmed: {type: boolean, const: true}
+    CheckpointRestoreWorkspaceRequest:
+      type: object
+      additionalProperties: false
+      required: [confirmed]
+      properties:
+        confirmed: {type: boolean, const: true}
+    CheckpointRestoreResult:
+      type: object
+      additionalProperties: false
+      required: [restored_checkpoint_id, pre_restore_checkpoint_id, restore_semantics]
+      properties:
+        restored_checkpoint_id: {$ref: '#/components/schemas/Identifier'}
+        pre_restore_checkpoint_id: {$ref: '#/components/schemas/Identifier'}
+        restore_semantics: {type: string, const: recorded-delta-over-current-workspace}
+        status: {$ref: '#/components/schemas/GitStatusDetail'}
+    PreviewEndpoint:
+      type: object
+      additionalProperties: false
+      required: [id, port, process_name, workspace_id, status]
+      properties:
+        id: {$ref: '#/components/schemas/Identifier'}
+        port: {type: integer, minimum: 1, maximum: 65535}
+        process_name: {type: string, maxLength: 500}
+        workspace_id: {$ref: '#/components/schemas/Identifier'}
+        status: {type: string, enum: [starting, ready, stopped, failed]}
+    PreviewAccessRequest:
+      type: object
+      additionalProperties: false
+      required: [preview_id]
+      properties: {preview_id: {$ref: '#/components/schemas/Identifier'}}
+    PreviewAccess:
+      type: object
+      additionalProperties: false
+      required: [url, expires_at, allowed_host]
+      properties:
+        url: {type: string, format: uri, pattern: '^https://'}
+        expires_at: {type: string, format: date-time}
+        allowed_host: {type: string, format: hostname}
+    MaintenanceStatus:
+      type: object
+      additionalProperties: false
+      required: [id, state, urgent, best_effort, scheduled_for, warning_at, created_at, updated_at, checkpointed_workspaces, drained_workspaces, failed_workspaces, reboot_required, message]
+      properties:
+        id: {$ref: '#/components/schemas/MaintenanceID'}
+        state: {type: string, enum: [scheduled, warning, draining, ready_for_update, updating, reboot_required, verifying, completed, failed, cancelled]}
+        urgent: {type: boolean}
+        best_effort: {type: boolean}
+        scheduled_for: {type: string, format: date-time}
+        warning_at: {type: string, format: date-time}
+        created_at: {type: string, format: date-time}
+        updated_at: {type: string, format: date-time}
+        started_at: {type: string, format: date-time}
+        completed_at: {type: string, format: date-time}
+        checkpointed_workspaces: {type: integer, minimum: 0, maximum: 1000}
+        drained_workspaces: {type: integer, minimum: 0, maximum: 1000}
+        failed_workspaces: {type: integer, minimum: 0, maximum: 1000}
+        reboot_required: {type: boolean}
+        message: {type: string, maxLength: 512}
+    ScheduleMaintenanceRequest:
+      type: object
+      additionalProperties: false
+      required: [urgent]
+      properties:
+        urgent: {type: boolean}
+    MaintenanceActionRequest:
+      type: object
+      additionalProperties: false
+      required: [action]
+      properties:
+        action: {type: string, enum: [begin_update, updates_applied, begin_verification, complete]}
+        reboot_required: {type: boolean, description: Required only for updates_applied and rejected for every other action.}
+    DiagnosticsReport:
+      type: object
+      additionalProperties: false
+      required: [generated_at, service_version, metadata_only, includes_sensitive_data, health, github_configured, apns_configured, previews_configured, maximum_running_workspaces, workspace_total, workspace_running, workspace_queued, workspace_suspended, workspace_needs_attention, workspace_failed, maintenance_state]
+      properties:
+        generated_at: {type: string, format: date-time}
+        service_version: {type: string, pattern: '^0\.[0-9]+\.[0-9]+$'}
+        metadata_only: {type: boolean, const: true}
+        includes_sensitive_data: {type: boolean, const: false}
+        health: {type: string, enum: [healthy, degraded]}
+        github_configured: {type: boolean}
+        apns_configured: {type: boolean}
+        previews_configured: {type: boolean}
+        maximum_running_workspaces: {type: integer, minimum: 1, maximum: 10}
+        workspace_total: {type: integer, minimum: 0, maximum: 10000}
+        workspace_running: {type: integer, minimum: 0, maximum: 10000}
+        workspace_queued: {type: integer, minimum: 0, maximum: 10000}
+        workspace_suspended: {type: integer, minimum: 0, maximum: 10000}
+        workspace_needs_attention: {type: integer, minimum: 0, maximum: 10000}
+        workspace_failed: {type: integer, minimum: 0, maximum: 10000}
+        maintenance_state: {type: string, enum: [not_scheduled, unavailable, scheduled, warning, draining, ready_for_update, updating, reboot_required, verifying, completed, failed, cancelled]}
+    UserSettings:
+      type: object
+      additionalProperties: false
+      required: [autonomy_default, retention_default, idle_timeout_minutes, terminal_font_size, terminal_theme, terminal_cursor_style, quiet_hours_enabled, notification_detail_enabled]
+      properties:
+        autonomy_default: {$ref: '#/components/schemas/AutonomyMode'}
+        retention_default: {$ref: '#/components/schemas/RetentionPolicy'}
+        idle_timeout_minutes: {type: integer, minimum: 5, maximum: 10080}
+        terminal_font_size: {type: number, minimum: 8, maximum: 48}
+        terminal_theme: {type: string, maxLength: 100}
+        terminal_cursor_style: {type: string, enum: [block, beam, underline]}
+        quiet_hours_enabled: {type: boolean}
+        notification_detail_enabled: {type: boolean}
+    PushDeviceRegistration:
+      type: object
+      additionalProperties: false
+      required: [token, environment, locale]
+      properties:
+        token: {type: string, pattern: '^[0-9a-fA-F]{64,200}$', writeOnly: true}
+        environment: {type: string, enum: [sandbox, production]}
+        locale: {type: string, minLength: 2, maxLength: 35}
+security:
+  - bearerSession: []

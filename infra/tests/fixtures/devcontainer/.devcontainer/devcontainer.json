@@ -1,0 +1,8 @@
+{
+  "name": "codex-mobile-envbuilder-spike",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "remoteUser": "codex",
+  "postCreateCommand": "printf 'envbuilder-ready\\n' > /workspaces/repository/.post-create-ok"
+}
