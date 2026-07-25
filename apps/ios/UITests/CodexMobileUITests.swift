@@ -86,7 +86,7 @@ final class CodexMobileUITests: XCTestCase {
         let diff = app.buttons["git.diff.Sources/App.swift"]
         assertReachable(diff)
         diff.tap()
-        XCTAssertTrue(app.navigationBars["Sources/App.swift"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["git.diff.review.Sources/App.swift.close"].waitForExistence(timeout: 5))
     }
 
     func testSettingsFlowRemainsReachableAtAccessibilityTextSize() {

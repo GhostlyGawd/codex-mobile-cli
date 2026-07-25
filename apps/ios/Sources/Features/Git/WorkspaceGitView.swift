@@ -581,7 +581,12 @@ private struct GitDiffView: View {
         }
         .navigationTitle(HostileDisplayText.sanitized(path))
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Close") { dismiss() } } }
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Close") { dismiss() }
+                    .accessibilityIdentifier("git.diff.review.\(HostileDisplayText.sanitized(path)).close")
+            }
+        }
         .task(id: model.network.isConnected) { await load() }
     }
 
