@@ -83,10 +83,14 @@ final class CodexMobileUITests: XCTestCase {
         let gitSurface = app.buttons["workspace.surface.git"]
         XCTAssertTrue(gitSurface.exists)
         gitSurface.tap()
-        let diff = app.buttons["git.diff.Sources/App.swift"]
+        let diffIdentifier = "git.diff.staged:Sources/App.swift"
+        let diff = app.buttons[diffIdentifier]
         assertReachable(diff)
-        diff.tap()
-        XCTAssertTrue(app.buttons["git.diff.review.Sources/App.swift.close"].waitForExistence(timeout: 5))
+        XCTAssertEqual(app.buttons.matching(identifier: diffIdentifier).count, 1)
+        // Activate inside the file label, away from the row actions and fixed workspace controls.
+        diff.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.25)).tap()
+        let diffContent = app.descendants(matching: .any)["git.diff.review.content"]
+        XCTAssertTrue(diffContent.waitForExistence(timeout: 5))
     }
 
     func testSettingsFlowRemainsReachableAtAccessibilityTextSize() {

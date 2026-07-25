@@ -274,7 +274,7 @@ struct WorkspaceGitView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityIdentifier("git.diff.\(HostileDisplayText.sanitized(change.path))")
+        .accessibilityIdentifier("git.diff.\(change.id)")
         .accessibilityHint("Opens the read-only diff for this file")
     }
 
@@ -577,6 +577,7 @@ private struct GitDiffView: View {
                     Text(text)
                         .font(.caption.monospaced())
                         .textSelection(.enabled)
+                        .accessibilityIdentifier("git.diff.review.content")
                         .padding()
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
@@ -608,6 +609,7 @@ private struct GitDiffView: View {
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button("Close") { dismiss() }
+                    .accessibilityLabel("Close diff review for \(HostileDisplayText.sanitized(path))")
                     .accessibilityIdentifier("git.diff.review.\(HostileDisplayText.sanitized(path)).close")
             }
         }
