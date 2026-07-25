@@ -13,12 +13,6 @@ private final class NoRedirectSessionDelegate: NSObject, URLSessionTaskDelegate,
     }
 }
 
-private struct DiffSelection: Identifiable {
-    let path: String
-
-    var id: String { path }
-}
-
 struct WorkspaceGitView: View {
     @Environment(AppModel.self) private var model
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -26,7 +20,6 @@ struct WorkspaceGitView: View {
     let baseBranch: String
 
     @State private var status: GitStatusDetail?
-    @State private var selectedDiff: DiffSelection?
     @State private var showsCommit = false
     @State private var showsPullRequest = false
     @State private var pullRequestResult: PullRequestResult?
@@ -142,12 +135,13 @@ struct WorkspaceGitView: View {
                 }
             } else if !cachedDiffs.isEmpty {
                 List(cachedDiffs) { diff in
-                    Button {
-                        selectedDiff = DiffSelection(path: diff.path)
+                    NavigationLink {
+                        GitDiffView(workspaceID: workspaceID, path: diff.path)
                     } label: {
                         Label(HostileDisplayText.sanitized(diff.path), systemImage: "doc.text.magnifyingglass")
                             .font(.subheadline.monospaced())
                     }
+                    .accessibilityIdentifier("git.diff.cached:\(diff.path)")
                 }
                 .safeAreaInset(edge: .top, spacing: 0) {
                     Label("Offline cached diffs — read only", systemImage: "lock.fill")
@@ -164,9 +158,6 @@ struct WorkspaceGitView: View {
         }
         .refreshable { await load() }
         .task(id: model.network.isConnected) { await load() }
-        .sheet(item: $selectedDiff) { selection in
-            NavigationStack { GitDiffView(workspaceID: workspaceID, path: selection.path) }
-        }
         .sheet(isPresented: $showsCommit) {
             CommitSheet { request in
                 await run { try await model.api.commit(workspaceID: workspaceID, request: request) }
@@ -244,7 +235,7 @@ struct WorkspaceGitView: View {
                 ForEach(changes) { change in
                     if dynamicTypeSize.isAccessibilitySize {
                         VStack(alignment: .leading, spacing: 12) {
-                            diffButton(for: change)
+                            diffLink(for: change)
                             if group != .conflicted {
                                 changeActions(for: change, group: group)
                                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -252,7 +243,7 @@ struct WorkspaceGitView: View {
                         }
                     } else {
                         HStack {
-                            diffButton(for: change)
+                            diffLink(for: change)
                             Spacer()
                             changeActions(for: change, group: group)
                         }
@@ -262,9 +253,9 @@ struct WorkspaceGitView: View {
         }
     }
 
-    private func diffButton(for change: GitFileChange) -> some View {
-        Button {
-            selectedDiff = DiffSelection(path: change.path)
+    private func diffLink(for change: GitFileChange) -> some View {
+        NavigationLink {
+            GitDiffView(workspaceID: workspaceID, path: change.path)
         } label: {
             VStack(alignment: .leading) {
                 Text(HostileDisplayText.sanitized(change.path)).font(.subheadline.monospaced()).foregroundStyle(.primary)
