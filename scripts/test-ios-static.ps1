@@ -223,6 +223,7 @@ Assert-Contains $appEntry 'await model.bootstrap' 'The app entry point must boot
 $pushNotifications = Join-Path $ios 'Sources/Notifications/PushNotifications.swift'
 Assert-Contains $pushNotifications 'remoteNotification' 'Cold-launch APNs payloads must be captured before SwiftUI subscriptions are installed.'
 Assert-Contains $pushNotifications 'coldStartDeepLinks.store' 'Notification deep links must be retained until the app model can consume them.'
+Assert-Contains $pushNotifications '@MainActor UNUserNotificationCenterDelegate' 'The notification-center delegate conformance must remain explicitly main-actor isolated under Swift 6.'
 $coldStartTests = Join-Path $ios 'Tests/ColdStartDeepLinkTests.swift'
 Assert-Contains $coldStartTests 'testValidatedLinkWaitsForSessionBootstrap' 'iOS tests must cover a deep link arriving before session bootstrap.'
 Assert-Contains (Join-Path $root 'services/control-plane/internal/application/passkeys.go') 'StructuredApprovalsAvailable: true' 'The control plane must advertise its internally structured setup approvals.'
@@ -299,8 +300,17 @@ if ($webView -notmatch 'websiteDataStore\s*=\s*\.nonPersistent\(\)') {
 if ($webView -notmatch 'async\s*->\s*WKNavigationActionPolicy') {
     throw 'Hostile preview navigation must use the Swift concurrency policy callback.'
 }
-if ($webView -notmatch 'requestMediaCapturePermissionFor' -or $webView -notmatch 'decisionHandler\(\.deny\)') {
-    throw 'Hostile preview must explicitly deny device media permissions.'
+if ($webView -notmatch 'requestMediaCapturePermissionFor' -or
+    $webView -notmatch 'requestDeviceOrientationAndMotionPermissionFor' -or
+    ([regex]::Matches(
+        $webView,
+        [regex]::Escape('decisionHandler: @escaping @MainActor @Sendable (WKPermissionDecision) -> Void')
+    )).Count -ne 2 -or
+    ([regex]::Matches(
+        $webView,
+        [regex]::Escape('decisionHandler(.deny)')
+    )).Count -ne 2) {
+    throw 'Hostile preview must explicitly deny media capture and device motion permissions.'
 }
 $previewPolicyTests = Join-Path $ios 'Tests/PreviewOriginPolicyTests.swift'
 Assert-Contains $previewPolicyTests '#details' 'Preview-origin tests must cover same-origin fragment navigation.'

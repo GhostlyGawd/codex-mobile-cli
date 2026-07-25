@@ -195,6 +195,7 @@ grep -Fq 'consumeColdStartDeepLink()' apps/ios/Sources/App/CodexMobileApp.swift
 grep -Fq 'await model.bootstrap()' apps/ios/Sources/App/CodexMobileApp.swift
 grep -Fq 'launchOptions?[.remoteNotification]' apps/ios/Sources/Notifications/PushNotifications.swift
 grep -Fq 'coldStartDeepLinks.store(url)' apps/ios/Sources/Notifications/PushNotifications.swift
+grep -Fq '@MainActor UNUserNotificationCenterDelegate' apps/ios/Sources/Notifications/PushNotifications.swift
 grep -Fq 'testValidatedLinkWaitsForSessionBootstrap' apps/ios/Tests/ColdStartDeepLinkTests.swift
 grep -Eq 'StructuredApprovalsAvailable:[[:space:]]*true' services/control-plane/internal/application/passkeys.go
 grep -Fq '0x2028...0x202E' apps/ios/Sources/Security/HostileDisplayText.swift
@@ -249,7 +250,9 @@ fi
 grep -Eq 'websiteDataStore = \.nonPersistent\(\)' apps/ios/Sources/Preview/HostilePreviewWebView.swift
 grep -Eq 'async -> WKNavigationActionPolicy' apps/ios/Sources/Preview/HostilePreviewWebView.swift
 grep -Fq 'requestMediaCapturePermissionFor' apps/ios/Sources/Preview/HostilePreviewWebView.swift
-grep -Fq 'decisionHandler(.deny)' apps/ios/Sources/Preview/HostilePreviewWebView.swift
+grep -Fq 'requestDeviceOrientationAndMotionPermissionFor' apps/ios/Sources/Preview/HostilePreviewWebView.swift
+[[ "$(grep -Fc 'decisionHandler: @escaping @MainActor @Sendable (WKPermissionDecision) -> Void' apps/ios/Sources/Preview/HostilePreviewWebView.swift)" -eq 2 ]]
+[[ "$(grep -Fc 'decisionHandler(.deny)' apps/ios/Sources/Preview/HostilePreviewWebView.swift)" -eq 2 ]]
 grep -Fq '#details' apps/ios/Tests/PreviewOriginPolicyTests.swift
 grep -Fq 'XCTAssertTrue(policy.permits(withFragment))' apps/ios/Tests/PreviewOriginPolicyTests.swift
 grep -Fq 'terminalHistories' apps/ios/Sources/Security/EncryptedOfflineCache.swift

@@ -124,7 +124,7 @@ struct HostilePreviewWebView: UIViewRepresentable {
             requestMediaCapturePermissionFor origin: WKSecurityOrigin,
             initiatedByFrame frame: WKFrameInfo,
             type: WKMediaCaptureType,
-            decisionHandler: @escaping (WKPermissionDecision) -> Void
+            decisionHandler: @escaping @MainActor @Sendable (WKPermissionDecision) -> Void
         ) {
             decisionHandler(.deny)
         }
@@ -133,7 +133,7 @@ struct HostilePreviewWebView: UIViewRepresentable {
             _ webView: WKWebView,
             requestDeviceOrientationAndMotionPermissionFor origin: WKSecurityOrigin,
             initiatedByFrame frame: WKFrameInfo,
-            decisionHandler: @escaping (WKPermissionDecision) -> Void
+            decisionHandler: @escaping @MainActor @Sendable (WKPermissionDecision) -> Void
         ) {
             decisionHandler(.deny)
         }
