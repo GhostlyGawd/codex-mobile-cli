@@ -84,6 +84,8 @@ def check_ci(failures: list[str], root: Path = ROOT) -> None:
             "shasum -a 256 --check",
             "./scripts/generate-ios-project.sh",
             "-destination 'platform=iOS Simulator,name=iPhone 17 Pro'",
+            "-onlyUsePackageVersionsFromResolvedFile",
+            "-skipPackagePluginValidation",
             "CODE_SIGNING_ALLOWED=NO",
         ),
     }

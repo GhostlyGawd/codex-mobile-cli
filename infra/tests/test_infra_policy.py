@@ -690,13 +690,16 @@ jobs:
             ios = ios.replace("Xcode_26.6.app", "Xcode_26.5.app").replace(
                 RELEASE_VALIDATOR.EXPECTED_XCODEGEN_SHA256,
                 "0" * 64,
-            )
+            ).replace("-skipPackagePluginValidation", "-packagePluginValidation")
             (workflows / "ios.yml").write_text(ios, encoding="utf-8")
             failures: list[str] = []
             RELEASE_VALIDATOR.check_ci(failures, root)
             self.assertTrue(any("Xcode_26.6.app" in item for item in failures))
             self.assertTrue(
                 any(RELEASE_VALIDATOR.EXPECTED_XCODEGEN_SHA256 in item for item in failures)
+            )
+            self.assertTrue(
+                any("-skipPackagePluginValidation" in item for item in failures)
             )
 
 

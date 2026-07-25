@@ -266,5 +266,7 @@ grep -Fq 'resetTerminalHistory' apps/ios/Sources/Terminal/TerminalSessionModel.s
 grep -Fq 'mayRefresh: request.reconnectToken == nil' apps/ios/Sources/Networking/HTTPAPIClient.swift
 grep -Eq '\.task\(id: model\.network\.isConnected\)' apps/ios/Sources/Features/Terminal/TerminalWorkspaceView.swift
 grep -Fq 'cp Package.resolved' scripts/generate-ios-project.sh
+grep -Fq -- '-onlyUsePackageVersionsFromResolvedFile' .github/workflows/ios.yml
+grep -Fq -- '-skipPackagePluginValidation' .github/workflows/ios.yml
 
 echo 'iOS static policy checks passed. Swift compilation requires the hosted Xcode gate; device-only behavior remains owner-gated.'

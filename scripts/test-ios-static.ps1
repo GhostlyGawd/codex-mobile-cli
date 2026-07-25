@@ -331,5 +331,8 @@ $terminalWorkspace = Join-Path $ios 'Sources/Features/Terminal/TerminalWorkspace
 Assert-Contains $terminalWorkspace '\.task\(id:\s*model\.network\.isConnected\)' 'Terminal tabs must resynchronize when connectivity changes.'
 
 Assert-Contains (Join-Path $root 'scripts/generate-ios-project.ps1') 'Copy-Item\s+''Package\.resolved''' 'PowerShell generation must install the pinned Swift package lockfile.'
+$iosWorkflow = Join-Path $root '.github/workflows/ios.yml'
+Assert-Contains $iosWorkflow '-onlyUsePackageVersionsFromResolvedFile' 'Hosted Xcode must use only the checked-in resolved package versions.'
+Assert-Contains $iosWorkflow '-skipPackagePluginValidation' 'Hosted Xcode must non-interactively enable the pinned OpenAPI build plugin.'
 
 Write-Host 'iOS static policy checks passed. Swift compilation requires the hosted Xcode gate; device-only behavior remains owner-gated.'

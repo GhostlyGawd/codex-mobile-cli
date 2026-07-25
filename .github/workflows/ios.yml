@@ -57,5 +57,7 @@ jobs:
             -project apps/ios/CodexMobile.xcodeproj \
             -scheme CodexMobile \
             -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
+            -onlyUsePackageVersionsFromResolvedFile \
+            -skipPackagePluginValidation \
             CODE_SIGNING_ALLOWED=NO \
             test

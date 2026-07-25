@@ -24,7 +24,10 @@ python3 ./scripts/validate-release-artifacts.py
 if command -v xcodebuild >/dev/null 2>&1 && command -v xcodegen >/dev/null 2>&1; then
   bash ./scripts/generate-ios-project.sh
   xcodebuild -project apps/ios/CodexMobile.xcodeproj -scheme CodexMobile \
-    -destination 'platform=iOS Simulator,name=iPhone 17 Pro' test
+    -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
+    -onlyUsePackageVersionsFromResolvedFile \
+    -skipPackagePluginValidation \
+    CODE_SIGNING_ALLOWED=NO test
 else
   echo 'SKIP: Xcode 26.6/XcodeGen 2.45.4 iOS build requires a configured macOS host.'
 fi
