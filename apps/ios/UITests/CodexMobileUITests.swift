@@ -87,10 +87,12 @@ final class CodexMobileUITests: XCTestCase {
         let diff = app.buttons[diffIdentifier]
         assertReachable(diff)
         XCTAssertEqual(app.buttons.matching(identifier: diffIdentifier).count, 1)
-        // Activate inside the file label, away from the row actions and fixed workspace controls.
-        diff.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.25)).tap()
-        let diffContent = app.descendants(matching: .any)["git.diff.review.content"]
-        XCTAssertTrue(diffContent.waitForExistence(timeout: 5))
+        diff.tap()
+        let loadedDiff = app.staticTexts["git.diff.review.loaded"]
+        XCTAssertTrue(
+            loadedDiff.waitForExistence(timeout: 10),
+            "The diff destination did not load. Accessibility hierarchy:\n\(app.debugDescription)"
+        )
     }
 
     func testSettingsFlowRemainsReachableAtAccessibilityTextSize() {

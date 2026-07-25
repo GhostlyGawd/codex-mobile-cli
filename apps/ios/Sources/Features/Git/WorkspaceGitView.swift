@@ -564,13 +564,22 @@ private struct GitDiffView: View {
     var body: some View {
         Group {
             if let diff, let text = diff.unifiedDiff {
-                ScrollView([.horizontal, .vertical]) {
-                    Text(text)
-                        .font(.caption.monospaced())
-                        .textSelection(.enabled)
-                        .accessibilityIdentifier("git.diff.review.content")
-                        .padding()
+                VStack(spacing: 0) {
+                    Text("Read-only diff")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal)
+                        .padding(.vertical, 8)
+                        .accessibilityIdentifier("git.diff.review.loaded")
+                    Divider()
+                    ScrollView([.horizontal, .vertical]) {
+                        Text(text)
+                            .font(.caption.monospaced())
+                            .textSelection(.enabled)
+                            .padding()
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
                 }
                 .safeAreaInset(edge: .top) {
                     if isStale { Text("Offline cached diff").font(.caption).padding(6).frame(maxWidth: .infinity).background(.orange.opacity(0.18)) }
