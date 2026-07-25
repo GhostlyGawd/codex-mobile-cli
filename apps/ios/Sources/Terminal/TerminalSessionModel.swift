@@ -262,7 +262,7 @@ final class TerminalSessionModel {
 
                 let stream = await socket.connect(to: descriptor, ownerID: ownerID)
                 guard generation == connectionGeneration, !Task.isCancelled else {
-                    await socket.disconnect(ownerID: ownerID)
+                    await socket.disconnect(ownerID: ownerID, code: .goingAway)
                     break
                 }
                 state = .connected
