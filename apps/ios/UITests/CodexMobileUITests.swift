@@ -15,22 +15,52 @@ final class CodexMobileUITests: XCTestCase {
         app.launch()
     }
 
+    private func assertReachable(
+        _ element: XCUIElement,
+        maximumSwipes: Int = 24,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        for attempt in 0...maximumSwipes {
+            let timeout = attempt == 0 ? 2.0 : 0.5
+            if element.waitForExistence(timeout: timeout), element.isHittable {
+                return
+            }
+            if attempt < maximumSwipes {
+                activeScrollContainer().swipeUp()
+            }
+        }
+        XCTFail(
+            "Could not scroll \(element) into a hittable position after \(maximumSwipes) swipes",
+            file: file,
+            line: line
+        )
+    }
+
+    private func activeScrollContainer() -> XCUIElement {
+        for query in [app.collectionViews, app.tables, app.scrollViews] {
+            if let container = query.allElementsBoundByIndex.first(where: { $0.isHittable }) {
+                return container
+            }
+        }
+        return app
+    }
+
     func testWorkspaceDashboardAndCreationFlowAreAccessible() {
         XCTAssertTrue(app.buttons["workspace.new"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["workspace.card.11111111-1111-4111-8111-111111111111"].exists)
         app.buttons["workspace.new"].tap()
         XCTAssertTrue(app.buttons["new-workspace.repository.repo-codex-mobile"].waitForExistence(timeout: 3))
         app.buttons["new-workspace.repository.repo-codex-mobile"].tap()
-        XCTAssertTrue(app.buttons["new-workspace.start"].exists)
-        XCTAssertTrue(app.buttons["new-workspace.start"].isHittable)
+        assertReachable(app.buttons["new-workspace.start"])
     }
 
     func testApprovalRequiresAuthenticatedInAppReview() {
         app.tabBars.buttons["Activity"].tap()
         XCTAssertTrue(app.buttons["activity.approval-1"].waitForExistence(timeout: 3))
         app.buttons["activity.approval-1"].tap()
-        XCTAssertTrue(app.buttons["approval.approve"].waitForExistence(timeout: 3))
-        XCTAssertTrue(app.buttons["approval.deny"].exists)
+        assertReachable(app.buttons["approval.approve"])
+        assertReachable(app.buttons["approval.deny"])
     }
 
     func testCoreNavigationLabelsExist() {
@@ -54,7 +84,7 @@ final class CodexMobileUITests: XCTestCase {
         XCTAssertTrue(gitSurface.exists)
         gitSurface.tap()
         let diff = app.buttons["git.diff.Sources/App.swift"]
-        XCTAssertTrue(diff.waitForExistence(timeout: 5))
+        assertReachable(diff)
         diff.tap()
         XCTAssertTrue(app.navigationBars["Sources/App.swift"].waitForExistence(timeout: 3))
     }
@@ -62,7 +92,7 @@ final class CodexMobileUITests: XCTestCase {
     func testSettingsFlowRemainsReachableAtAccessibilityTextSize() {
         app.tabBars.buttons["Settings"].tap()
         XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.buttons["settings.save"].exists)
-        XCTAssertTrue(app.buttons["settings.sign-out"].exists)
+        assertReachable(app.buttons["settings.save"])
+        assertReachable(app.buttons["settings.sign-out"])
     }
 }

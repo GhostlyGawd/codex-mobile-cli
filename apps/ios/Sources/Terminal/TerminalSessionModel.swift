@@ -458,7 +458,7 @@ final class TerminalSessionModel {
             try await Task.sleep(for: remaining < inputReceiptRetryDelay ? remaining : inputReceiptRetryDelay)
         }
 
-        _ = consumeInputReceipt(idempotencyKey)
+        if consumeInputReceipt(idempotencyKey) { return }
         if let lastSendError { throw lastSendError }
         throw ClientError.unavailable("The terminal did not acknowledge this draft. It was kept so you can retry safely.")
     }
