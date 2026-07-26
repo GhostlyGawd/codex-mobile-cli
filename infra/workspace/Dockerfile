@@ -1,19 +1,14 @@
 # syntax=docker/dockerfile:1.12
 # Go 1.26.5 official-image manifest digest checked 2026-07-15:
 # https://hub.docker.com/_/golang
-FROM golang:1.26.5-bookworm@sha256:1ecb7edf62a0408027bd5729dfd6b1b8766e578e8df93995b225dfd0944eb651 AS workspace-helper-builder
+FROM docker.io/library/golang:1.26.5-bookworm@sha256:1ecb7edf62a0408027bd5729dfd6b1b8766e578e8df93995b225dfd0944eb651 AS workspace-helper-builder
 
 ARG TARGETARCH
 WORKDIR /src/services/control-plane
 COPY services/control-plane/go.mod services/control-plane/go.sum ./
 RUN --mount=type=cache,target=/go/pkg/mod \
     go mod download
-COPY services/control-plane/internal/codex ./internal/codex
-COPY services/control-plane/internal/core ./internal/core
-COPY services/control-plane/internal/files ./internal/files
-COPY services/control-plane/internal/githubapp ./internal/githubapp
-COPY services/control-plane/internal/gitops ./internal/gitops
-COPY services/control-plane/internal/workspacehelper ./internal/workspacehelper
+COPY services/control-plane/internal ./internal
 COPY services/control-plane/cmd/workspace-helper ./cmd/workspace-helper
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
@@ -25,14 +20,14 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 
 # Ubuntu 24.04 official-image index digest checked 2026-07-15:
 # https://hub.docker.com/_/ubuntu
-FROM ubuntu:24.04@sha256:4fbb8e6a8395de5a7550b33509421a2bafbc0aab6c06ba2cef9ebffbc7092d90
+FROM docker.io/library/ubuntu:24.04@sha256:4fbb8e6a8395de5a7550b33509421a2bafbc0aab6c06ba2cef9ebffbc7092d90
 
 ARG DEBIAN_FRONTEND=noninteractive
 ARG WORKSPACE_IMAGE_VERSION=2026-07-15
 ARG TARGETARCH
-ARG CODEX_CLI_VERSION=0.144.5
-ARG CODEX_CLI_AMD64_SHA256=23a7022a493c5404c50c62a4ad5655836adbee019d93c73114954d8daff20053
-ARG CODEX_CLI_ARM64_SHA256=7703bbb6cbd4ba3df60c32d200bca2987691047353d3a6c825af2b8bc99f1808
+ARG CODEX_CLI_VERSION=0.145.0
+ARG CODEX_CLI_AMD64_SHA256=71a28d362c96ac9829bf8203a2c71be451aeb726adb843167fdaf0eae8fe7dd9
+ARG CODEX_CLI_ARM64_SHA256=54f79a05aba6f9abf8ef988abcae8bf2fcefba20beb549b4ff2b3acdb2cb6f54
 
 LABEL org.opencontainers.image.title="Codex Mobile workspace base" \
       org.opencontainers.image.description="Non-root local fallback for Coder workspaces" \
@@ -42,7 +37,7 @@ LABEL org.opencontainers.image.title="Codex Mobile workspace base" \
 
 # Ubuntu archive package versions (including tmux and ripgrep) are recorded in
 # the image. Codex uses the release-package assets covered by the official
-# codex-package_SHA256SUMS file for rust-v0.144.5.
+# codex-package_SHA256SUMS file for rust-v0.145.0.
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 # Package versions are captured in ubuntu-package-versions.txt inside the
@@ -125,8 +120,10 @@ RUN apt-get update \
     && ln -s /opt/codex-mobile-helper/codex /usr/local/bin/codex \
     && ln -s /opt/codex-mobile-helper/codex-code-mode-host /usr/local/bin/codex-code-mode-host \
     && /opt/codex-mobile-helper/codex-real --version | grep -F "codex-cli ${CODEX_CLI_VERSION}" \
-    && groupadd --gid 1000 codex \
-    && useradd --uid 1000 --gid 1000 --create-home --shell /bin/bash codex \
+    && test "$(getent group 1000 | cut -d: -f1)" = ubuntu \
+    && test "$(getent passwd 1000 | cut -d: -f1)" = ubuntu \
+    && groupmod --new-name codex ubuntu \
+    && usermod --login codex --home /home/codex --move-home --shell /bin/bash ubuntu \
     && install -d -o codex -g codex -m 0700 \
       /workspaces \
       /workspaces/repository \

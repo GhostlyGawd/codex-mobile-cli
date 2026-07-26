@@ -21,6 +21,20 @@
     coder_sha256:
       amd64: 091acfd4356ab2f02bcaf561928841e9aecc630a28bc9678658d4ae47632df09
       arm64: d16b0f9393404e1d85669ec620aa90d2a0c10b1977c11c95e11b2d6b9bb0917d
+    security_tool_architecture:
+      x86_64: amd64
+      aarch64: arm64
+    trivy_version: "0.72.0"
+    trivy_archive_architecture:
+      amd64: 64bit
+      arm64: ARM64
+    trivy_sha256:
+      amd64: bbb64b9695866ce4a7a8f5c9592002c5961cab378577fa3f8a040df362b9b2ea
+      arm64: 2ca2c023109c2db6b2b77366b6717291452d4531167377d95c79547f0c8e3467
+    syft_version: "1.46.0"
+    syft_sha256:
+      amd64: d654f678b709eb53c393d38519d5ed7d2e57205529404018614cfefa0fb2b5ca
+      arm64: 9fafef4db4f032ce81008d3a1529985d41ceb6ccdf2b388c9ce2f1ed7d32082e
     codex_packages:
       - apparmor
       - apparmor-utils
@@ -52,6 +66,7 @@
           - ansible_facts.distribution_version is version('24.04', '>=')
           - ansible_facts.distribution_version is version('25.04', '<')
           - ansible_facts.architecture in coder_architecture
+          - ansible_facts.architecture in security_tool_architecture
           - codex_data_root == '/srv/codex-mobile'
           - codex_release_root == '/opt/codex-mobile'
           - codex_config_root == '/etc/codex-mobile'
@@ -298,6 +313,18 @@
         - { path: "{{ codex_data_root }}/checkpoints/workspace-files", owner: "65532", group: "65532", mode: "0700" }
         - { path: "{{ codex_data_root }}/logs", owner: root, group: adm, mode: "0750" }
 
+    - name: Create root-only security tool cache directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0700"
+      loop:
+        - /var/cache/codex-mobile
+        - /var/cache/codex-mobile/downloads
+        - /var/cache/codex-mobile/trivy
+
     - name: Install dedicated Podman storage policy
       ansible.builtin.copy:
         src: "{{ playbook_dir }}/../containers-storage.conf"
@@ -397,6 +424,89 @@
       register: codex_coder_version_output
       changed_when: false
       failed_when: coder_version not in codex_coder_version_output.stdout
+
+    - name: Download exact Trivy archive
+      ansible.builtin.get_url:
+        url: >-
+          https://github.com/aquasecurity/trivy/releases/download/v{{ trivy_version }}/trivy_{{ trivy_version }}_Linux-{{ trivy_archive_architecture[security_tool_architecture[ansible_facts.architecture]] }}.tar.gz
+        dest: >-
+          /var/cache/codex-mobile/downloads/trivy-{{ trivy_version }}-{{ security_tool_architecture[ansible_facts.architecture] }}.tar.gz
+        owner: root
+        group: root
+        mode: "0600"
+        checksum: >-
+          sha256:{{ trivy_sha256[security_tool_architecture[ansible_facts.architecture]] }}
+      when: not ansible_check_mode
+
+    - name: Unpack exact Trivy binary
+      ansible.builtin.unarchive:
+        src: >-
+          /var/cache/codex-mobile/downloads/trivy-{{ trivy_version }}-{{ security_tool_architecture[ansible_facts.architecture] }}.tar.gz
+        dest: /usr/local/bin
+        remote_src: true
+        include:
+          - trivy
+        owner: root
+        group: root
+        mode: "0755"
+      when: not ansible_check_mode
+
+    - name: Download exact Syft archive
+      ansible.builtin.get_url:
+        url: >-
+          https://github.com/anchore/syft/releases/download/v{{ syft_version }}/syft_{{ syft_version }}_linux_{{ security_tool_architecture[ansible_facts.architecture] }}.tar.gz
+        dest: >-
+          /var/cache/codex-mobile/downloads/syft-{{ syft_version }}-{{ security_tool_architecture[ansible_facts.architecture] }}.tar.gz
+        owner: root
+        group: root
+        mode: "0600"
+        checksum: >-
+          sha256:{{ syft_sha256[security_tool_architecture[ansible_facts.architecture]] }}
+      when: not ansible_check_mode
+
+    - name: Unpack exact Syft binary
+      ansible.builtin.unarchive:
+        src: >-
+          /var/cache/codex-mobile/downloads/syft-{{ syft_version }}-{{ security_tool_architecture[ansible_facts.architecture] }}.tar.gz
+        dest: /usr/local/bin
+        remote_src: true
+        include:
+          - syft
+        owner: root
+        group: root
+        mode: "0755"
+      when: not ansible_check_mode
+
+    - name: Read installed Trivy version as JSON
+      ansible.builtin.command:
+        argv:
+          - /usr/local/bin/trivy
+          - --version
+          - --format
+          - json
+      register: codex_trivy_version_output
+      changed_when: false
+      when: not ansible_check_mode
+
+    - name: Read installed Syft version as JSON
+      ansible.builtin.command:
+        argv:
+          - /usr/local/bin/syft
+          - version
+          - --output
+          - json
+      register: codex_syft_version_output
+      changed_when: false
+      when: not ansible_check_mode
+
+    - name: Require exact installed security tool versions
+      ansible.builtin.assert:
+        that:
+          - (codex_trivy_version_output.stdout | from_json).Version == trivy_version
+          - (codex_syft_version_output.stdout | from_json).application == 'syft'
+          - (codex_syft_version_output.stdout | from_json).version == syft_version
+        fail_msg: Installed Trivy or Syft version does not match its audited pin.
+      when: not ansible_check_mode
 
     - name: Install service wrappers and systemd units
       ansible.builtin.copy:

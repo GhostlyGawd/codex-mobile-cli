@@ -1,6 +1,6 @@
 # Implementation plan
 
-Last updated: 2026-07-25 (America/New_York)
+Last updated: 2026-07-26 (America/New_York)
 
 Status values: `not started`, `in progress`, `locally verified`, `owner-gated`, `blocked`.
 
@@ -11,8 +11,8 @@ Status values: `not started`, `in progress`, `locally verified`, `owner-gated`, 
 | GitHub repository | The clean-history cutover is complete: `GhostlyGawd/codex-mobile-cli` is public from a distinct clean root, while the original history remains private at `GhostlyGawd/codex-mobile-cli-private-archive` | Develop and verify the active product at the public URL without exposing the private repository's historical metadata |
 | Go | 1.26.5 installed and verified | Backend build/test available |
 | Windows self-hosted runner | Historical trusted smoke validation passed; this repository's listener, registration, root, and launcher were removed before publication, and the public repository has no self-hosted runners | Use only the public standard-runner workflows; unrelated owner-PC runners remain outside this repository's scope |
-| Docker/Compose | Docker engine unavailable; checksum-verified Compose 5.3.1 schema validation passed | Built-image, container integration, and isolation tests require a Linux Docker/Podman runner |
-| Swift/Xcode | Local Xcode is unavailable on Windows; public `macos-26` CI passed project generation, compilation, unit tests, and UI tests with Xcode 26.6, checksum-verified XcodeGen 2.45.4, and the iPhone 17 Pro simulator | Unsigned simulator evidence is automated; signing, physical devices, manual accessibility, APNs, and TestFlight remain owner-gated |
+| Docker/Compose | A D-backed Ubuntu WSL environment provides Docker 29.1.3 and Podman 4.9.3; checksum-verified Compose 5.3.1 schema validation passed, and the exact commit-tagged candidate-image build/runtime/profile-3 audit/manifest gate is executable there | The final documentation-bearing candidate passed the local gate before handoff; production Compose, Coder, XFS, AppArmor, and host-isolation evidence remains VPS-gated |
+| Swift/Xcode | Local Xcode is unavailable on Windows; a historical public `macos-26` run passed project generation, compilation, unit tests, and UI tests with Xcode 26.6, checksum-verified XcodeGen 2.45.4, and the iPhone 17 Pro simulator on revision `c2aef5d3640f9f4660a550e1c0d3df6aacf26cf1`; the current-tree rerun is pending | Unsigned simulator evidence is automated, but revision-specific; signing, physical devices, manual accessibility, APNs, and TestFlight remain owner-gated |
 | Codex CLI shell binary | Packaged app binary is not directly executable from this shell | Version-pinned Linux CLI validation uses disposable Linux infrastructure later |
 | External credentials | GitHub App, APNs, domain, VPS, Apple signing values not supplied | Real-account E2E remains owner-gated; fakes are allowed only at these boundaries |
 
@@ -21,15 +21,15 @@ Status values: `not started`, `in progress`, `locally verified`, `owner-gated`, 
 | Milestone | Status | Dependencies | Exit evidence |
 | --- | --- | --- | --- |
 | 0. Feasibility and contracts | locally verified | Official docs and provider terms | Architecture/security/cost/capability docs, ADRs, OpenAPI and terminal contracts |
-| 1. Reproducible skeleton | locally verified | Milestone 0 boundaries | Full Go vet/race/coverage, migrations, deterministic Linux cross-builds, Compose/static infrastructure validation, iOS static contract policy, and public hosted Linux plus unsigned Xcode simulator checks pass |
+| 1. Reproducible skeleton | locally verified | Milestone 0 boundaries | Full Go vet/race/coverage, migrations, deterministic Linux cross-builds, Compose/static infrastructure validation, and iOS static contract policy have recorded local evidence. Public hosted Linux and unsigned Xcode checks passed only on historical revision `c2aef5d3640f9f4660a550e1c0d3df6aacf26cf1`; current-tree hosted reruns are pending |
 | 2. Identity and GitHub | owner-gated | Stable RP ID and owner-created GitHub App for live E2E | Passkey/session contracts include bounded partitioned ceremony admission. Owner-scoped GitHub status and shared/exclusive lease wiring pass unit tests; disposable PostgreSQL race runs passed the cross-pool drain, final-write, reconnect-availability, and `MaxConns=1` regressions. Real associated-domain, external App install/uninstall and GitHub flows remain gated |
-| 3. Workspace | owner-gated | Coder endpoint/template and target Linux container host for live E2E | Lifecycle, retention, queue, fail-closed private-input persistence, continuous admission-to-runtime reservation, durable provider ambiguity recovery, exact-running Coder build barriers, conservative quota high-water/level-triggered reconciliation, durable setup-review reconciliation, confirmed suspension/deletion authority drains, branch/worktree isolation, immutable disk allocation, per-workspace Coder relay/control-uplink policy, and adapter contracts are implemented. Live Coder agent/PTY relay, Safe Mode routing, Podman and XFS evidence remains gated |
-| 4. Persistent terminal | owner-gated | Linux PTY/tmux and Mac/device for live E2E | Portable protocol/replay/gap/lease, targeted input-receipt, mandatory output-redaction, stale-token recovery, persistent-tab, native controls, bounded global/owner/workspace/tab/device state, and revocation writer-drain checks pass. Swift compilation and the automated simulator suite pass; real tmux survival, SwiftTerm fidelity, and device behavior remain gated |
+| 3. Workspace | owner-gated | Coder endpoint/template and target Linux container host for live E2E | Lifecycle, retention, queue, fail-closed private-input persistence, continuous admission-to-runtime reservation, durable provider ambiguity recovery, exact-running Coder build barriers, conservative quota high-water/level-triggered reconciliation, durable setup-review reconciliation, confirmed suspension/deletion authority drains, branch/worktree isolation, immutable disk allocation, per-workspace Coder relay/control-uplink policy, and adapter contracts are implemented. Exact developmental workspace/EnvBuilder image build and runtime checks passed in WSL; live Coder agent/PTY relay, Safe Mode routing, production Podman isolation, and XFS evidence remain gated |
+| 4. Persistent terminal | owner-gated | Linux PTY/tmux and Mac/device for live E2E | Portable protocol/replay/gap/lease, targeted input-receipt, mandatory output-redaction, stale-token recovery, persistent-tab, native controls, bounded global/owner/workspace/tab/device state, and revocation writer-drain checks pass. Swift compilation and the automated simulator suite passed on the historical hosted baseline; the current-tree hosted rerun, real tmux survival, SwiftTerm fidelity, and device behavior remain gated |
 | 5. Genuine Codex | owner-gated | ChatGPT device login and Linux runtime access by owner | Portable wrapper/config/auth security tests, per-workspace status/confirmed disconnect that stops only app-owned Codex tmux and removes runtime/encrypted auth, deterministic Linux cross-builds, and a bounded attachment-staging boundary for the authoritative TUI pass; live Linux TUI/device-login/reauth/resume/attachment evidence remains owner-gated |
-| 6. Files/Git/review | owner-gated | Production Linux workspace filesystem | Linux fd-relative no-follow file/search/save, exact displaced-content ETag CAS, bounded Git, and recoverable checkpoint/discard contracts pass locally; hosted native compilation and simulator Git-review reachability pass, while live contention and target-filesystem proof remain gated |
-| 7. Previews/secrets/offline | owner-gated | Domain/TLS for live preview E2E and Mac/device for native runtime tests | Preview revocation, live grant/revoke tmpfs sync, pre-replay terminal redaction, encrypted read-only cache/drafts/history, and attachment cache exclusion pass portable/static tests; hosted native unit/UI tests pass, while domain/TLS, live workspace integration, device file protection, and physical-device behavior remain gated |
-| 8. Operations/hardening | owner-gated | Selected VPS for measured load/restore | Supply-chain reproducibility, recorded frozen-tree source-security scanning, release-artifact validation, private quota-runtime policy, and runbooks are locally exercised; built OCI image scans and XFS quota/restore/maintenance/load drills remain VPS-gated |
-| 9. Product polish/release | owner-gated | Apple team, APNs key, physical devices, TestFlight authorization | Hosted Xcode unit/UI simulator tests pass; manual VoiceOver/Dynamic Type device evidence, a signed archive, APNs, TestFlight, and the release checklist remain owner-gated |
+| 6. Files/Git/review | owner-gated | Production Linux workspace filesystem | Linux fd-relative no-follow file/search/save, exact displaced-content ETag CAS, bounded Git, and recoverable checkpoint/discard contracts pass locally; hosted native compilation and simulator Git-review reachability passed on the historical hosted baseline, while the current-tree hosted rerun, live contention, and target-filesystem proof remain gated |
+| 7. Previews/secrets/offline | owner-gated | Domain/TLS for live preview E2E and Mac/device for native runtime tests | Preview revocation, live grant/revoke tmpfs sync, pre-replay terminal redaction, encrypted read-only cache/drafts/history, and attachment cache exclusion pass portable/static tests; hosted native unit/UI tests passed on the historical hosted baseline, while the current-tree hosted rerun, domain/TLS, live workspace integration, device file protection, and physical-device behavior remain gated |
+| 8. Operations/hardening | owner-gated | Selected VPS for measured load/restore | Supply-chain reproducibility, recorded frozen-tree source-security scanning, release-artifact validation, private quota-runtime policy, and runbooks are locally exercised. The final documentation-bearing OCI candidate passed exact build/runtime checks, the profile-3/schema-2 image audit, and manifest-schema-2 binding in D-backed WSL; all production XFS/AppArmor/restore/maintenance/load drills remain pending |
+| 9. Product polish/release | owner-gated | Apple team, APNs key, physical devices, TestFlight authorization | Xcode unit/UI simulator tests passed on the historical hosted baseline; the current-tree hosted rerun, manual VoiceOver/Dynamic Type device evidence, a signed archive, APNs, TestFlight, and the release checklist remain owner-gated |
 
 ## Milestone execution rules
 
@@ -121,11 +121,20 @@ Status values: `not started`, `in progress`, `locally verified`, `owner-gated`, 
 - [x] Wire the integrated verifier to hash the deterministic Linux amd64/arm64 workspace-helper artifacts and require exact equality with the EnvBuilder image pins; statically require the same pins in the image-build verifier.
 - [x] Validate the local release candidate after the final generated-contract, helper-hash, and version-pin checks.
 - [x] Complete all locally achievable milestones and criterion mapping.
-- [ ] Build and scan the immutable OCI images on the owner-approved Linux Docker/Podman target.
+- [x] Build and runtime-check the three exact
+  revision-`88ccb962a2fd7f11c6b86749b1b0c95119ffa4a8` OCI candidate images in the
+  D-backed Ubuntu WSL Docker/Podman environment.
+- [x] Run the profile-3/schema-2 audit against those exact image IDs and account
+  for all 1,300 findings through exact expiring dispositions or the
+  duplicate-sensitive non-forbidden-license baseline.
+- [x] Rebuild, runtime-check, profile-3 rescan, and manifest-bind the exact
+  images produced from the final documentation-bearing candidate. The
+  authoritative release identity remains in the root-only receipt and
+  generated manifest rather than this self-referential document.
 
 ## Final verification evidence
 
-On public `main` revision
+Historical hosted baseline only: on public `main` revision
 [`c2aef5d3640f9f4660a550e1c0d3df6aacf26cf1`](https://github.com/GhostlyGawd/codex-mobile-cli/commit/c2aef5d3640f9f4660a550e1c0d3df6aacf26cf1),
 the GitHub-hosted Linux [run `30183058698`](https://github.com/GhostlyGawd/codex-mobile-cli/actions/runs/30183058698)
 ([job `89742869774`](https://github.com/GhostlyGawd/codex-mobile-cli/actions/runs/30183058698/job/89742869774))
@@ -134,7 +143,7 @@ packages without test files. Infrastructure verification reported 69 passes
 and one expected root/POSIX-only skip; static policy, billing, deterministic
 supply-chain, and release-artifact checks also passed.
 
-The GitHub-hosted iOS [run `30183058643`](https://github.com/GhostlyGawd/codex-mobile-cli/actions/runs/30183058643)
+On that same historical revision, the GitHub-hosted iOS [run `30183058643`](https://github.com/GhostlyGawd/codex-mobile-cli/actions/runs/30183058643)
 ([job `89742869559`](https://github.com/GhostlyGawd/codex-mobile-cli/actions/runs/30183058643/job/89742869559))
 passed on `macos-26` with Xcode 26.6, checksum-verified XcodeGen 2.45.4, and
 the iPhone 17 Pro simulator on iOS 26.5. Project generation and compilation
@@ -142,6 +151,11 @@ succeeded, followed by 63 unit tests and five UI tests with zero failures. This
 is unsigned simulator evidence only; physical-device behavior, manual
 accessibility review, signing, APNs, App Store/TestFlight, and credentialed
 flows remain owner-gated.
+
+Those hosted runs predate the current EnvBuilder source derivative, Codex
+0.145.0 pin, and related dependency/policy changes. They are evidence only for
+the linked revision, not the current tree; current-tree hosted Linux and macOS
+runs are pending.
 
 On the 2026-07-25 public-readiness tree, `go work sync`, full `go vet`, fresh
 coverage, and `pwsh ./scripts/verify.ps1` passed. Coverage remained 55.8% and
@@ -151,9 +165,10 @@ infrastructure suite completed successfully with six expected Windows skips. The
 rejected by Go 1.26's Windows workspace path handling; the module-local
 `go -C services/control-plane fmt ./...` equivalent passed without a diff. The
 literal race command was attempted but this host has no CGO compiler, so the
-executed race result is supplied by the hosted Linux run above. Xcode remains
-unavailable locally on Windows; the executed unsigned simulator result is
-supplied by the hosted macOS run above.
+current-tree race result remains unexecuted here. The hosted Linux run above is
+historical evidence only for its linked revision. Xcode remains unavailable
+locally on Windows; the hosted macOS result above is likewise historical and
+does not supply a current-tree simulator result.
 
 On 2026-07-16, `go work sync`, the Windows-compatible
 `GO111MODULE=off go fmt ./services/control-plane/...`, full `go vet`, full
@@ -170,10 +185,46 @@ validation, and deterministic Linux workspace-helper verification. The exact
 helper hashes are amd64
 `f6fc430a2200d13ee0ef04dd576875b4f9a7c95a04287cbdec2deec3b495493c` and
 arm64 `c7e4577a465b55721043612f9b6919248806576816388b01898f6c2784dc163e`.
-Xcode 26.6/XcodeGen 2.45.4 testing was `NOT EXECUTED` on Windows but passed in
-the hosted unsigned simulator run above. Docker/Podman built-image inspection
-and all provider/VPS, physical-device, signing, APNs, domain, and credentialed
-end-to-end scenarios remain `GATED` and `NOT EXECUTED`.
+
+On 2026-07-26, after the current Go security-dependency upgrade, two independent
+`GOOS=linux CGO_ENABLED=0 go build -trimpath -buildvcs=false -ldflags="-s -w"`
+cross-builds reproduced the new helper-profile-2 hashes: amd64
+`ba7080f880206d90e05d751245c3635b9bdcbcbbc6152d61c3ec4221fd5bdf14`
+and arm64
+`3042240a601842f35233e383835a3e40aef6b05640b44f723bafefb133fdf9aa`.
+The current `pwsh ./scripts/verify.ps1` run matched those active pins; profile 1
+remains in the trusted verifier only for historical rollback compatibility.
+
+Also on 2026-07-26, the D-backed Ubuntu WSL environment built and
+runtime-checked release
+`sha-88ccb962a2fd7f11c6b86749b1b0c95119ffa4a8` from that exact source revision.
+Podman recorded control-plane image ID
+`sha256:f2e275c9be9da96ae7ca8f3182152a44080ca5c519e1a3a2dc203d62327ca3e2`,
+workspace image ID
+`sha256:5c69392a575f6737aefde346e413dd3ee44adf2128525120dc23e6339fd8e64d`,
+and EnvBuilder image ID
+`sha256:958e6fb68ec8366c092fb93f8695ca08a8d546f404fa8ca2bf00734c9923ed76`.
+The profile-3/schema-2 audit scanned those IDs with one frozen Trivy database
+and accounted for all 1,300 findings: 66 vulnerabilities plus 1,234 license
+findings, represented by 68 exact expiring dispositions (including the two
+forbidden-license findings) and one duplicate-sensitive 1,232-entry
+non-forbidden workspace-license baseline. Raw reports remained root-only and
+outside the tracked repository. This developmental scan established the
+profile-3 policy against those exact commit-88 images. Before handoff, the final
+documentation-bearing candidate independently repeated the exact image build,
+runtime checks, profile-3/schema-2 scan, receipt verification, and
+manifest-schema-2 create/verify gate. This document intentionally does not
+embed its own commit hash: the root-only receipt/report tree and generated
+manifest name the authoritative audited revision. Every later Git commit,
+including a merge-generated `main` commit, is a distinct release identity and
+must repeat that exact gate before promotion.
+
+Xcode 26.6/XcodeGen 2.45.4 testing was `NOT EXECUTED` on Windows. The hosted
+unsigned simulator run above predates this tree, so current-tree hosted Xcode
+execution remains pending. Production Compose/Coder/Podman activation, XFS and
+AppArmor enforcement, and all provider/VPS, physical-device, signing, APNs,
+domain, and credentialed end-to-end scenarios remain `GATED` and `NOT
+EXECUTED`.
 
 The recorded 2026-07-16 tree's source-security audit completed with Syft
 1.46.0, Trivy 0.72.0, Gitleaks 8.30.1, go-licenses 2.0.1, and govulncheck 1.6.0.
@@ -183,4 +234,6 @@ called/imported-package vulnerabilities plus seven required-module
 vulnerabilities whose affected symbols are not called. `go-licenses` exited
 successfully; unlicensed first-party-package unknown classifications are not scan
 errors. Detailed scanner reports were ephemeral outside the repository. Built
-OCI image scanning remains `GATED` and `NOT EXECUTED`.
+OCI image scanning is executed for both the developmental commit-88 candidates
+and the final documentation-bearing candidate described above. Production-host
+activation remains unverified.

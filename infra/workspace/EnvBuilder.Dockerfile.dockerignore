@@ -1,0 +1,6 @@
+**
+!infra/
+!infra/workspace/
+!infra/workspace/envbuilder/
+!infra/workspace/envbuilder/source-lock.json
+!infra/workspace/envbuilder/envbuilder-v1.3.0-codex-mobile.patch

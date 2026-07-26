@@ -1,5 +1,12 @@
 #!/bin/sh
 set -eu
+PATH=/usr/sbin:/usr/bin:/sbin:/bin
+HOME=/root
+export PATH HOME
+unset CDPATH ENV BASH_ENV PYTHONHOME PYTHONPATH PYTHONSTARTUP LD_LIBRARY_PATH LD_PRELOAD
+unset DOCKER_HOST DOCKER_CONTEXT DOCKER_CONFIG COMPOSE_FILE
+unset CONTAINER_HOST CONTAINER_CONNECTION CONTAINERS_CONF CONTAINERS_STORAGE_CONF
+unset CONTAINERS_REGISTRIES_CONF CONTAINERS_POLICY REGISTRY_AUTH_FILE XDG_CONFIG_HOME
 
 usage() {
   echo "usage: $0 --confirm=CREATE-DISPOSABLE-RUNTIME-SMOKE" >&2
@@ -19,10 +26,11 @@ case "$release_id" in sha-[0-9a-f]*) ;; *) echo "invalid release identity" >&2; 
   exit 1
 }
 
-python3 "$repo_root/scripts/infra_release_manifest.py" verify \
-  --repo-root "$repo_root" --require-images
+/usr/bin/python3 -I "$repo_root/scripts/infra_release_manifest.py" verify \
+  --repo-root "$repo_root" --require-images --require-image-audit \
+  --podman-url "$podman_url"
 
-expected_helper=$(python3 - "$repo_root/infra/release-manifest.json" <<'PY'
+expected_helper=$(/usr/bin/python3 -I - "$repo_root/infra/release-manifest.json" <<'PY'
 import json
 import re
 import sys
@@ -39,18 +47,18 @@ case "$suffix" in ''|*[!0-9a-f]*) echo "failed to create smoke identifier" >&2; 
 name="cm-release-smoke-$suffix"
 volume="$name-data"
 cleanup() {
-  podman --url "$podman_url" rm --force "$name" >/dev/null 2>&1 || true
-  podman --url "$podman_url" volume rm --force "$volume" >/dev/null 2>&1 || true
+  /usr/bin/podman --url "$podman_url" rm --force "$name" >/dev/null 2>&1 || true
+  /usr/bin/podman --url "$podman_url" volume rm --force "$volume" >/dev/null 2>&1 || true
 }
 trap cleanup EXIT HUP INT TERM
 
-podman --url "$podman_url" info >/dev/null
-podman --url "$podman_url" volume create \
+/usr/bin/podman --url "$podman_url" info >/dev/null
+/usr/bin/podman --url "$podman_url" volume create \
   --label com.codex-mobile.volume-role=release-smoke \
   --opt o=size=8M,inodes=1024 "$volume" >/dev/null
 
 # shellcheck disable=SC2016 # The quoted expression executes inside the container.
-actual_helper=$(timeout 60s podman --url "$podman_url" run --rm \
+actual_helper=$(timeout 60s /usr/bin/podman --url "$podman_url" run --rm \
   --name "$name" \
   --network none \
   --read-only \

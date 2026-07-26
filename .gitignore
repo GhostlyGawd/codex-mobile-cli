@@ -30,6 +30,7 @@ apps/ios/Config/Local.xcconfig
 
 # Generated reports and local state
 artifacts/
+/infra/image-audit/
 tmp/
 .cache/
 .ruff_cache/

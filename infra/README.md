@@ -140,8 +140,10 @@ the live authorization test.
 
 Static tests validate Compose isolation, exact image pins, Caddy syntax, the
 Coder template/relay, managed control-network and firewall contracts, secret
-contracts, host-hardening files, billing policy, and checkpoint/rollback
-scripts. Private Podman workspace isolation, live relay/Coder-agent/Safe Mode
+contracts, host-hardening files, billing policy, manifest-bound image-audit
+ordering/tamper policy, and checkpoint/rollback scripts. A Linux build-and-scan
+run is still required to prove the exact candidate IDs. Private Podman workspace
+isolation, live relay/Coder-agent/Safe Mode
 route enforcement, volume/rootfs XFS quota and cgroup I/O/PID enforcement on a
 template-created workspace, ten-session capacity, reboot/update rollback, database restore,
 provider backup restore, DNS, and public TLS must still be exercised on the

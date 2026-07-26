@@ -1,10 +1,13 @@
 # Dependency report
 
 Generated deterministically from `go.mod`/`go.sum`, Swift `Package.resolved`,
-Terraform's dependency lockfile, pinned OCI references, and `.tool-versions` by
-`python scripts/generate-supply-chain.py`. Run the generator after every
-dependency or image change. A checksum listed here is lock/pin evidence, not a
-claim that an image was built or executed.
+Terraform's dependency lockfile, the EnvBuilder source lock and patch, the
+pinned official Codex CLI release assets, OCI references, and `.tool-versions`
+by `python scripts/generate-supply-chain.py`. Run the generator after every
+dependency or image change. This source report records declared inputs and
+download pins; it does not prove which bytes are present in a built image. The
+Syft SBOM captured from each exact built release image is authoritative for
+installed binaries, transitive modules, and operating-system packages.
 
 | Ecosystem | Dependency | Version | Relationship | Integrity/source |
 | --- | --- | --- | --- | --- | --- |
@@ -13,9 +16,11 @@ claim that an image was built or executed.
 | Build tool | `golang` | `1.26.5` | direct | `.tool-versions` |
 | Build tool | `govulncheck` | `1.6.0` | direct | `.tool-versions` |
 | Build tool | `python` | `3.12.10` | direct | `.tool-versions` |
-| Build tool | `syft` | `1.46.0` | direct | `.tool-versions` |
-| Build tool | `trivy` | `0.72.0` | direct | `.tool-versions` |
 | Build tool | `xcodegen` | `2.45.4` | direct | `.tool-versions` |
+| Codex CLI application | `openai/codex` | `0.145.0` | direct | `https://github.com/openai/codex/releases/tag/rust-v0.145.0` |
+| Codex CLI release asset | `codex-package-aarch64-unknown-linux-musl.tar.gz` | `0.145.0` | direct | SHA-256 `54f79a05aba6f9abf8ef988abcae8bf2fcefba20beb549b4ff2b3acdb2cb6f54` |
+| Codex CLI release asset | `codex-package-x86_64-unknown-linux-musl.tar.gz` | `0.145.0` | direct | SHA-256 `71a28d362c96ac9829bf8203a2c71be451aeb726adb843167fdaf0eae8fe7dd9` |
+| EnvBuilder derivative | `codex-mobile-envbuilder` | `1.3.0-codex-mobile.1` | direct | `infra/workspace/envbuilder/source-lock.json` |
 | Go module | `cyphar.com/go-pathrs` | `v0.2.1` | transitive | SHA-256 `f67c75bce83056f5f598d0560eef77faf69c79e7696ec0eaa3e5ee0462f8d1bf` |
 | Go module | `dario.cat/mergo` | `v1.0.0` | transitive | SHA-256 `00608dabd12fb23df598e80d3dc2f25dcfb83cd001b7dd39626baa3d86290569` |
 | Go module | `github.com/anmitsu/go-shlex` | `v0.0.0-20200514113438-38f4b401e2be` | transitive | SHA-256 `f407938a53dc6408c214822672d15a3a39d321abe0f3bad6efcbd33e442a2c8f` |
@@ -70,26 +75,30 @@ claim that an image was built or executed.
 | Go module | `github.com/x448/float16` | `v0.8.4` | transitive | SHA-256 `a8bc08d48ef4f8d8d1154477cecd493d40a06825d2877496eb6b80293d664813` |
 | Go module | `github.com/xanzy/ssh-agent` | `v0.3.3` | transitive | SHA-256 `fbfd79a497e0fd1b13c6a61c5fa7c7a8e5d9c3030ffb657261625e58cdaa4053` |
 | Go module | `go.uber.org/mock` | `v0.6.0` | transitive | SHA-256 `87217d75f99b8085f911f39d6aca8bb160fac6aa4d6655db94b07f0db9f0bf76` |
-| Go module | `golang.org/x/crypto` | `v0.52.0` | transitive | SHA-256 `44cb3b7cfdab5dd7a9d027ed4252bc51ffa489b2e6eea90272b69d656633f7cf` |
+| Go module | `golang.org/x/crypto` | `v0.53.0` | transitive | SHA-256 `419e0cba8f131d7e828b3376bcf3dde5f0461f2a20add2bd7c6e302cf154b2da` |
 | Go module | `golang.org/x/exp` | `v0.0.0-20260410095643-746e56fc9e2f` | transitive | SHA-256 `5b717873ee8e2dce87da56fffcdd6ae16a49921cc908ae49ea4522d4d4d55df3` |
-| Go module | `golang.org/x/mod` | `v0.35.0` | transitive | SHA-256 `5b0d43eb7edee8f83e65bd8aad67c74149c7d9d4112c143202da6bfe169a25e3` |
-| Go module | `golang.org/x/net` | `v0.55.0` | transitive | SHA-256 `6dcbf16899f77b553a227b055add4952ad5a4a39d1c4bcd3dabb43d8a7e40c5f` |
-| Go module | `golang.org/x/sync` | `v0.20.0` | transitive | SHA-256 `7b43d3a5bee98cef0602d4ecd9d43a8d86b905662532e5f4e3b0dca3fa48b4ee` |
+| Go module | `golang.org/x/mod` | `v0.37.0` | transitive | `https://golang.org/x/mod` |
+| Go module | `golang.org/x/net` | `v0.56.0` | transitive | SHA-256 `470f23fe11731af2546703415e702d7f9b150d5b7eeb948ad82ec8c42c59b79a` |
+| Go module | `golang.org/x/sync` | `v0.21.0` | transitive | SHA-256 `1cb208e314514ed091931629e0734517426cfce83aab68bef8a5db8348070b03` |
 | Go module | `golang.org/x/sys` | `v0.47.0` | direct | SHA-256 `a3b5c63af6500800c1410e18ed536ad9d456411ec998e516f0ac71e19b0d816b` |
-| Go module | `golang.org/x/term` | `v0.43.0` | transitive | SHA-256 `4b844b536b01df53bf34297ecc537d02bbbd03f0aad9aa8aa53649e81f83c13e` |
-| Go module | `golang.org/x/text` | `v0.37.0` | transitive | SHA-256 `0aa8e2c1df5e4a0f1ed10024c826904cd1c5208cd6b6274f6a115647cdeb4eb7` |
-| Go module | `golang.org/x/tools` | `v0.44.0` | transitive | SHA-256 `50fe1a8c73c872e3234f51aacc359195a95412863ebb3a192a784e8db20f0f67` |
+| Go module | `golang.org/x/term` | `v0.44.0` | transitive | SHA-256 `d2b2ef0d10ad363d20664c885e10b239bd8e0331212d5a9ce01fa1aec061ae67` |
+| Go module | `golang.org/x/text` | `v0.39.0` | transitive | SHA-256 `51b673e292cebe7eb4d03e8e87a186108e950269ddac404bbfcffa0445f3caeb` |
+| Go module | `golang.org/x/tools` | `v0.47.0` | transitive | `https://golang.org/x/tools` |
 | Go module | `google.golang.org/protobuf` | `v1.33.0` | transitive | SHA-256 `b8d3b6aec00836afc9945a5275810a219d2e283fd1f5ca5dbf44feca81b01a62` |
 | Go module | `gopkg.in/check.v1` | `v1.0.0-20201130134442-10cb98267c6c` | transitive | SHA-256 `1de8bfe000df756a8993564cc54369aa7b4dc1a59cba0ac18c088796aa918959` |
 | Go module | `gopkg.in/warnings.v0` | `v0.1.2` | transitive | SHA-256 `c055d56c563c0d8e7fc4e7b510289674a0b3665c60b2171854d9011ecb4044c1` |
 | Go module | `gopkg.in/yaml.v2` | `v2.4.0` | transitive | SHA-256 `0fcc60c04098ec262fc7e6369f8b01cfddc99fd251bf1762cb2a3c0937ee29a6` |
 | Go module | `gopkg.in/yaml.v3` | `v3.0.1` | transitive | SHA-256 `7f1566fc6cc0cc45aa2c7baf72d23dd4a4bd8613669963a85aed174d8252ec20` |
 | OCI image | `caddy` | `2.11.4-alpine` | direct | SHA-256 `5f5c8640aae01df9654968d946d8f1a56c497f1dd5c5cda4cf95ab7c14d58648` |
+| OCI image | `docker.io/library/golang` | `1.26.5-bookworm` | direct | SHA-256 `1ecb7edf62a0408027bd5729dfd6b1b8766e578e8df93995b225dfd0944eb651` |
+| OCI image | `docker.io/library/ubuntu` | `24.04` | direct | SHA-256 `4fbb8e6a8395de5a7550b33509421a2bafbc0aab6c06ba2cef9ebffbc7092d90` |
 | OCI image | `ghcr.io/coder/coder` | `v2.34.6` | direct | SHA-256 `0ac9c07e9ff18ea9fecb07c08da838a032352e2b95c5fcd3bf279297cff1808a` |
-| OCI image | `golang` | `1.26.5-bookworm` | direct | SHA-256 `1ecb7edf62a0408027bd5729dfd6b1b8766e578e8df93995b225dfd0944eb651` |
 | OCI image | `localhost/codex-mobile/control-plane` | `local-2026-07-15` | direct | `localhost/codex-mobile/control-plane:local-2026-07-15` |
 | OCI image | `postgres` | `18.4-bookworm` | direct | SHA-256 `1961f96e6029a02c3812d7cb329a3b03a3ac2bb067058dec17b0f5596aca9296` |
-| OCI image | `ubuntu` | `24.04` | direct | SHA-256 `4fbb8e6a8395de5a7550b33509421a2bafbc0aab6c06ba2cef9ebffbc7092d90` |
+| Operational tool | `syft` | `1.46.0` | direct | `.tool-versions` |
+| Operational tool | `trivy` | `0.72.0` | direct | `.tool-versions` |
+| Source archive | `github.com/coder/envbuilder` | `1.3.0` | direct | SHA-256 `f1c6334ee08736dec2585d96ad0afacc1888994bf2a2cdcf86e982b229fb8a85` |
+| Source patch | `infra/workspace/envbuilder/envbuilder-v1.3.0-codex-mobile.patch` | `1.3.0-codex-mobile.1` | direct | SHA-256 `aea2941874a27d4deac96a0efe3a006ca6ea56d7cff982caa3a36877fc1756c3` |
 | Swift package | `openapikit` | `3.9.0` | transitive | SHA-1 `343b2c1793058fcc53c1bd7e2907f8e3a4d640fb` |
 | Swift package | `runestone` | `0.5.2` | direct | SHA-1 `592434a103a4d1ab83e14f87ac6eef569dd7a99d` |
 | Swift package | `swift-algorithms` | `1.2.1` | transitive | SHA-1 `87e50f483c54e6efd60e885f7f5aa946cee68023` |

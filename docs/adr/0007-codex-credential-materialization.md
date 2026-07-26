@@ -2,10 +2,12 @@
 
 - Status: accepted
 - Date: 2026-07-16
+- Revision: 2026-07-26 — updated the configured Codex CLI pin from 0.144.5 to
+  0.145.0; the credential-materialization decision is unchanged.
 
 ## Context
 
-Codex CLI 0.144.5 supports file, keyring, automatic, and ephemeral CLI
+Codex CLI 0.145.0 supports file, keyring, automatic, and ephemeral CLI
 credential stores. A Linux keyring cannot be assumed after an approved Dev
 Container replaces the workspace root. The ephemeral mode loses device login
 across processes and restarts, while an ordinary file store leaves

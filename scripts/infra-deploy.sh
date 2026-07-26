@@ -1,5 +1,12 @@
 #!/bin/sh
 set -eu
+PATH=/usr/sbin:/usr/bin:/sbin:/bin
+HOME=/root
+export PATH HOME
+unset CDPATH ENV BASH_ENV PYTHONHOME PYTHONPATH PYTHONSTARTUP LD_LIBRARY_PATH LD_PRELOAD
+unset DOCKER_HOST DOCKER_CONTEXT DOCKER_CONFIG COMPOSE_FILE
+unset CONTAINER_HOST CONTAINER_CONNECTION CONTAINERS_CONF CONTAINERS_STORAGE_CONF
+unset CONTAINERS_REGISTRIES_CONF CONTAINERS_POLICY REGISTRY_AUTH_FILE XDG_CONFIG_HOME
 
 usage() {
   echo "usage: $0 RELEASE_DIRECTORY" >&2
@@ -11,6 +18,7 @@ usage() {
 
 release_root=${RELEASE_ROOT:-/opt/codex-mobile}
 env_file=${ENV_FILE:-/etc/codex-mobile/production.env}
+podman_url=${PODMAN_URL:-unix:///run/codex-mobile-podman/podman.sock}
 release=$(realpath "$1")
 staging=$(realpath "$release_root/staging")
 releases=$(realpath "$release_root/releases")
@@ -25,15 +33,19 @@ for critical in \
   infra/systemd/codex-mobile-workspace-runtime.service \
   infra/systemd/codex-mobile-provisioner.service \
   scripts/check-billing-policy.py scripts/infra-preflight.py \
-  scripts/infra-compose.sh scripts/infra-health.sh scripts/infra-smoke.sh \
-  scripts/infra-install-release-host-artifacts.sh scripts/infra_release_manifest.py; do
+  scripts/infra-compose.sh scripts/infra-build-workspace-image.sh \
+  scripts/infra-health.sh scripts/infra-smoke.sh \
+  scripts/infra-install-release-host-artifacts.sh scripts/infra_image_audit.py \
+  scripts/infra_release_manifest.py infra/image-audit-policy.json .tool-versions; do
   [ -f "$release/$critical" ] && [ ! -L "$release/$critical" ] || {
     echo "staged release has a missing/symlinked critical file: $critical" >&2
     exit 1
   }
 done
-[ ! -e "$release/infra/release.env" ] && [ ! -e "$release/infra/release-manifest.json" ] || {
-  echo "staged source must not contain a pre-generated release manifest/environment" >&2
+[ ! -e "$release/infra/release.env" ] \
+  && [ ! -e "$release/infra/release-manifest.json" ] \
+  && [ ! -e "$release/infra/image-audit" ] || {
+  echo "staged source must not contain pre-generated release provenance" >&2
   exit 1
 }
 [ -z "$(find "$release" -type l -print -quit)" ] || {
@@ -66,8 +78,11 @@ target="$releases/$release_id"
 # the generated manifest and release environment after image construction.
 chown -R --no-dereference root:root "$release"
 chmod -R go-w "$release"
-python3 "$release/scripts/check-billing-policy.py" --repo-root "$release"
-python3 "$release/scripts/infra-preflight.py" --env-file "$env_file" --repo-root "$release"
+manifest_verifier="$release/scripts/infra_release_manifest.py"
+/usr/bin/python3 -I "$manifest_verifier" validate-podman-url \
+  --podman-url "$podman_url" >/dev/null
+/usr/bin/python3 -I "$release/scripts/check-billing-policy.py" --repo-root "$release"
+/usr/bin/python3 -I "$release/scripts/infra-preflight.py" --env-file "$env_file" --repo-root "$release"
 
 current="$release_root/current"
 previous="$release_root/previous"
@@ -75,8 +90,9 @@ old=
 if [ -L "$current" ]; then
   old=$(realpath "$current")
   case "$old" in "$releases"/*) ;; *) echo "current release link escapes release root" >&2; exit 1 ;; esac
-  python3 "$old/scripts/infra_release_manifest.py" verify \
-    --repo-root "$old" --require-images --verify-installed
+  /usr/bin/python3 -I "$manifest_verifier" verify \
+    --repo-root "$old" --require-images --require-image-audit --verify-installed \
+    --podman-url "$podman_url"
 fi
 
 systemctl restart codex-mobile-docker-firewall.service
@@ -87,17 +103,22 @@ systemctl start codex-mobile-workspace-runtime.service
 CONTROL_PLANE_IMAGE_TAG="$release_id" REPO_ROOT="$release" ENV_FILE="$env_file" \
   /bin/sh "$release/scripts/infra-compose.sh" build --pull control-plane
 REPO_ROOT="$release" \
+  PODMAN_URL="$podman_url" \
   WORKSPACE_BASE_IMAGE="localhost/codex-mobile/workspace-base:$release_id" \
   ENVBUILDER_IMAGE="localhost/codex-mobile/envbuilder:$release_id" \
   /bin/sh "$release/scripts/infra-build-workspace-image.sh"
-python3 "$release/scripts/infra_release_manifest.py" create \
-  --repo-root "$release" --release-id "$release_id"
-python3 "$release/scripts/infra_release_manifest.py" verify \
-  --repo-root "$release" --require-images
+/usr/bin/python3 -I "$release/scripts/infra_image_audit.py" scan \
+  --repo-root "$release" --release-id "$release_id" --podman-url "$podman_url"
+/usr/bin/python3 -I "$release/scripts/infra_release_manifest.py" create \
+  --repo-root "$release" --release-id "$release_id" --podman-url "$podman_url"
+/usr/bin/python3 -I "$release/scripts/infra_release_manifest.py" verify \
+  --repo-root "$release" --require-images --require-image-audit \
+  --podman-url "$podman_url"
 chmod 0444 "$release/infra/release.env" "$release/infra/release-manifest.json"
 chmod -R go-w "$release"
 mv "$release" "$target"
 release=$target
+manifest_verifier="$release/scripts/infra_release_manifest.py"
 
 if [ -n "$old" ]; then
   REPO_ROOT="$old" ENV_FILE="$env_file" \
@@ -114,7 +135,10 @@ activate_link() {
 
 install_and_start() {
   selected=$1
-  RELEASE_ROOT="$release_root" \
+  /usr/bin/python3 -I "$manifest_verifier" verify \
+    --repo-root "$selected" --require-images --require-image-audit \
+    --podman-url "$podman_url" || return
+  RELEASE_ROOT="$release_root" PODMAN_URL="$podman_url" \
     /bin/sh "$selected/scripts/infra-install-release-host-artifacts.sh" "$selected" || return
   activate_link "$selected" || return
   systemctl restart codex-mobile-docker-firewall.service || return
@@ -122,9 +146,11 @@ install_and_start() {
   systemctl restart codex-mobile.service || return
   systemctl restart codex-mobile-provisioner.service || return
   RELEASE_ROOT="$release_root" REPO_ROOT="$selected" ENV_FILE="$env_file" \
+    PODMAN_URL="$podman_url" \
     /bin/sh "$selected/scripts/infra-import-coder-template.sh" \
       --receipt-directory "$release_root/activations" || return
   RELEASE_ROOT="$release_root" REPO_ROOT="$selected" ENV_FILE="$env_file" \
+    PODMAN_URL="$podman_url" \
     /bin/sh "$selected/scripts/infra-health.sh" --smoke
 }
 

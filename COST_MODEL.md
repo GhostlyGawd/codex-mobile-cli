@@ -79,6 +79,7 @@ Because no second plan conclusively passes every condition, this comparison is n
 | Caddy/TLS | $0 | Self-hosted plus ACME | Compose policy |
 | Provider backup | $0 additional | Must remain included in VPS checkout | Pre-purchase and post-deploy restore checks; availability/RPO only, because a whole-server capture includes the host key with encrypted data |
 | Local checkpoints | $0 additional | VPS local disk | Quota and pruning policy |
+| Syft/Trivy release audit | $0 | Checksum-pinned open-source binaries and host-local cache/evidence | Manifest-bound deploy gate; no hosted scanner, registry, upload, or metered API |
 | APNs | $0 additional | Existing Apple Developer access | Direct control-plane delivery |
 | GitHub/CI | $0 additional | Existing account plus standard hosted runners for the public repository; paid overages forbidden | Public-visibility and explicit-variable gate; immutable Action SHAs; standard-runner policy; concurrency/timeouts |
 | Monitoring/logging | $0 | Local only | No external exporters by default |

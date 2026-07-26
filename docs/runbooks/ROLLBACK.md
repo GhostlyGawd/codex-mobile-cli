@@ -21,13 +21,17 @@ was already modified by the newer application.
    sudo /bin/sh /opt/codex-mobile/current/scripts/infra-rollback.sh
    ```
 
-5. The script first verifies that both releases' recorded image IDs still exist
-   and that the target source/template/host-artifact hashes match its immutable
-   manifest. It checkpoints, installs the target's Podman/systemd/wrapper
+5. The current release's schema-2 verifier first verifies that both releases'
+   recorded image IDs still exist and that the target's manifest-bound audit
+   receipt/reports, source, template, and host-artifact hashes remain intact.
+   A schema-1 or tampered target is ineligible. Rollback does not refresh the
+   vulnerability database or rescan, because that would make recovery depend
+   on current network/scanner state instead of the accepted release evidence.
+   It checkpoints, installs the target's Podman/systemd/wrapper
    artifacts, swaps `current`/`previous`, restarts runtime/control/provisioner,
    reactivates that release's Coder template with a new root-only activation
    receipt, and runs full health plus the bounded disposable smoke check. It
-   never rebuilds or retags old source. If target activation fails it attempts
+   never rebuilds, retags, or rescans old source. If target activation fails it attempts
    to restore the original release once; preserve both releases/checkpoints and
    follow incident response rather than repeatedly toggling links.
 6. Verify authentication, workspace list/lifecycle, terminal reconnect/replay,

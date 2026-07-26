@@ -1,5 +1,12 @@
 #!/bin/sh
 set -eu
+PATH=/usr/sbin:/usr/bin:/sbin:/bin
+HOME=/root
+export PATH HOME
+unset CDPATH ENV BASH_ENV PYTHONHOME PYTHONPATH PYTHONSTARTUP LD_LIBRARY_PATH LD_PRELOAD
+unset DOCKER_HOST DOCKER_CONTEXT DOCKER_CONFIG COMPOSE_FILE
+unset CONTAINER_HOST CONTAINER_CONNECTION CONTAINERS_CONF CONTAINERS_STORAGE_CONF
+unset CONTAINERS_REGISTRIES_CONF CONTAINERS_POLICY REGISTRY_AUTH_FILE XDG_CONFIG_HOME
 
 usage() {
   echo "usage: $0 [--smoke]" >&2
@@ -36,8 +43,9 @@ release_root=${RELEASE_ROOT:-/opt/codex-mobile}
 releases=$(realpath "$release_root/releases")
 case "$release" in "$releases"/*) ;; *) echo "active release escapes immutable release root" >&2; exit 1 ;; esac
 
-python3 "$repo_root/scripts/infra_release_manifest.py" verify \
-  --repo-root "$repo_root" --require-images --verify-installed
+/usr/bin/python3 -I "$repo_root/scripts/infra_release_manifest.py" verify \
+  --repo-root "$repo_root" --require-images --require-image-audit --verify-installed \
+  --podman-url "$podman_url"
 
 for unit in \
   docker.service \
@@ -60,7 +68,7 @@ socket=/run/codex-mobile-podman/podman.sock
   echo "private workspace runtime socket owner/group/mode is invalid" >&2
   exit 1
 }
-podman --url "$podman_url" info >/dev/null
+/usr/bin/podman --url "$podman_url" info >/dev/null
 
 running=$(compose ps --status running --services | sort)
 expected=$(printf '%s\n' caddy coder control-plane postgres | sort)
@@ -78,12 +86,12 @@ verify_container() {
   expected_reference=$2
   container=$(compose ps -q "$service")
   [ -n "$container" ] || { echo "$service container is missing" >&2; exit 1; }
-  expected_image_id=$(docker image inspect --format '{{.Id}}' "$expected_reference")
-  [ "$(docker inspect --format '{{.Image}}' "$container")" = "$expected_image_id" ] || {
+  expected_image_id=$(/usr/bin/docker --host unix:///var/run/docker.sock image inspect --format '{{.Id}}' "$expected_reference")
+  [ "$(/usr/bin/docker --host unix:///var/run/docker.sock inspect --format '{{.Image}}' "$container")" = "$expected_image_id" ] || {
     echo "$service running image ID does not match reviewed Compose provenance" >&2
     exit 1
   }
-  [ "$(docker inspect --format '{{.State.Health.Status}}' "$container")" = healthy ] || {
+  [ "$(/usr/bin/docker --host unix:///var/run/docker.sock inspect --format '{{.State.Health.Status}}' "$container")" = healthy ] || {
     echo "$service container health status is not healthy" >&2
     exit 1
   }
@@ -96,8 +104,8 @@ verify_container caddy 'caddy:2.11.4-alpine@sha256:5f5c8640aae01df9654968d946d8f
 verify_container control-plane "localhost/codex-mobile/control-plane:$release_id"
 
 control_container=$(compose ps -q control-plane)
-running_control_image=$(docker inspect --format '{{.Image}}' "$control_container")
-expected_control_image=$(python3 - "$repo_root/infra/release-manifest.json" <<'PY'
+running_control_image=$(/usr/bin/docker --host unix:///var/run/docker.sock inspect --format '{{.Image}}' "$control_container")
+expected_control_image=$(/usr/bin/python3 -I - "$repo_root/infra/release-manifest.json" <<'PY'
 import json
 import re
 import sys
@@ -119,7 +127,7 @@ case "$provisioner_pid" in ''|0|*[!0-9]*) echo "provisioner has no live main pro
 provisioner_metrics=$(curl --fail --silent --show-error --max-time 10 \
   --max-filesize 1048576 http://127.0.0.1:2113/metrics)
 printf '%s\n' "$provisioner_metrics" | grep -q '^go_build_info'
-python3 "$repo_root/scripts/infra_check_provisioner.py" --env-file "$env_file"
+/usr/bin/python3 -I "$repo_root/scripts/infra_check_provisioner.py" --env-file "$env_file"
 
 public_health_url=$(env_value PUBLIC_HEALTH_URL)
 coder_access_url=$(env_value CODER_ACCESS_URL)

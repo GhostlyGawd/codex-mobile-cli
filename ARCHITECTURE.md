@@ -351,6 +351,41 @@ external-writer CAS guarantee in the last check-to-rename interval. Production
 therefore requires the Linux backend and its target-filesystem race tests. See
 [ADR 0011](docs/adr/0011-linux-file-confinement-and-exact-etag-cas.md).
 
+### Manifest-bound image audit
+
+Deployment builds the control-plane, workspace-base, and EnvBuilder images once
+under the commit-derived release tag. Before the release directory can move out
+of staging, a root-only auditor captures their local content IDs, scans those
+IDs with checksum-pinned Syft/Trivy and one frozen database snapshot, then
+re-inspects the tags. It publishes six bounded reports and a metadata-only
+receipt atomically; no partial or failing evidence becomes a release artifact.
+
+Manifest schema 2 binds the receipt, exact report tree, policy/tool/database
+hashes, and the same three image IDs. Every activation and rollback path requires
+that evidence, while rollback deliberately does not rescan. Scanner profile 3
+uses evidence/policy schema 2: vulnerabilities and forbidden licenses require
+14-field exact expiring dispositions, while each image's non-forbidden license
+inventory uses one expiring duplicate-sensitive canonical multiset baseline.
+New, missing, changed, expired, or unused policy records fail closed rather
+than acting as global ignores. See
+[ADR 0023](docs/adr/0023-manifest-bound-image-audit.md).
+
+The configured EnvBuilder release path does not inherit from an opaque prebuilt
+image. It rebuilds `1.3.0-codex-mobile.1` from one commit-addressed,
+checksum-verified upstream Apache-2.0 archive and one manifest-bound local
+patch. The public Linux workflow is configured to reconstruct and test the
+derivative and prove reproducible static amd64 and arm64 binaries. The release
+build is configured to resolve the verified workspace-base tag to its immutable
+image ID before copying the helper seed, then compare every seed file's
+canonical metadata and content digest without executing image content. The
+source SBOM records the upstream ancestor and local patch as distinct
+pedigree/license boundaries; the built-image SBOM remains authoritative for the
+shipped module graph. The final documentation-bearing candidate passed the
+exact local build/runtime/audit/manifest gate; every later commit must repeat
+it before promotion, while public CI remains authoritative for hosted
+current-head execution. See
+[ADR 0024](docs/adr/0024-pinned-source-envbuilder-derivative.md).
+
 ### Host storage and workspace disk quotas
 
 Operator-managed encrypted storage is mounted exactly at `/srv/codex-mobile`

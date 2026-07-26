@@ -1,5 +1,12 @@
 #!/bin/sh
 set -eu
+PATH=/usr/sbin:/usr/bin:/sbin:/bin
+HOME=/root
+export PATH HOME
+unset CDPATH ENV BASH_ENV PYTHONHOME PYTHONPATH PYTHONSTARTUP LD_LIBRARY_PATH LD_PRELOAD
+unset DOCKER_HOST DOCKER_CONTEXT DOCKER_CONFIG COMPOSE_FILE
+unset CONTAINER_HOST CONTAINER_CONNECTION CONTAINERS_CONF CONTAINERS_STORAGE_CONF
+unset CONTAINERS_REGISTRIES_CONF CONTAINERS_POLICY REGISTRY_AUTH_FILE XDG_CONFIG_HOME
 
 usage() {
   echo "usage: $0 [--bootstrap] [--template-name NAME] [--receipt-directory ABSOLUTE_DIRECTORY]" >&2
@@ -26,6 +33,7 @@ esac
 
 repo_root=${REPO_ROOT:-/opt/codex-mobile/current}
 env_file=${ENV_FILE:-/etc/codex-mobile/production.env}
+podman_url=${PODMAN_URL:-unix:///run/codex-mobile-podman/podman.sock}
 template_dir="$repo_root/infra/coder/templates/codex-mobile-envbuilder"
 release_id=
 if [ -f "$repo_root/infra/release.env" ]; then
@@ -38,16 +46,17 @@ env_value() {
 
 [ -f "$env_file" ] || { echo "missing environment file: $env_file" >&2; exit 1; }
 [ -f "$template_dir/main.tf" ] || { echo "missing Coder template: $template_dir" >&2; exit 1; }
-command -v coder >/dev/null 2>&1 || { echo "Coder CLI is not installed" >&2; exit 1; }
-command -v python3 >/dev/null 2>&1 || { echo "python3 is required" >&2; exit 1; }
+[ -x /usr/local/bin/coder ] || { echo "Coder CLI is not installed" >&2; exit 1; }
+[ -x /usr/bin/python3 ] || { echo "python3 is required" >&2; exit 1; }
 if [ "$bootstrap" = true ]; then
   [ -z "$receipt_directory" ] || { echo "bootstrap import cannot write a release receipt" >&2; exit 1; }
   [ -z "$release_id" ] || { echo "bootstrap import is forbidden after release activation" >&2; exit 1; }
   release_message="initial owner-approved bootstrap"
 else
   case "$release_id" in sha-[0-9a-f]*) ;; *) echo "invalid immutable release ID" >&2; exit 1 ;; esac
-  python3 "$repo_root/scripts/infra_release_manifest.py" verify \
-    --repo-root "$repo_root" --require-images
+  /usr/bin/python3 -I "$repo_root/scripts/infra_release_manifest.py" verify \
+    --repo-root "$repo_root" --require-images --require-image-audit \
+    --podman-url "$podman_url"
   release_message=$release_id
 fi
 if [ -n "$receipt_directory" ]; then
@@ -92,7 +101,7 @@ export CODER_SESSION_TOKEN CODER_URL CODER_DISABLE_NETWORK_TELEMETRY CODER_NO_VE
 # provider runs only inside the dedicated private-Podman provisioner boundary.
 systemctl start codex-mobile-workspace-runtime.service
 systemctl start codex-mobile-provisioner.service
-coder templates push --yes \
+/usr/local/bin/coder templates push --yes \
   --org "$organization_id" \
   --directory "$template_dir" \
   --provisioner-tag runtime=private-podman \
@@ -102,7 +111,7 @@ coder templates push --yes \
   --message "Pinned Codex Mobile EnvBuilder template $release_message" \
   "$template_name"
 
-template_record=$(python3 - "$CODER_URL" "$organization_id" "$template_name" <<'PY'
+template_record=$(/usr/bin/python3 -I - "$CODER_URL" "$organization_id" "$template_name" <<'PY'
 import json
 import os
 import sys
@@ -152,25 +161,29 @@ if [ "$bootstrap" = false ]; then
 fi
 
 if [ -n "$receipt_directory" ]; then
-  python3 - "$repo_root/infra/release-manifest.json" "$receipt_directory" \
+  /usr/bin/python3 -I - "$repo_root/infra/release-manifest.json" "$receipt_directory" \
     "$template_id" "$active_version_id" <<'PY'
 import datetime as dt
+import hashlib
 import json
 import os
 import pathlib
 import sys
 
 manifest_path, receipt_directory, template_id, active_version_id = sys.argv[1:]
-manifest = json.load(open(manifest_path, encoding="utf-8"))
+manifest_bytes = pathlib.Path(manifest_path).read_bytes()
+manifest = json.loads(manifest_bytes)
 receipt = {
-    "schema_version": 1,
+    "schema_version": 2,
     "release_id": manifest["release_id"],
+    "release_manifest_sha256": hashlib.sha256(manifest_bytes).hexdigest(),
     "template_id": template_id,
     "active_template_version_id": active_version_id,
     "template_sha256": manifest["coder"]["template_sha256"],
     "provisioner_tag": manifest["coder"]["provisioner_tag"],
     "workspace_base_image": manifest["images"]["workspace_base"],
     "envbuilder_image": manifest["images"]["envbuilder"],
+    "image_audit": manifest["image_audit"],
     "activated_at": dt.datetime.now(dt.timezone.utc).isoformat(),
 }
 destination = pathlib.Path(receipt_directory) / (

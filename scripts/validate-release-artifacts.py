@@ -28,13 +28,38 @@ EXPECTED_RUNBOOKS = {
     "RELEASE_CHECKLIST.md",
 }
 PUBLIC_CI_GATE = (
-    "github.event.repository.private == false"
-    " && vars.PUBLIC_CI_ENABLED == 'true'"
+    "github.event.repository.private == false && vars.PUBLIC_CI_ENABLED == 'true'"
 )
 STANDARD_HOSTED_RUNNERS = {"ubuntu-24.04", "macos-26"}
 EXPECTED_XCODEGEN_SHA256 = (
     "090ec29491aad50aec10631bf6e62253fed733c50f3aab0f5ffc86bc170bdbef"
 )
+EXPECTED_ENVBUILDER_ARCHIVE_SHA256 = (
+    "f1c6334ee08736dec2585d96ad0afacc1888994bf2a2cdcf86e982b229fb8a85"
+)
+EXPECTED_ENVBUILDER_PATCH_SHA256 = (
+    "aea2941874a27d4deac96a0efe3a006ca6ea56d7cff982caa3a36877fc1756c3"
+)
+EXPECTED_CODEX_CLI_VERSION = "0.145.0"
+EXPECTED_CODEX_CLI_RELEASE_TAG = f"rust-v{EXPECTED_CODEX_CLI_VERSION}"
+EXPECTED_CODEX_CLI_REPOSITORY = "https://github.com/openai/codex"
+EXPECTED_CODEX_CLI_LICENSE = "Apache-2.0"
+EXPECTED_CODEX_CLI_LICENSE_URL = (
+    "https://raw.githubusercontent.com/openai/codex/"
+    f"{EXPECTED_CODEX_CLI_RELEASE_TAG}/LICENSE"
+)
+EXPECTED_CODEX_CLI_ASSETS = {
+    "codex-package-x86_64-unknown-linux-musl.tar.gz": (
+        "linux/amd64",
+        "x86_64-unknown-linux-musl",
+        "71a28d362c96ac9829bf8203a2c71be451aeb726adb843167fdaf0eae8fe7dd9",
+    ),
+    "codex-package-aarch64-unknown-linux-musl.tar.gz": (
+        "linux/arm64",
+        "aarch64-unknown-linux-musl",
+        "54f79a05aba6f9abf8ef988abcae8bf2fcefba20beb549b4ff2b3acdb2cb6f54",
+    ),
+}
 
 
 def check_links(path: Path, failures: list[str]) -> None:
@@ -60,11 +85,12 @@ def check_ci(failures: list[str], root: Path = ROOT) -> None:
             "name: CI",
             PUBLIC_CI_GATE,
             "runs-on: ubuntu-24.04",
-            "timeout-minutes: 25",
+            "timeout-minutes: 45",
             "permissions:\n  contents: read",
             "persist-credentials: false",
             "cache: false",
             "cancel-in-progress: true",
+            "python3 -I ./scripts/verify-envbuilder-source.py",
         ),
         "ios.yml": (
             "name: iOS",
@@ -168,7 +194,10 @@ def check_ci(failures: list[str], root: Path = ROOT) -> None:
                     "GitHub-hosted runner"
                 )
 
-        if "runs-on:" in workflow_raw and "permissions:\n  contents: read" not in workflow_raw:
+        if (
+            "runs-on:" in workflow_raw
+            and "permissions:\n  contents: read" not in workflow_raw
+        ):
             failures.append(f"{relative}: workflow permissions must be contents: read")
 
         for forbidden in (
@@ -204,13 +233,18 @@ def check_ci(failures: list[str], root: Path = ROOT) -> None:
                 failures.append(f"{relative}: action is not commit-pinned: {action}")
 
 
-def check_sbom(failures: list[str]) -> None:
-    path = ROOT / "docs/security/SBOM.cdx.json"
-    try:
-        document = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
-        failures.append(f"docs/security/SBOM.cdx.json: {exc}")
-        return
+def check_sbom(
+    failures: list[str],
+    root: Path = ROOT,
+    document: dict[str, object] | None = None,
+) -> None:
+    path = root / "docs/security/SBOM.cdx.json"
+    if document is None:
+        try:
+            document = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            failures.append(f"docs/security/SBOM.cdx.json: {exc}")
+            return
     if document.get("bomFormat") != "CycloneDX" or document.get("specVersion") != "1.6":
         failures.append("docs/security/SBOM.cdx.json: expected CycloneDX 1.6")
     components = document.get("components", [])
@@ -226,6 +260,226 @@ def check_sbom(failures: list[str]) -> None:
         failures.append("docs/security/SBOM.cdx.json: unresolved third-party license")
     if re.search(r"[A-Za-z]:\\|/Users/|/home/", serialized):
         failures.append("docs/security/SBOM.cdx.json: local absolute path leaked")
+    tools = document.get("metadata", {}).get("tools", {}).get("components", [])
+    if not any(
+        tool.get("name") == "generate-supply-chain.py" and tool.get("version") == "2.0"
+        for tool in tools
+        if isinstance(tool, dict)
+    ):
+        failures.append(
+            "docs/security/SBOM.cdx.json: generator v2 provenance is missing"
+        )
+
+    def property_map(component: dict[str, object]) -> dict[str, str]:
+        properties = component.get("properties", [])
+        return {
+            str(record.get("name")): str(record.get("value"))
+            for record in properties
+            if isinstance(record, dict)
+        }
+
+    derivative = [
+        component
+        for component in components
+        if isinstance(component, dict)
+        and property_map(component).get("codex-mobile:ecosystem")
+        == "EnvBuilder derivative"
+    ]
+    if len(derivative) != 1:
+        failures.append(
+            "docs/security/SBOM.cdx.json: exact EnvBuilder derivative is missing"
+        )
+    else:
+        record = derivative[0]
+        licenses = record.get("licenses")
+        properties = property_map(record)
+        pedigree = record.get("pedigree")
+        valid_pedigree = False
+        if isinstance(pedigree, dict):
+            ancestors = pedigree.get("ancestors")
+            patches = pedigree.get("patches")
+            if (
+                isinstance(ancestors, list)
+                and len(ancestors) == 1
+                and isinstance(ancestors[0], dict)
+                and isinstance(patches, list)
+                and len(patches) == 1
+                and isinstance(patches[0], dict)
+            ):
+                ancestor_hashes = ancestors[0].get("hashes")
+                patch_diff = patches[0].get("diff")
+                valid_pedigree = (
+                    ancestors[0].get("name") == "envbuilder"
+                    and ancestors[0].get("version") == "1.3.0"
+                    and ancestor_hashes
+                    == [
+                        {
+                            "alg": "SHA-256",
+                            "content": EXPECTED_ENVBUILDER_ARCHIVE_SHA256,
+                        }
+                    ]
+                    and patches[0].get("type") == "unofficial"
+                    and isinstance(patch_diff, dict)
+                    and patch_diff.get("url")
+                    == (
+                        "infra/workspace/envbuilder/"
+                        "envbuilder-v1.3.0-codex-mobile.patch"
+                    )
+                )
+        if (
+            record.get("type") != "application"
+            or record.get("name") != "codex-mobile-envbuilder"
+            or record.get("version") != "1.3.0-codex-mobile.1"
+            or licenses
+            != [{"expression": ("Apache-2.0 AND LicenseRef-First-Party-No-License")}]
+            or properties.get("codex-mobile:upstream-archive-sha256")
+            != EXPECTED_ENVBUILDER_ARCHIVE_SHA256
+            or properties.get("codex-mobile:patch-sha256")
+            != EXPECTED_ENVBUILDER_PATCH_SHA256
+            or not valid_pedigree
+        ):
+            failures.append(
+                "docs/security/SBOM.cdx.json: EnvBuilder pedigree is invalid"
+            )
+
+    expected_files = {
+        "Source archive": (
+            "github.com/coder/envbuilder",
+            EXPECTED_ENVBUILDER_ARCHIVE_SHA256,
+            "Apache-2.0",
+        ),
+        "Source patch": (
+            ("infra/workspace/envbuilder/envbuilder-v1.3.0-codex-mobile.patch"),
+            EXPECTED_ENVBUILDER_PATCH_SHA256,
+            "LicenseRef-First-Party-No-License",
+        ),
+    }
+    for ecosystem, (name, checksum, license_expression) in expected_files.items():
+        matches = [
+            component
+            for component in components
+            if isinstance(component, dict)
+            and property_map(component).get("codex-mobile:ecosystem") == ecosystem
+        ]
+        if (
+            len(matches) != 1
+            or matches[0].get("type") != "file"
+            or matches[0].get("name") != name
+            or matches[0].get("hashes") != [{"alg": "SHA-256", "content": checksum}]
+            or matches[0].get("licenses") != [{"expression": license_expression}]
+        ):
+            failures.append(
+                f"docs/security/SBOM.cdx.json: {ecosystem} evidence is invalid"
+            )
+
+    codex_application = [
+        component
+        for component in components
+        if isinstance(component, dict)
+        and property_map(component).get("codex-mobile:ecosystem")
+        == "Codex CLI application"
+    ]
+    release_url = (
+        f"{EXPECTED_CODEX_CLI_REPOSITORY}/releases/tag/{EXPECTED_CODEX_CLI_RELEASE_TAG}"
+    )
+    if len(codex_application) != 1:
+        failures.append(
+            "docs/security/SBOM.cdx.json: exact Codex CLI application is missing"
+        )
+    else:
+        record = codex_application[0]
+        properties = property_map(record)
+        if (
+            record.get("type") != "application"
+            or record.get("name") != "openai/codex"
+            or record.get("version") != EXPECTED_CODEX_CLI_VERSION
+            or record.get("purl")
+            != (f"pkg:github/openai/codex@{EXPECTED_CODEX_CLI_RELEASE_TAG}")
+            or record.get("licenses") != [{"expression": EXPECTED_CODEX_CLI_LICENSE}]
+            or properties
+            != {
+                "codex-mobile:ecosystem": "Codex CLI application",
+                "codex-mobile:direct": "true",
+                "codex-mobile:source": release_url,
+                "codex-mobile:release-tag": EXPECTED_CODEX_CLI_RELEASE_TAG,
+                "codex-mobile:upstream-repository": EXPECTED_CODEX_CLI_REPOSITORY,
+                "codex-mobile:license-source": EXPECTED_CODEX_CLI_LICENSE_URL,
+                "codex-mobile:built-image-sbom": (
+                    "authoritative-after-release-image-build"
+                ),
+            }
+            or record.get("externalReferences")
+            != [
+                {"type": "vcs", "url": EXPECTED_CODEX_CLI_REPOSITORY},
+                {"type": "release-notes", "url": release_url},
+                {"type": "license", "url": EXPECTED_CODEX_CLI_LICENSE_URL},
+            ]
+        ):
+            failures.append(
+                "docs/security/SBOM.cdx.json: Codex CLI application identity is invalid"
+            )
+
+    codex_assets = [
+        component
+        for component in components
+        if isinstance(component, dict)
+        and property_map(component).get("codex-mobile:ecosystem")
+        == "Codex CLI release asset"
+    ]
+    assets_by_name = {
+        str(component.get("name")): component for component in codex_assets
+    }
+    if (
+        len(codex_assets) != len(EXPECTED_CODEX_CLI_ASSETS)
+        or len(assets_by_name) != len(EXPECTED_CODEX_CLI_ASSETS)
+        or set(assets_by_name) != set(EXPECTED_CODEX_CLI_ASSETS)
+    ):
+        failures.append(
+            "docs/security/SBOM.cdx.json: exact Codex CLI release assets are missing"
+        )
+    else:
+        for name, (
+            architecture,
+            target_triple,
+            checksum,
+        ) in EXPECTED_CODEX_CLI_ASSETS.items():
+            record = assets_by_name[name]
+            properties = property_map(record)
+            asset_url = (
+                f"{EXPECTED_CODEX_CLI_REPOSITORY}/releases/download/"
+                f"{EXPECTED_CODEX_CLI_RELEASE_TAG}/{name}"
+            )
+            if (
+                record.get("type") != "file"
+                or record.get("version") != EXPECTED_CODEX_CLI_VERSION
+                or record.get("licenses")
+                != [{"expression": EXPECTED_CODEX_CLI_LICENSE}]
+                or record.get("hashes") != [{"alg": "SHA-256", "content": checksum}]
+                or properties
+                != {
+                    "codex-mobile:ecosystem": "Codex CLI release asset",
+                    "codex-mobile:direct": "true",
+                    "codex-mobile:source": asset_url,
+                    "codex-mobile:release-tag": EXPECTED_CODEX_CLI_RELEASE_TAG,
+                    "codex-mobile:upstream-repository": EXPECTED_CODEX_CLI_REPOSITORY,
+                    "codex-mobile:license-source": EXPECTED_CODEX_CLI_LICENSE_URL,
+                    "codex-mobile:target-architecture": architecture,
+                    "codex-mobile:target-triple": target_triple,
+                }
+                or record.get("externalReferences")
+                != [
+                    {"type": "distribution", "url": asset_url},
+                    {"type": "license", "url": EXPECTED_CODEX_CLI_LICENSE_URL},
+                ]
+            ):
+                failures.append(
+                    "docs/security/SBOM.cdx.json: Codex CLI release asset "
+                    f"{name!r} is invalid"
+                )
+    if "ghcr.io/coder/envbuilder" in serialized:
+        failures.append(
+            "docs/security/SBOM.cdx.json: obsolete prebuilt EnvBuilder remains"
+        )
 
 
 def main() -> int:
@@ -269,6 +523,51 @@ def main() -> int:
         failures.append(
             "TESTFLIGHT.md must retain the signing and protected-environment gate"
         )
+    image_audit_adr = (ROOT / "docs/adr/0023-manifest-bound-image-audit.md").read_text(
+        encoding="utf-8"
+    )
+    normalized_image_audit_adr = " ".join(image_audit_adr.split())
+    for control in (
+        "scans those captured IDs before manifest creation",
+        "Findings are not globally ignored",
+        "cannot be promoted, activated, or selected for rollback",
+    ):
+        if control not in normalized_image_audit_adr:
+            failures.append(
+                f"ADR 0023 must preserve the image-audit boundary: {control!r}"
+            )
+    deploy = (runbooks / "DEPLOY.md").read_text(encoding="utf-8")
+    rollback = (runbooks / "ROLLBACK.md").read_text(encoding="utf-8")
+    release_checklist = (runbooks / "RELEASE_CHECKLIST.md").read_text(encoding="utf-8")
+    for path, raw, controls in (
+        (
+            "DEPLOY.md",
+            deploy,
+            (
+                "manifest-bound image audit",
+                "pre-generated image-audit evidence",
+                "before promotion",
+            ),
+        ),
+        (
+            "ROLLBACK.md",
+            rollback,
+            ("schema-1 or tampered target is ineligible", "does not", "rescan"),
+        ),
+        (
+            "RELEASE_CHECKLIST.md",
+            release_checklist,
+            (
+                "manifest-bound Syft/Trivy",
+                "zero undispositioned findings",
+                "without rebuilding or rescanning",
+            ),
+        ),
+    ):
+        lowered = raw.lower()
+        for control in controls:
+            if control.lower() not in lowered:
+                failures.append(f"{path}: missing image-audit control {control!r}")
     acceptance = (ROOT / "docs/verification/ACCEPTANCE.md").read_text(encoding="utf-8")
     for gate in ("Docker", "Xcode", "provider", "NOT EXECUTED", "GATED"):
         if gate.upper() not in acceptance.upper():

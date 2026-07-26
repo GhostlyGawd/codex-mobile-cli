@@ -29,8 +29,22 @@ continuing.
 `.github/workflows/ci.yml` runs on pull requests, pushes to `main`, and manual
 dispatch. Its `backend-and-policy` job uses `ubuntu-24.04`, read-only
 permissions, disabled checkout credential persistence, immutable Action SHAs,
-bounded concurrency and a 25-minute timeout. It performs the repository's Go,
-infrastructure, static iOS, supply-chain, and release-policy checks.
+bounded concurrency and a 45-minute timeout. Before the portable repository
+suite, it runs the full Linux EnvBuilder source verifier:
+
+```shell
+python3 -I ./scripts/verify-envbuilder-source.py
+```
+
+That verifier checks the exact source lock and local patch, downloads and
+safely extracts the bounded commit-addressed upstream archive, applies the
+expected changed-file set, and runs module verification, vet, unit/race tests,
+and compile-only checks for the registry-dependent `devcontainer` and
+`integration` packages. It then performs two clean static builds for each of
+Linux amd64 and arm64 and checks byte reproducibility, ELF architecture, build
+metadata, the derivative version, and absence of Coder runtime modules. The
+job then performs the repository's Go, infrastructure, static iOS,
+supply-chain, and release-policy checks.
 
 It uses no cache or artifact upload. Workflow logs are public and must never
 contain credentials, private repository content, personal paths, or production

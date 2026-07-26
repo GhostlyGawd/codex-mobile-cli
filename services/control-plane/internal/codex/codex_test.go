@@ -48,10 +48,10 @@ func TestLaunchArgsAndVersion(t *testing.T) {
 	if _, err := LaunchArgs("--bad"); err == nil {
 		t.Fatal("expected unsafe thread ID rejection")
 	}
-	if err := VerifyVersion("codex-cli 0.144.5\n"); err != nil {
+	if err := VerifyVersion("codex-cli 0.145.0\n"); err != nil {
 		t.Fatal(err)
 	}
-	if err := VerifyVersion("codex-cli 0.145.0"); err == nil {
+	if err := VerifyVersion("codex-cli 0.145.1"); err == nil {
 		t.Fatal("expected pin mismatch")
 	}
 }

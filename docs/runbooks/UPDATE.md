@@ -11,10 +11,22 @@ apply.
    compatibility reason. Revalidate license and cost implications.
 2. Update source pins, digests, checksums, lockfiles, ADR/capability/security
    assumptions, and generated supply-chain reports in one reviewed commit.
+   An EnvBuilder source, patch, dependency, or build-contract change requires a
+   new derivative version plus synchronized archive, patch, license, builder,
+   Dockerfile-label, template, runtime-policy, and SBOM pedigree pins; never
+   fall back to the prebuilt upstream image.
 3. Run backend/race/migration/API tests, iOS generation and Xcode tests, static
    infrastructure tests, Syft/go-licenses/govulncheck/Gitleaks/Trivy, and image
-   scans. Exercise Coder template/EnvBuilder/Codex TUI changes on disposable
-   local infrastructure before production.
+   scans. Run `python3 -I scripts/verify-envbuilder-source.py` on Linux and
+   review its exact archive/patch, full unit/race, integration-compile,
+   architecture, module-graph, and two-clean-build evidence. Review every
+   profile-3/schema-2 exact expiring image-audit disposition, each individual
+   forbidden-license record, and every per-image duplicate-sensitive
+   non-forbidden-license baseline; a missing, changed, expired, or unused
+   record is a failed update. Exercise Coder
+   template/EnvBuilder/Codex TUI changes on disposable local infrastructure
+   before production. The locked deploy must still audit the final host-local
+   IDs; a prior scan does not authorize its rebuild.
 4. Confirm rollback compatibility. PostgreSQL/Coder schema upgrades may make a
    binary-only rollback unsafe; plan a tested checkpoint restore if so.
 
@@ -34,7 +46,8 @@ apply.
    workspace, verify Coder template/image version, test preview auth, and review
    resource reserve. Reopen admission only after checks pass.
 6. Retain the previous release, all three image IDs named by its immutable
-   manifest, activation receipt, and checkpoints through the observation
+   schema-2 manifest, its root-only audit receipt/report tree, activation
+   receipt, and checkpoints through the observation
    window. Never run a broad Docker/Podman image prune: first prove an image ID
    is absent from both `current` and `previous` manifests, then remove only that
    explicitly reviewed ID under the documented age/disk policy. Deleting a
