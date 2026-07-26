@@ -216,6 +216,8 @@ grep -Fq 'FileEditorView(workspaceID: workspaceID, path: result.path)' apps/ios/
 grep -Fq 'HostileDisplayText.sanitized(change.path)' apps/ios/Sources/Features/Git/WorkspaceGitView.swift
 grep -Fq 'path: change.path, staged: staged' apps/ios/Sources/Features/Git/WorkspaceGitView.swift
 grep -Fq 'accessibilityIdentifier("git.status.list")' apps/ios/Sources/Features/Git/WorkspaceGitView.swift
+grep -Fq 'app.collectionViews["git.status.list"]' apps/ios/UITests/CodexMobileUITests.swift
+grep -Fq 'visibleScrollRegion(for:' apps/ios/UITests/CodexMobileUITests.swift
 grep -Fq 'terminalTitle = HostileDisplayText.sanitized' apps/ios/Sources/Terminal/TerminalSessionModel.swift
 grep -Fq 'testTerminalDerivedTitlesAndCloseReasonsAreSafeDisplayText' apps/ios/Tests/TerminalSessionModelTests.swift
 grep -Fq 'isServerUnavailable = Self.isServerAvailabilityFailure' apps/ios/Sources/App/AppModel.swift
