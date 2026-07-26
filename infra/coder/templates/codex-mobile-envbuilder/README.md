@@ -8,18 +8,20 @@ This template has two explicit modes:
 - `plain` is the safe default. It uses the locally built workspace image as UID
   1000, a read-only root filesystem, a private per-workspace network and volume,
   no devices, no host paths, and no Linux capabilities.
-- `approved-envbuilder` uses EnvBuilder 1.3.0 only after the control plane passes
-  an opaque setup-approval receipt. Repository lifecycle commands are therefore
-  never executed merely because a Dev Container file exists.
+- `approved-envbuilder` uses the source-built `1.3.0-codex-mobile.1`
+  EnvBuilder derivative only after the control plane passes an opaque
+  setup-approval receipt. Repository lifecycle commands are therefore never
+  executed merely because a Dev Container file exists.
 
 Both modes receive the same statically linked control-plane helper, pinned real
 Codex CLI, and code-mode host through a
 checksum-versioned, per-workspace named volume mounted read-only at
-`/opt/codex-mobile-helper`. The local EnvBuilder derivative adds only the
-trusted runtime bundle seed to the pinned upstream scratch image. The Coder
-agent prepends this directory to `PATH`, so normal `codex` calls use the helper
-wrapper; terminal creation also uses the fixed helper path, and the wrapper
-executes only the fixed `codex-real` path. EnvBuilder ignores
+`/opt/codex-mobile-helper`. The local EnvBuilder derivative is rebuilt from the
+exact upstream Apache-2.0 source archive plus the manifest-bound local patch,
+then adds the trusted runtime bundle seed. The Coder agent prepends this
+directory to `PATH`, so normal `codex` calls use the helper wrapper; terminal
+creation also uses the fixed helper path, and the wrapper executes only the
+fixed `codex-real` path. EnvBuilder ignores
 that mount during filesystem transformation, and the Linux spike verifies that
 even a Dev Container image attempting to shadow the path cannot modify or
 replace the helper. Updating the helper checksum creates a fresh volume.

@@ -16,6 +16,7 @@ CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -buildvcs=false -ldflag
 CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -buildvcs=false -o coverage/control-plane-linux-arm64 ./services/control-plane/cmd/control-plane
 CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -buildvcs=false -ldflags='-s -w' -o coverage/workspace-helper-linux-arm64 ./services/control-plane/cmd/workspace-helper
 python3 ./scripts/verify-workspace-helper-checksums.py
+python3 -I ./scripts/verify-envbuilder-source.py --static-only
 sh ./infra/tests/run-static-tests.sh
 bash ./scripts/test-ios-static.sh
 python3 ./scripts/generate-supply-chain.py --check

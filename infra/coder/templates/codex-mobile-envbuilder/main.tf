@@ -28,9 +28,9 @@ variable "workspace_base_image" {
 }
 
 variable "envbuilder_image" {
-  description = "Locally built EnvBuilder 1.3.0 derivative containing only the trusted helper volume seed."
+  description = "Locally source-built EnvBuilder derivative containing the trusted helper volume seed."
   type        = string
-  default     = "localhost/codex-mobile/envbuilder:1.3.0-helper-2026-07-15"
+  default     = "localhost/codex-mobile/envbuilder:1.3.0-codex-mobile.1"
 }
 
 variable "workspace_apparmor_profile" {
@@ -217,12 +217,12 @@ locals {
   approval_receipt_ok       = can(regex("^approval_[a-f0-9]{32}$", data.coder_parameter.setup_approval_id.value))
   selected_devcontainer_dir = "${local.workspace_folder}/${data.coder_parameter.devcontainer_dir.value}"
   workspace_helper_sha256 = {
-    amd64 = "11d1fb9c53549e98bb5a976c2958954ff6eb99fd9485dd09beac50f6157df924"
-    arm64 = "81a623dae961e640c18ac1df942baf9a797dbeb79b9f90312b62f241d36da1dd"
+    amd64 = "ba7080f880206d90e05d751245c3635b9bdcbcbbc6152d61c3ec4221fd5bdf14"
+    arm64 = "3042240a601842f35233e383835a3e40aef6b05640b44f723bafefb133fdf9aa"
   }[data.coder_provisioner.current.arch]
   workspace_codex_package_sha256 = {
-    amd64 = "23a7022a493c5404c50c62a4ad5655836adbee019d93c73114954d8daff20053"
-    arm64 = "7703bbb6cbd4ba3df60c32d200bca2987691047353d3a6c825af2b8bc99f1808"
+    amd64 = "71a28d362c96ac9829bf8203a2c71be451aeb726adb843167fdaf0eae8fe7dd9"
+    arm64 = "54f79a05aba6f9abf8ef988abcae8bf2fcefba20beb549b4ff2b3acdb2cb6f54"
   }[data.coder_provisioner.current.arch]
   workspace_helper_path = "/opt/codex-mobile-helper/codex-mobile-workspace-helper"
   workspace_disk_bytes  = data.coder_parameter.disk_gib.value * 1073741824
@@ -316,7 +316,7 @@ resource "docker_volume" "workspace_helper" {
     for_each = merge(local.common_labels, {
       "com.codex-mobile.workspace-helper-sha256" = local.workspace_helper_sha256
       "com.codex-mobile.codex-package-sha256"    = local.workspace_codex_package_sha256
-      "com.codex-mobile.codex-version"           = "0.144.5"
+      "com.codex-mobile.codex-version"           = "0.145.0"
       "com.codex-mobile.volume-role"             = "trusted-helper"
     })
     content {
@@ -699,7 +699,7 @@ resource "docker_container" "envbuilder" {
   dynamic "labels" {
     for_each = merge(local.common_labels, {
       "com.codex-mobile.devcontainer-approved" = data.coder_parameter.setup_approval_id.value
-      "com.codex-mobile.envbuilder-version"    = "1.3.0"
+      "com.codex-mobile.envbuilder-version"    = "1.3.0-codex-mobile.1"
     })
     content {
       label = labels.key

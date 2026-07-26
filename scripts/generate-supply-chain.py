@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import base64
 import hashlib
+import importlib.util
 import json
 import os
 import re
@@ -16,7 +17,7 @@ from pathlib import Path
 from urllib.parse import quote
 
 
-GENERATOR_VERSION = "1.0"
+GENERATOR_VERSION = "2.0"
 REPORT_DIRECTORY = Path("docs/security")
 
 GO_LICENSES = {
@@ -119,13 +120,15 @@ IMAGE_LICENSES = {
     "caddy": "Apache-2.0",
     "docker.io/library/golang": "BSD-3-Clause",
     "docker.io/library/ubuntu": "LicenseRef-Ubuntu-Distribution-Mixed",
-    "ghcr.io/coder/envbuilder": "AGPL-3.0-only",
 }
 
 OPERATIONAL_TOOL_LICENSES = {
     "syft": "Apache-2.0",
     "trivy": "Apache-2.0",
 }
+
+CODEX_CLI_REPOSITORY = "https://github.com/openai/codex"
+CODEX_CLI_LICENSE = "Apache-2.0"
 
 
 @dataclass(frozen=True)
@@ -138,6 +141,15 @@ class Component:
     checksum_algorithm: str = ""
     checksum: str = ""
     direct: bool = True
+    component_type: str = "library"
+    properties: tuple[tuple[str, str], ...] = ()
+    external_references: tuple[tuple[str, str], ...] = ()
+    ancestor_name: str = ""
+    ancestor_version: str = ""
+    ancestor_license: str = ""
+    ancestor_source: str = ""
+    ancestor_checksum: str = ""
+    patch_source: str = ""
 
     @property
     def key(self) -> tuple[str, str, str]:
@@ -265,6 +277,183 @@ def terraform_components(root: Path) -> list[Component]:
     return components
 
 
+def envbuilder_components(root: Path) -> list[Component]:
+    verifier_path = root / "scripts/verify-envbuilder-source.py"
+    spec = importlib.util.spec_from_file_location(
+        "_codex_mobile_verify_envbuilder_source", verifier_path
+    )
+    if spec is None or spec.loader is None:
+        raise RuntimeError("cannot load the EnvBuilder source verifier")
+    verifier = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = verifier
+    try:
+        spec.loader.exec_module(verifier)
+        lock, patch_path = verifier.load_and_validate_lock(root)
+    except (OSError, ImportError, AttributeError, RuntimeError, ValueError) as exc:
+        raise RuntimeError(f"EnvBuilder source lock is invalid: {exc}") from exc
+    upstream = lock["upstream"]
+    patch = lock["patch"]
+    derivative_version = str(lock["derivative_version"])
+    archive_url = str(upstream["archive_url"])
+    archive_sha256 = str(upstream["archive_sha256"])
+    patch_sha256 = str(patch["sha256"])
+    patch_relative = patch_path.relative_to(root).as_posix()
+    return [
+        Component(
+            ecosystem="EnvBuilder derivative",
+            name="codex-mobile-envbuilder",
+            version=derivative_version,
+            license_expression=("Apache-2.0 AND LicenseRef-First-Party-No-License"),
+            source="infra/workspace/envbuilder/source-lock.json",
+            component_type="application",
+            properties=(
+                ("codex-mobile:upstream-commit", str(upstream["commit"])),
+                ("codex-mobile:upstream-archive-sha256", archive_sha256),
+                ("codex-mobile:patch-sha256", patch_sha256),
+                (
+                    "codex-mobile:transitive-image-sbom",
+                    "authoritative-after-release-image-build",
+                ),
+            ),
+            ancestor_name="envbuilder",
+            ancestor_version=str(upstream["version"]),
+            ancestor_license=str(upstream["license"]),
+            ancestor_source=archive_url,
+            ancestor_checksum=archive_sha256,
+            patch_source=patch_relative,
+        ),
+        Component(
+            ecosystem="Source archive",
+            name="github.com/coder/envbuilder",
+            version=str(upstream["version"]),
+            license_expression=str(upstream["license"]),
+            source=archive_url,
+            checksum_algorithm="SHA-256",
+            checksum=archive_sha256,
+            component_type="file",
+        ),
+        Component(
+            ecosystem="Source patch",
+            name=patch_relative,
+            version=derivative_version,
+            license_expression=str(patch["license"]),
+            source=patch_relative,
+            checksum_algorithm="SHA-256",
+            checksum=patch_sha256,
+            component_type="file",
+        ),
+    ]
+
+
+def codex_cli_components(root: Path) -> list[Component]:
+    dockerfile = root / "infra/workspace/Dockerfile"
+    raw = dockerfile.read_text(encoding="utf-8")
+
+    def exact_arg(name: str) -> str:
+        matches = re.findall(
+            rf"^ARG {re.escape(name)}=([^\s#]+)\s*$",
+            raw,
+            re.MULTILINE,
+        )
+        if len(matches) != 1:
+            raise RuntimeError(
+                f"{dockerfile.relative_to(root)} must declare exactly one {name}"
+            )
+        return matches[0]
+
+    version = exact_arg("CODEX_CLI_VERSION")
+    checksums = {
+        "amd64": exact_arg("CODEX_CLI_AMD64_SHA256"),
+        "arm64": exact_arg("CODEX_CLI_ARM64_SHA256"),
+    }
+    if not re.fullmatch(r"(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)", version):
+        raise RuntimeError("CODEX_CLI_VERSION must be an exact stable semantic version")
+    for architecture, checksum in checksums.items():
+        if not re.fullmatch(r"[0-9a-f]{64}", checksum):
+            raise RuntimeError(
+                f"CODEX_CLI_{architecture.upper()}_SHA256 must be lowercase SHA-256"
+            )
+
+    required_download_contract = (
+        'amd64) codex_arch=x86_64; codex_sha="${CODEX_CLI_AMD64_SHA256}" ;;',
+        'arm64) codex_arch=aarch64; codex_sha="${CODEX_CLI_ARM64_SHA256}" ;;',
+        'codex_asset="codex-package-${codex_arch}-unknown-linux-musl.tar.gz"',
+        (
+            '"https://github.com/openai/codex/releases/download/'
+            'rust-v${CODEX_CLI_VERSION}/${codex_asset}"'
+        ),
+    )
+    for expected in required_download_contract:
+        if expected not in raw:
+            raise RuntimeError(
+                "Codex CLI Dockerfile download contract is incomplete: "
+                f"missing {expected!r}"
+            )
+
+    release_tag = f"rust-v{version}"
+    release_url = f"{CODEX_CLI_REPOSITORY}/releases/tag/{release_tag}"
+    license_url = (
+        f"https://raw.githubusercontent.com/openai/codex/{release_tag}/LICENSE"
+    )
+    common_properties = (
+        ("codex-mobile:release-tag", release_tag),
+        ("codex-mobile:upstream-repository", CODEX_CLI_REPOSITORY),
+        ("codex-mobile:license-source", license_url),
+    )
+    components = [
+        Component(
+            ecosystem="Codex CLI application",
+            name="openai/codex",
+            version=version,
+            license_expression=CODEX_CLI_LICENSE,
+            source=release_url,
+            component_type="application",
+            properties=(
+                *common_properties,
+                (
+                    "codex-mobile:built-image-sbom",
+                    "authoritative-after-release-image-build",
+                ),
+            ),
+            external_references=(
+                ("vcs", CODEX_CLI_REPOSITORY),
+                ("release-notes", release_url),
+                ("license", license_url),
+            ),
+        )
+    ]
+    for architecture, target_triple in (
+        ("amd64", "x86_64-unknown-linux-musl"),
+        ("arm64", "aarch64-unknown-linux-musl"),
+    ):
+        asset_name = f"codex-package-{target_triple}.tar.gz"
+        asset_url = (
+            f"{CODEX_CLI_REPOSITORY}/releases/download/{release_tag}/{asset_name}"
+        )
+        components.append(
+            Component(
+                ecosystem="Codex CLI release asset",
+                name=asset_name,
+                version=version,
+                license_expression=CODEX_CLI_LICENSE,
+                source=asset_url,
+                checksum_algorithm="SHA-256",
+                checksum=checksums[architecture],
+                component_type="file",
+                properties=(
+                    *common_properties,
+                    ("codex-mobile:target-architecture", f"linux/{architecture}"),
+                    ("codex-mobile:target-triple", target_triple),
+                ),
+                external_references=(
+                    ("distribution", asset_url),
+                    ("license", license_url),
+                ),
+            )
+        )
+    return components
+
+
 def image_license(reference: str) -> str:
     normalized = reference.split("@", 1)[0]
     base = normalized.split(":", 1)[0]
@@ -343,6 +532,10 @@ def purl(component: Component) -> str | None:
         return f"pkg:terraform/{encoded_name}@{encoded_version}"
     if component.ecosystem == "OCI image" and component.version != "unpinned":
         return f"pkg:oci/{quote(component.name, safe='/._-')}@{encoded_version}"
+    if component.ecosystem == "EnvBuilder derivative":
+        return f"pkg:generic/{encoded_name}@{encoded_version}"
+    if component.ecosystem == "Codex CLI application":
+        return f"pkg:github/openai/codex@rust-v{encoded_version}"
     return None
 
 
@@ -354,7 +547,11 @@ def cyclonedx(components: list[Component]) -> str:
         reference = hashlib.sha256("|".join(component.key).encode()).hexdigest()
         record: dict[str, object] = {
             "bom-ref": reference,
-            "type": "library" if component.ecosystem != "OCI image" else "container",
+            "type": (
+                "container"
+                if component.ecosystem == "OCI image"
+                else component.component_type
+            ),
             "name": component.name,
             "version": component.version,
             "licenses": [{"expression": component.license_expression}],
@@ -362,6 +559,10 @@ def cyclonedx(components: list[Component]) -> str:
                 {"name": "codex-mobile:ecosystem", "value": component.ecosystem},
                 {"name": "codex-mobile:direct", "value": str(component.direct).lower()},
                 {"name": "codex-mobile:source", "value": component.source},
+                *[
+                    {"name": name, "value": value}
+                    for name, value in component.properties
+                ],
             ],
         }
         package_url = purl(component)
@@ -371,6 +572,44 @@ def cyclonedx(components: list[Component]) -> str:
             record["hashes"] = [
                 {"alg": component.checksum_algorithm, "content": component.checksum}
             ]
+        if component.external_references:
+            record["externalReferences"] = [
+                {"type": reference_type, "url": url}
+                for reference_type, url in component.external_references
+            ]
+        if component.ancestor_name:
+            record["pedigree"] = {
+                "ancestors": [
+                    {
+                        "type": "application",
+                        "name": component.ancestor_name,
+                        "version": component.ancestor_version,
+                        "licenses": [{"expression": component.ancestor_license}],
+                        "hashes": [
+                            {
+                                "alg": "SHA-256",
+                                "content": component.ancestor_checksum,
+                            }
+                        ],
+                        "externalReferences": [
+                            {
+                                "type": "distribution",
+                                "url": component.ancestor_source,
+                            }
+                        ],
+                    }
+                ],
+                "patches": [
+                    {
+                        "type": "unofficial",
+                        "diff": {"url": component.patch_source},
+                    }
+                ],
+                "notes": (
+                    "The upstream Apache-2.0 source is modified by the "
+                    "first-party no-license patch bound in source-lock.json."
+                ),
+            }
         records.append(record)
     document = {
         "$schema": "https://cyclonedx.org/schema/bom-1.6.schema.json",
@@ -424,19 +663,23 @@ def report_files(components: list[Component]) -> dict[Path, str]:
     dependency_intro = """# Dependency report
 
 Generated deterministically from `go.mod`/`go.sum`, Swift `Package.resolved`,
-Terraform's dependency lockfile, pinned OCI references, and `.tool-versions` by
-`python scripts/generate-supply-chain.py`. Run the generator after every
-dependency or image change. A checksum listed here is lock/pin evidence, not a
-claim that an image was built or executed.
+Terraform's dependency lockfile, the EnvBuilder source lock and patch, the
+pinned official Codex CLI release assets, OCI references, and `.tool-versions`
+by `python scripts/generate-supply-chain.py`. Run the generator after every
+dependency or image change. This source report records declared inputs and
+download pins; it does not prove which bytes are present in a built image. The
+Syft SBOM captured from each exact built release image is authoritative for
+installed binaries, transitive modules, and operating-system packages.
 
 """
     license_intro = """# Dependency license report
 
 Generated by `python scripts/generate-supply-chain.py`. License conclusions
-cover declared source dependencies, providers, and top-level image projects;
-they are an engineering inventory, not legal advice. `LicenseRef-*` entries
-require the described operator review and are intentionally not presented as
-an SPDX conclusion. Transitive OS packages inside images must be re-scanned
+cover declared source dependencies, the EnvBuilder upstream and local patch,
+the official Codex CLI release, providers, and top-level image projects; they
+are an engineering inventory, not legal advice. `LicenseRef-*` entries require
+the described operator review and are intentionally not presented as an SPDX
+conclusion. Transitive modules and OS packages inside images must be re-scanned
 from each built release image before deployment.
 
 The publicly visible first-party project grants no open-source or redistribution
@@ -458,6 +701,8 @@ def build(root: Path) -> dict[Path, str]:
         go_components(root)
         + swift_components(root)
         + terraform_components(root)
+        + envbuilder_components(root)
+        + codex_cli_components(root)
         + image_components(root)
         + tool_components(root)
     )

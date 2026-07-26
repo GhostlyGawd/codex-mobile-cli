@@ -6,11 +6,15 @@ digests and resolved revisions are recorded separately in
 [`docs/security/DEPENDENCIES.md`](../security/DEPENDENCIES.md); a source page
 showing a version is not treated as integrity evidence.
 
+Update note — 2026-07-26: Codex CLI references were revised from 0.144.5 to
+0.145.0 to match the current repository configuration. This does not claim a
+0.145.0 built-image or runtime pass; those checks remain gated.
+
 ## Decision summary
 
 | Area | Selected boundary | Why | Live gate |
 | --- | --- | --- | --- |
-| Codex | Genuine Codex CLI `0.144.5`, interactive TUI in a persistent tmux PTY | Preserves the real terminal experience and stable interactive resume path | Owner ChatGPT device login and target-Linux run |
+| Codex | Genuine Codex CLI `0.145.0`, interactive TUI in a persistent tmux PTY | Preserves the real terminal experience and stable interactive resume path | Owner ChatGPT device login and target-Linux run |
 | Structured Codex events | Optional local-only app-server adapter; terminal OSC/generic attention remains the stable fallback | App-server has a documented protocol, but parts of its surface and WebSocket transport are experimental | Pinned-version compatibility spike |
 | Workspace control | Self-hosted Coder `2.34.6` Community with Terraform templates | Fits one-host persistent workspaces without adding a managed bill | Purchased/configured VPS and live Coder deployment |
 | Source control | GitHub App installation tokens, never a stored personal access token | Repository selection, revocation, short lifetime, and least-privilege permissions are available at the installation boundary | Owner-created GitHub App and installation |
@@ -22,7 +26,7 @@ showing a version is not treated as integrity evidence.
 ## Codex CLI and ChatGPT authentication
 
 - The implementation pins the official
-  [`rust-v0.144.5` release](https://github.com/openai/codex/releases/tag/rust-v0.144.5)
+  [`rust-v0.145.0` release](https://github.com/openai/codex/releases/tag/rust-v0.145.0)
   and verifies the downloaded Linux artifact against repository-held SHA-256
   values before placing it in the trusted helper volume.
 - OpenAI documents ChatGPT subscription sign-in and API-key sign-in as distinct

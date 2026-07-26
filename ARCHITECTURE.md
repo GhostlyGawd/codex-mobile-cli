@@ -366,6 +366,20 @@ that evidence, while rollback deliberately does not rescan. A tracked
 disposition is an exact, expiring tuple rather than a global ignore. See
 [ADR 0023](docs/adr/0023-manifest-bound-image-audit.md).
 
+The configured EnvBuilder release path does not inherit from an opaque prebuilt
+image. It rebuilds `1.3.0-codex-mobile.1` from one commit-addressed,
+checksum-verified upstream Apache-2.0 archive and one manifest-bound local
+patch. The public Linux workflow is configured to reconstruct and test the
+derivative and prove reproducible static amd64 and arm64 binaries. The release
+build is configured to resolve the verified workspace-base tag to its immutable
+image ID before copying the helper seed, then compare every seed file's
+canonical metadata and content digest without executing image content. The
+source SBOM records the upstream ancestor and local patch as distinct
+pedigree/license boundaries; the built-image SBOM remains authoritative for the
+shipped module graph. Current-tree hosted execution and exact built-image proof
+are still pending. See
+[ADR 0024](docs/adr/0024-pinned-source-envbuilder-derivative.md).
+
 ### Host storage and workspace disk quotas
 
 Operator-managed encrypted storage is mounted exactly at `/srv/codex-mobile`

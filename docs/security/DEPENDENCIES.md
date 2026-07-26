@@ -1,10 +1,13 @@
 # Dependency report
 
 Generated deterministically from `go.mod`/`go.sum`, Swift `Package.resolved`,
-Terraform's dependency lockfile, pinned OCI references, and `.tool-versions` by
-`python scripts/generate-supply-chain.py`. Run the generator after every
-dependency or image change. A checksum listed here is lock/pin evidence, not a
-claim that an image was built or executed.
+Terraform's dependency lockfile, the EnvBuilder source lock and patch, the
+pinned official Codex CLI release assets, OCI references, and `.tool-versions`
+by `python scripts/generate-supply-chain.py`. Run the generator after every
+dependency or image change. This source report records declared inputs and
+download pins; it does not prove which bytes are present in a built image. The
+Syft SBOM captured from each exact built release image is authoritative for
+installed binaries, transitive modules, and operating-system packages.
 
 | Ecosystem | Dependency | Version | Relationship | Integrity/source |
 | --- | --- | --- | --- | --- | --- |
@@ -14,6 +17,10 @@ claim that an image was built or executed.
 | Build tool | `govulncheck` | `1.6.0` | direct | `.tool-versions` |
 | Build tool | `python` | `3.12.10` | direct | `.tool-versions` |
 | Build tool | `xcodegen` | `2.45.4` | direct | `.tool-versions` |
+| Codex CLI application | `openai/codex` | `0.145.0` | direct | `https://github.com/openai/codex/releases/tag/rust-v0.145.0` |
+| Codex CLI release asset | `codex-package-aarch64-unknown-linux-musl.tar.gz` | `0.145.0` | direct | SHA-256 `54f79a05aba6f9abf8ef988abcae8bf2fcefba20beb549b4ff2b3acdb2cb6f54` |
+| Codex CLI release asset | `codex-package-x86_64-unknown-linux-musl.tar.gz` | `0.145.0` | direct | SHA-256 `71a28d362c96ac9829bf8203a2c71be451aeb726adb843167fdaf0eae8fe7dd9` |
+| EnvBuilder derivative | `codex-mobile-envbuilder` | `1.3.0-codex-mobile.1` | direct | `infra/workspace/envbuilder/source-lock.json` |
 | Go module | `cyphar.com/go-pathrs` | `v0.2.1` | transitive | SHA-256 `f67c75bce83056f5f598d0560eef77faf69c79e7696ec0eaa3e5ee0462f8d1bf` |
 | Go module | `dario.cat/mergo` | `v1.0.0` | transitive | SHA-256 `00608dabd12fb23df598e80d3dc2f25dcfb83cd001b7dd39626baa3d86290569` |
 | Go module | `github.com/anmitsu/go-shlex` | `v0.0.0-20200514113438-38f4b401e2be` | transitive | SHA-256 `f407938a53dc6408c214822672d15a3a39d321abe0f3bad6efcbd33e442a2c8f` |
@@ -90,6 +97,8 @@ claim that an image was built or executed.
 | OCI image | `postgres` | `18.4-bookworm` | direct | SHA-256 `1961f96e6029a02c3812d7cb329a3b03a3ac2bb067058dec17b0f5596aca9296` |
 | Operational tool | `syft` | `1.46.0` | direct | `.tool-versions` |
 | Operational tool | `trivy` | `0.72.0` | direct | `.tool-versions` |
+| Source archive | `github.com/coder/envbuilder` | `1.3.0` | direct | SHA-256 `f1c6334ee08736dec2585d96ad0afacc1888994bf2a2cdcf86e982b229fb8a85` |
+| Source patch | `infra/workspace/envbuilder/envbuilder-v1.3.0-codex-mobile.patch` | `1.3.0-codex-mobile.1` | direct | SHA-256 `aea2941874a27d4deac96a0efe3a006ca6ea56d7cff982caa3a36877fc1756c3` |
 | Swift package | `openapikit` | `3.9.0` | transitive | SHA-1 `343b2c1793058fcc53c1bd7e2907f8e3a4d640fb` |
 | Swift package | `runestone` | `0.5.2` | direct | SHA-1 `592434a103a4d1ab83e14f87ac6eef569dd7a99d` |
 | Swift package | `swift-algorithms` | `1.2.1` | transitive | SHA-1 `87e50f483c54e6efd60e885f7f5aa946cee68023` |

@@ -6,7 +6,7 @@ env_file=${ENV_FILE:-/etc/codex-mobile/production.env}
 podman_url=${PODMAN_URL:-unix:///run/codex-mobile-podman/podman.sock}
 containers_conf=${CONTAINERS_CONF:-/etc/codex-mobile/containers.conf}
 base_image=${WORKSPACE_BASE_IMAGE:-localhost/codex-mobile/workspace-base:2026-07-15}
-envbuilder_image=${ENVBUILDER_IMAGE:-localhost/codex-mobile/envbuilder:1.3.0-helper-2026-07-15}
+envbuilder_image=${ENVBUILDER_IMAGE:-localhost/codex-mobile/envbuilder:1.3.0-codex-mobile.1}
 prefix=cm-spike-$$
 volume_a=$prefix-a
 volume_b=$prefix-b
@@ -94,7 +94,7 @@ for workspace_container in $workspace_containers; do
       any($c.HostConfig.BlkioDeviceWriteBps[]?; .Path == $device and .Rate == $write_bps) and
       any($c.HostConfig.BlkioDeviceReadIOps[]?; .Path == $device and .Rate == $read_iops) and
       any($c.HostConfig.BlkioDeviceWriteIOps[]?; .Path == $device and .Rate == $write_iops) and
-      (if $c.Config.Labels["com.codex-mobile.envbuilder-version"] == "1.3.0"
+      (if $c.Config.Labels["com.codex-mobile.envbuilder-version"] == "1.3.0-codex-mobile.1"
        then $c.HostConfig.ReadonlyRootfs == false and
             $c.HostConfig.StorageOpt.size == "4G" and
             $c.HostConfig.StorageOpt.inodes == "262144"
@@ -200,8 +200,8 @@ printf '%s\n' "$rootfs_quota_error" | grep -Eqi 'disk quota exceeded|quota excee
 podman --url "$podman_url" rm --force "$prefix-rootfs-quota" >/dev/null
 
 case "$(podman --url "$podman_url" info --format '{{.Host.Arch}}')" in
-  amd64|x86_64) helper_sha256=11d1fb9c53549e98bb5a976c2958954ff6eb99fd9485dd09beac50f6157df924 ;;
-  arm64|aarch64) helper_sha256=81a623dae961e640c18ac1df942baf9a797dbeb79b9f90312b62f241d36da1dd ;;
+  amd64|x86_64) helper_sha256=ba7080f880206d90e05d751245c3635b9bdcbcbbc6152d61c3ec4221fd5bdf14 ;;
+  arm64|aarch64) helper_sha256=3042240a601842f35233e383835a3e40aef6b05640b44f723bafefb133fdf9aa ;;
   *) echo "unsupported workspace-helper architecture" >&2; exit 1 ;;
 esac
 
@@ -218,7 +218,7 @@ podman --url "$podman_url" run --rm --network none --read-only --user 0:0 \
     test -r /opt/codex-mobile-helper/ca-certificates.crt
     test "$(stat -c '%u:%g:%a' /opt/codex-mobile-helper/ca-certificates.crt)" = 0:0:444
     test "$(readlink /opt/codex-mobile-helper/codex)" = codex-mobile-workspace-helper
-    /opt/codex-mobile-helper/codex-real --version | grep -F "codex-cli 0.144.5"
+    /opt/codex-mobile-helper/codex-real --version | grep -F "codex-cli 0.145.0"
     ! rm -f /opt/codex-mobile-helper/codex-mobile-workspace-helper
     ! rm -f /opt/codex-mobile-helper/codex-real
   '
@@ -289,7 +289,7 @@ podman --url "$podman_url" run --name "$prefix-envbuilder" \
   --env ENVBUILDER_PUSH_IMAGE=false \
   --env ENVBUILDER_INSECURE=false \
   --env 'ENVBUILDER_INIT_SCRIPT=touch /workspaces/repository/.agent-init-ok' \
-  --env "ENVBUILDER_SETUP_SCRIPT=test \"\${TARGET_USER:-root}\" != root; printf '%s  %s\\n' '$helper_sha256' /opt/codex-mobile-helper/codex-mobile-workspace-helper | sha256sum -c -; /opt/codex-mobile-helper/codex-real --version | grep -F 'codex-cli 0.144.5'; ! rm -f /opt/codex-mobile-helper/codex-mobile-workspace-helper; ! rm -f /opt/codex-mobile-helper/codex-real" \
+  --env "ENVBUILDER_SETUP_SCRIPT=test \"\${TARGET_USER:-root}\" != root; printf '%s  %s\\n' '$helper_sha256' /opt/codex-mobile-helper/codex-mobile-workspace-helper | sha256sum -c -; /opt/codex-mobile-helper/codex-real --version | grep -F 'codex-cli 0.145.0'; ! rm -f /opt/codex-mobile-helper/codex-mobile-workspace-helper; ! rm -f /opt/codex-mobile-helper/codex-real" \
   "$envbuilder_image"
 envbuilder_inspect=$(podman --url "$podman_url" inspect "$prefix-envbuilder")
 printf '%s\n' "$envbuilder_inspect" | jq --exit-status \

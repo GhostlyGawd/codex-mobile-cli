@@ -183,6 +183,30 @@ class ReleaseManifestTests(unittest.TestCase):
             finally:
                 self.make_writable(root)
 
+    def test_envbuilder_source_inputs_are_manifest_bound(self) -> None:
+        protected = (
+            "infra/workspace/Dockerfile.dockerignore",
+            "infra/workspace/EnvBuilder.Dockerfile.dockerignore",
+            "infra/workspace/envbuilder/source-lock.json",
+            ("infra/workspace/envbuilder/envbuilder-v1.3.0-codex-mobile.patch"),
+            "scripts/verify-envbuilder-source.py",
+        )
+        for relative in protected:
+            with self.subTest(relative=relative), tempfile.TemporaryDirectory() as raw:
+                root = Path(raw)
+                try:
+                    self.make_release(root)
+                    self.make_manifest(root)
+                    path = root / relative
+                    path.chmod(0o600)
+                    path.write_text("tampered\n", encoding="utf-8")
+                    with self.assertRaisesRegex(
+                        MANIFEST.ManifestError, "checksum mismatch"
+                    ):
+                        self.verify_manifest(root)
+                finally:
+                    self.make_writable(root)
+
     def test_retagged_or_missing_image_fails_closed(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
             root = Path(raw)
@@ -738,6 +762,71 @@ class ReleaseSubprocessBoundaryTests(unittest.TestCase):
             ):
                 MANIFEST.verify_helper_pin(
                     "localhost/codex-mobile/workspace-base:sha-0123456",
+                    MANIFEST.DEFAULT_PODMAN_URL,
+                )
+
+    def test_helper_seed_compares_exact_stable_image_ids(self) -> None:
+        source_id = "sha256:" + "6" * 64
+        comparison_id = "sha256:" + "7" * 64
+        seed_sha256 = "8" * 64
+        with (
+            mock.patch.object(
+                MANIFEST,
+                "inspect_image",
+                side_effect=(
+                    source_id,
+                    comparison_id,
+                    source_id,
+                    comparison_id,
+                ),
+            ) as inspect,
+            mock.patch.object(
+                MANIFEST,
+                "inspect_podman_image_architecture",
+                side_effect=("amd64", "amd64"),
+            ) as architecture,
+            mock.patch.object(
+                MANIFEST,
+                "inspect_workspace_helper_seed",
+                side_effect=(seed_sha256, seed_sha256),
+            ) as seed,
+        ):
+            result = MANIFEST.verify_helper_seed(
+                "localhost/codex-mobile/workspace-base:sha-0123456",
+                "localhost/codex-mobile/envbuilder:sha-0123456",
+                MANIFEST.DEFAULT_PODMAN_URL,
+            )
+        self.assertEqual(result["seed_sha256"], seed_sha256)
+        self.assertEqual(inspect.call_count, 4)
+        self.assertEqual(architecture.call_count, 2)
+        self.assertEqual(
+            [call.args[0] for call in seed.call_args_list],
+            [source_id, comparison_id],
+        )
+
+        with (
+            mock.patch.object(
+                MANIFEST,
+                "inspect_image",
+                side_effect=(source_id, comparison_id),
+            ),
+            mock.patch.object(
+                MANIFEST,
+                "inspect_podman_image_architecture",
+                side_effect=("amd64", "amd64"),
+            ),
+            mock.patch.object(
+                MANIFEST,
+                "inspect_workspace_helper_seed",
+                side_effect=("8" * 64, "9" * 64),
+            ),
+        ):
+            with self.assertRaisesRegex(
+                MANIFEST.ManifestError, "helper seeds do not match"
+            ):
+                MANIFEST.verify_helper_seed(
+                    "localhost/codex-mobile/workspace-base:sha-0123456",
+                    "localhost/codex-mobile/envbuilder:sha-0123456",
                     MANIFEST.DEFAULT_PODMAN_URL,
                 )
 

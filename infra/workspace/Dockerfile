@@ -25,9 +25,9 @@ FROM docker.io/library/ubuntu:24.04@sha256:4fbb8e6a8395de5a7550b33509421a2bafbc0
 ARG DEBIAN_FRONTEND=noninteractive
 ARG WORKSPACE_IMAGE_VERSION=2026-07-15
 ARG TARGETARCH
-ARG CODEX_CLI_VERSION=0.144.5
-ARG CODEX_CLI_AMD64_SHA256=23a7022a493c5404c50c62a4ad5655836adbee019d93c73114954d8daff20053
-ARG CODEX_CLI_ARM64_SHA256=7703bbb6cbd4ba3df60c32d200bca2987691047353d3a6c825af2b8bc99f1808
+ARG CODEX_CLI_VERSION=0.145.0
+ARG CODEX_CLI_AMD64_SHA256=71a28d362c96ac9829bf8203a2c71be451aeb726adb843167fdaf0eae8fe7dd9
+ARG CODEX_CLI_ARM64_SHA256=54f79a05aba6f9abf8ef988abcae8bf2fcefba20beb549b4ff2b3acdb2cb6f54
 
 LABEL org.opencontainers.image.title="Codex Mobile workspace base" \
       org.opencontainers.image.description="Non-root local fallback for Coder workspaces" \
@@ -37,7 +37,7 @@ LABEL org.opencontainers.image.title="Codex Mobile workspace base" \
 
 # Ubuntu archive package versions (including tmux and ripgrep) are recorded in
 # the image. Codex uses the release-package assets covered by the official
-# codex-package_SHA256SUMS file for rust-v0.144.5.
+# codex-package_SHA256SUMS file for rust-v0.145.0.
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 # Package versions are captured in ubuntu-package-versions.txt inside the

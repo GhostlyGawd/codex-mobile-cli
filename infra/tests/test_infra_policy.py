@@ -300,7 +300,7 @@ class WorkspaceTemplateSecurityTests(unittest.TestCase):
             'required_version = "= 1.14.5"',
             'version = "= 2.18.0"',
             'version = "= 4.5.0"',
-            "localhost/codex-mobile/envbuilder:1.3.0-helper-2026-07-15",
+            "localhost/codex-mobile/envbuilder:1.3.0-codex-mobile.1",
         ):
             self.assertIn(pin, self.text)
 
@@ -431,9 +431,9 @@ class ImageSupplyChainTests(unittest.TestCase):
             encoding="utf-8"
         )
         for pin in (
-            "ARG CODEX_CLI_VERSION=0.144.5",
-            "23a7022a493c5404c50c62a4ad5655836adbee019d93c73114954d8daff20053",
-            "7703bbb6cbd4ba3df60c32d200bca2987691047353d3a6c825af2b8bc99f1808",
+            "ARG CODEX_CLI_VERSION=0.145.0",
+            "71a28d362c96ac9829bf8203a2c71be451aeb726adb843167fdaf0eae8fe7dd9",
+            "54f79a05aba6f9abf8ef988abcae8bf2fcefba20beb549b4ff2b3acdb2cb6f54",
             "sha256sum --check --strict",
             "codex-package_SHA256SUMS",
             "ubuntu-package-versions.txt",
@@ -452,6 +452,9 @@ class ImageSupplyChainTests(unittest.TestCase):
         ).read_text(encoding="utf-8")
         envbuilder_dockerfile = (
             ROOT / "infra" / "workspace" / "EnvBuilder.Dockerfile"
+        ).read_text(encoding="utf-8")
+        envbuilder_dockerignore = (
+            ROOT / "infra" / "workspace" / "EnvBuilder.Dockerfile.dockerignore"
         ).read_text(encoding="utf-8")
         build = (ROOT / "scripts" / "infra-build-workspace-image.sh").read_text(
             encoding="utf-8"
@@ -491,20 +494,61 @@ class ImageSupplyChainTests(unittest.TestCase):
         self.assertIn("Dockerfile.dockerignore", build)
         self.assertEqual(build.count("--format docker"), 2)
         for checksum in (
-            "11d1fb9c53549e98bb5a976c2958954ff6eb99fd9485dd09beac50f6157df924",
-            "81a623dae961e640c18ac1df942baf9a797dbeb79b9f90312b62f241d36da1dd",
+            "ba7080f880206d90e05d751245c3635b9bdcbcbbc6152d61c3ec4221fd5bdf14",
+            "3042240a601842f35233e383835a3e40aef6b05640b44f723bafefb133fdf9aa",
         ):
             self.assertIn(checksum, envbuilder_dockerfile)
             self.assertIn(checksum, build)
-        self.assertIn(
-            "ghcr.io/coder/envbuilder:1.3.0@sha256:b34ade2fb90a8536df76e7a15c6dd8c6352d0ae835a187b13467fa0c8a71e280",
-            envbuilder_dockerfile,
+        for source_control in (
+            "FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.26.5-bookworm@sha256:",
+            "f1c6334ee08736dec2585d96ad0afacc1888994bf2a2cdcf86e982b229fb8a85",
+            "aea2941874a27d4deac96a0efe3a006ca6ea56d7cff982caa3a36877fc1756c3",
+            "5a1f27db2ed6226ccd401d5bd2a6c617a42ca4fe07071a9021f29af3a2b053a8",
+            "git apply --check --index",
+            "GOTOOLCHAIN=local go mod tidy -diff",
+            "GOTOOLCHAIN=local go mod verify",
+            "CGO_ENABLED=0 GOOS=linux GOARCH=",
+            "cmp /out/envbuilder-one /out/envbuilder-two",
+            "FROM scratch",
+            "WORKDIR /",
+            'ENTRYPOINT ["/.envbuilder/bin/envbuilder"]',
+            'org.opencontainers.image.licenses="LicenseRef-First-Party-No-License"',
+            'com.codex-mobile.envbuilder-upstream-license="Apache-2.0"',
+        ):
+            self.assertIn(source_control, envbuilder_dockerfile)
+        self.assertLess(
+            envbuilder_dockerfile.index("ARG WORKSPACE_BASE_IMAGE="),
+            envbuilder_dockerfile.index("FROM --platform=$BUILDPLATFORM"),
         )
+        self.assertIn(
+            "5a1f27db2ed6226ccd401d5bd2a6c617a42ca4fe07071a9021f29af3a2b053a8",
+            build,
+        )
+        self.assertNotIn("ghcr.io/coder/envbuilder", envbuilder_dockerfile)
+        self.assertNotIn("ENVBUILDER_BASE_IMAGE", envbuilder_dockerfile)
+        self.assertEqual(
+            envbuilder_dockerignore.splitlines(),
+            [
+                "**",
+                "!infra/",
+                "!infra/workspace/",
+                "!infra/workspace/envbuilder/",
+                "!infra/workspace/envbuilder/source-lock.json",
+                ("!infra/workspace/envbuilder/envbuilder-v1.3.0-codex-mobile.patch"),
+            ],
+        )
+        self.assertIn("EnvBuilder.Dockerfile.dockerignore", build)
+        self.assertIn("WORKSPACE_BASE_IMAGE=$workspace_base_id", build)
+        self.assertIn("verify-helper-seed", build)
+        self.assertIn("verify-envbuilder-source.py", build)
+        self.assertNotIn("ENVBUILDER_BASE_IMAGE", build)
         self.assertIn("--entrypoint /opt/codex-mobile-helper/codex-real", build)
         self.assertIn("-ldflags='-s -w'", verify_sh)
         self.assertIn("-ldflags=-s -w", verify_ps1)
         self.assertIn("verify-workspace-helper-checksums.py", verify_sh)
         self.assertIn("verify-workspace-helper-checksums.py", verify_ps1)
+        self.assertIn("verify-envbuilder-source.py --static-only", verify_sh)
+        self.assertIn("verify-envbuilder-source.py --static-only", verify_ps1)
         self.assertIn("EnvBuilder.Dockerfile", checksum_verifier)
         self.assertIn("workspace-helper-linux-", checksum_verifier)
 

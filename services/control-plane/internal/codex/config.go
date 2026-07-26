@@ -11,7 +11,7 @@ import (
 	"github.com/GhostlyGawd/codex-mobile-cli/services/control-plane/internal/core"
 )
 
-const PinnedVersion = "0.144.5"
+const PinnedVersion = "0.145.0"
 
 type RuntimeConfig struct {
 	SafetyMode   core.SafetyMode

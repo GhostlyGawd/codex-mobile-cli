@@ -11,9 +11,16 @@ apply.
    compatibility reason. Revalidate license and cost implications.
 2. Update source pins, digests, checksums, lockfiles, ADR/capability/security
    assumptions, and generated supply-chain reports in one reviewed commit.
+   An EnvBuilder source, patch, dependency, or build-contract change requires a
+   new derivative version plus synchronized archive, patch, license, builder,
+   Dockerfile-label, template, runtime-policy, and SBOM pedigree pins; never
+   fall back to the prebuilt upstream image.
 3. Run backend/race/migration/API tests, iOS generation and Xcode tests, static
    infrastructure tests, Syft/go-licenses/govulncheck/Gitleaks/Trivy, and image
-   scans. Review every exact, expiring image-audit disposition. Exercise Coder
+   scans. Run `python3 -I scripts/verify-envbuilder-source.py` on Linux and
+   review its exact archive/patch, full unit/race, integration-compile,
+   architecture, module-graph, and two-clean-build evidence. Review every
+   exact, expiring image-audit disposition. Exercise Coder
    template/EnvBuilder/Codex TUI changes on disposable local infrastructure
    before production. The locked deploy must still audit the final host-local
    IDs; a prior scan does not authorize its rebuild.

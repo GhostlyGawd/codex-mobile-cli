@@ -41,6 +41,7 @@ MINIMAL_SUBPROCESS_PATH = "/usr/bin:/bin"
 MAX_COMMAND_STDOUT_BYTES = 16 * 1024
 MAX_COMMAND_STDERR_BYTES = 64 * 1024
 MAX_HELPER_BYTES = 64 * 1024 * 1024
+MAX_HELPER_SEED_BYTES = 512 * 1024 * 1024
 MAX_MANIFEST_BYTES = 1024 * 1024
 MAX_RELEASE_ENVIRONMENT_BYTES = 4096
 IMAGE_AUDIT_ROOT = Path("infra/image-audit")
@@ -61,10 +62,10 @@ WORKSPACE_HELPER_PROFILE_REGISTRY = MappingProxyType(
         2: MappingProxyType(
             {
                 "amd64": (
-                    "11d1fb9c53549e98bb5a976c2958954ff6eb99fd9485dd09beac50f6157df924"
+                    "ba7080f880206d90e05d751245c3635b9bdcbcbbc6152d61c3ec4221fd5bdf14"
                 ),
                 "arm64": (
-                    "81a623dae961e640c18ac1df942baf9a797dbeb79b9f90312b62f241d36da1dd"
+                    "3042240a601842f35233e383835a3e40aef6b05640b44f723bafefb133fdf9aa"
                 ),
             }
         ),
@@ -150,9 +151,14 @@ V1_CRITICAL_RELEASE_FILES = (
 CRITICAL_RELEASE_FILES = V1_CRITICAL_RELEASE_FILES + (
     ".tool-versions",
     "infra/image-audit-policy.json",
+    "infra/workspace/Dockerfile.dockerignore",
+    "infra/workspace/EnvBuilder.Dockerfile.dockerignore",
+    "infra/workspace/envbuilder/source-lock.json",
+    "infra/workspace/envbuilder/envbuilder-v1.3.0-codex-mobile.patch",
     "scripts/check-billing-policy.py",
     "scripts/infra-preflight.py",
     "scripts/infra_image_audit.py",
+    "scripts/verify-envbuilder-source.py",
 )
 V1_MANIFEST_KEYS = frozenset(
     {
@@ -719,6 +725,224 @@ def inspect_workspace_helper(
                     raise
 
 
+def inspect_workspace_helper_seed(
+    image_id: str,
+    podman_url: str,
+    runner: CommandRunner = run_bounded_command,
+) -> str:
+    """Hash the complete trusted helper seed without executing image content."""
+
+    podman_url = validate_podman_url(podman_url)
+    image_id = normalize_image_id(image_id, "workspace helper seed image")
+    environment = minimal_subprocess_environment()
+    container_name = f"cm-helper-seed-inspect-{secrets.token_hex(16)}"
+    expected_regular_files = {
+        "ca-certificates.crt": (0o444, 4 * 1024 * 1024),
+        "codex-code-mode-host": (0o755, 128 * 1024 * 1024),
+        "codex-mobile-workspace-helper": (0o755, MAX_HELPER_BYTES),
+        "codex-real": (0o755, 384 * 1024 * 1024),
+    }
+    expected_names = set(expected_regular_files) | {"codex"}
+    with tempfile.TemporaryDirectory(prefix="codex-mobile-helper-seed-inspect.") as raw:
+        work = Path(raw)
+        if os.name == "posix":
+            work.chmod(0o700)
+        primary_error: BaseException | None = None
+        try:
+            create = runner(
+                [
+                    PODMAN_EXECUTABLE,
+                    "--url",
+                    podman_url,
+                    "create",
+                    "--name",
+                    container_name,
+                    "--network",
+                    "none",
+                    "--read-only",
+                    "--cap-drop",
+                    "all",
+                    "--security-opt",
+                    "no-new-privileges",
+                    image_id,
+                ],
+                cwd=work,
+                env=environment,
+                timeout_seconds=30,
+            )
+            if create.returncode != 0:
+                raise ManifestError(
+                    "cannot create workspace helper-seed inspection container"
+                )
+            destination = work / "codex-mobile-helper"
+            copied = runner(
+                [
+                    PODMAN_EXECUTABLE,
+                    "--url",
+                    podman_url,
+                    "cp",
+                    f"{container_name}:/opt/codex-mobile-helper",
+                    str(destination),
+                ],
+                cwd=work,
+                env=environment,
+                timeout_seconds=120,
+                file_size_limit=MAX_HELPER_SEED_BYTES,
+            )
+            if copied.returncode != 0:
+                raise ManifestError("cannot extract workspace helper seed from image")
+            root_info = destination.lstat()
+            if (
+                destination.is_symlink()
+                or not stat.S_ISDIR(root_info.st_mode)
+                or stat.S_IMODE(root_info.st_mode) != 0o755
+                or root_info.st_uid != 0
+                or root_info.st_gid != 0
+            ):
+                raise ManifestError("workspace helper-seed directory is invalid")
+            entries = {entry.name: entry for entry in os.scandir(destination)}
+            if set(entries) != expected_names:
+                raise ManifestError("workspace helper-seed inventory is invalid")
+
+            records: list[dict[str, object]] = [
+                {
+                    "path": ".",
+                    "type": "directory",
+                    "mode": "0755",
+                    "uid": 0,
+                    "gid": 0,
+                }
+            ]
+            total_size = 0
+            for name, (expected_mode, size_limit) in sorted(
+                expected_regular_files.items()
+            ):
+                path = destination / name
+                info = path.lstat()
+                if (
+                    path.is_symlink()
+                    or not stat.S_ISREG(info.st_mode)
+                    or info.st_nlink != 1
+                    or stat.S_IMODE(info.st_mode) != expected_mode
+                    or info.st_uid != 0
+                    or info.st_gid != 0
+                    or not 0 < info.st_size <= size_limit
+                ):
+                    raise ManifestError(
+                        f"workspace helper-seed file is invalid: {name}"
+                    )
+                total_size += info.st_size
+                if total_size > MAX_HELPER_SEED_BYTES:
+                    raise ManifestError("workspace helper seed exceeds its size limit")
+                records.append(
+                    {
+                        "path": name,
+                        "type": "file",
+                        "mode": f"{expected_mode:04o}",
+                        "uid": info.st_uid,
+                        "gid": info.st_gid,
+                        "size": info.st_size,
+                        "sha256": sha256_file(path),
+                    }
+                )
+
+            link = destination / "codex"
+            link_info = link.lstat()
+            if (
+                not stat.S_ISLNK(link_info.st_mode)
+                or stat.S_IMODE(link_info.st_mode) != 0o777
+                or link_info.st_uid != 0
+                or link_info.st_gid != 0
+                or os.readlink(link) != "codex-mobile-workspace-helper"
+            ):
+                raise ManifestError("workspace helper-seed symlink is invalid")
+            records.append(
+                {
+                    "path": "codex",
+                    "type": "symlink",
+                    "mode": "0777",
+                    "uid": link_info.st_uid,
+                    "gid": link_info.st_gid,
+                    "target": "codex-mobile-workspace-helper",
+                }
+            )
+            if set(work.iterdir()) != {destination}:
+                raise ManifestError("workspace helper-seed extraction escaped its root")
+            canonical = json.dumps(
+                sorted(records, key=lambda record: str(record["path"])),
+                separators=(",", ":"),
+                sort_keys=True,
+            ).encode("utf-8")
+            return hashlib.sha256(canonical).hexdigest()
+        except BaseException as exc:
+            primary_error = exc
+            raise
+        finally:
+            try:
+                removed = runner(
+                    [
+                        PODMAN_EXECUTABLE,
+                        "--url",
+                        podman_url,
+                        "rm",
+                        "--force",
+                        "--ignore",
+                        container_name,
+                    ],
+                    cwd=work,
+                    env=environment,
+                    timeout_seconds=30,
+                )
+                if removed.returncode != 0 and primary_error is None:
+                    raise ManifestError(
+                        "cannot remove workspace helper-seed inspection container"
+                    )
+            except BaseException:
+                if primary_error is None:
+                    raise
+
+
+def verify_helper_seed(
+    reference: str,
+    comparison_reference: str,
+    podman_url: str,
+    runner: CommandRunner = run_bounded_command,
+) -> dict[str, str]:
+    """Compare complete helper seeds from two stable local image references."""
+
+    podman_url = validate_podman_url(podman_url)
+    source_before = inspect_image("podman", reference, podman_url, runner)
+    comparison_before = inspect_image(
+        "podman", comparison_reference, podman_url, runner
+    )
+    source_architecture = inspect_podman_image_architecture(
+        source_before, podman_url, runner
+    )
+    comparison_architecture = inspect_podman_image_architecture(
+        comparison_before, podman_url, runner
+    )
+    if source_architecture != comparison_architecture:
+        raise ManifestError("workspace helper-seed image architectures do not match")
+    source_seed = inspect_workspace_helper_seed(source_before, podman_url, runner)
+    comparison_seed = inspect_workspace_helper_seed(
+        comparison_before, podman_url, runner
+    )
+    if source_seed != comparison_seed:
+        raise ManifestError("workspace helper seeds do not match")
+    source_after = inspect_image("podman", reference, podman_url, runner)
+    comparison_after = inspect_image("podman", comparison_reference, podman_url, runner)
+    if source_after != source_before or comparison_after != comparison_before:
+        raise ManifestError(
+            "workspace image tag changed during helper-seed verification"
+        )
+    return {
+        "architecture": source_architecture,
+        "source_image_id": source_before,
+        "comparison_image_id": comparison_before,
+        "seed_sha256": source_seed,
+    }
+
+
 def verify_helper_pin(
     reference: str,
     podman_url: str,
@@ -1275,11 +1499,18 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "action",
-        choices=("create", "verify", "validate-podman-url", "verify-helper-pin"),
+        choices=(
+            "create",
+            "verify",
+            "validate-podman-url",
+            "verify-helper-pin",
+            "verify-helper-seed",
+        ),
     )
     parser.add_argument("--repo-root", type=Path)
     parser.add_argument("--release-id")
     parser.add_argument("--image-reference")
+    parser.add_argument("--comparison-image-reference")
     parser.add_argument("--require-images", action="store_true")
     parser.add_argument("--require-image-audit", action="store_true")
     parser.add_argument("--verify-installed", action="store_true")
@@ -1301,6 +1532,19 @@ def main(argv: list[str] | None = None) -> int:
             print(
                 "workspace helper pin verified: "
                 f"{result['architecture']} {result['image_id']}"
+            )
+            return 0
+        if args.action == "verify-helper-seed":
+            if not args.image_reference or not args.comparison_image_reference:
+                raise ManifestError("verify-helper-seed requires both image references")
+            result = verify_helper_seed(
+                args.image_reference,
+                args.comparison_image_reference,
+                args.podman_url,
+            )
+            print(
+                "workspace helper seed verified: "
+                f"{result['architecture']} {result['seed_sha256']}"
             )
             return 0
         if args.repo_root is None:

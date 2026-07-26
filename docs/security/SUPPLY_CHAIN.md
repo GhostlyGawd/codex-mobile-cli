@@ -9,6 +9,24 @@ python scripts/generate-supply-chain.py
 python scripts/generate-supply-chain.py --check
 ```
 
+Generator 2.0 also reads the strict EnvBuilder source lock. It models the
+source-built derivative as an application with an Apache-2.0 upstream ancestor
+and an unofficial first-party patch pedigree, while separately inventorying
+the archive and patch hashes/licenses. Reconstruct and compile that derivative
+on Linux with:
+
+```shell
+python3 -I scripts/verify-envbuilder-source.py
+```
+
+The verifier bounds and hashes the download before safe extraction, applies
+exactly the eight locked paths, runs tidy/module verification, vet, non-registry
+unit and race tests, compiles the registry-dependent `devcontainer` and
+`integration` packages
+without executing them, and proves two clean static builds for each of amd64 and
+arm64 are byte-identical. Portable verification runs `--static-only` and does
+not claim a Linux build.
+
 For a release candidate, install the free tools at the exact versions in
 `.tool-versions`, verify their official release checksums/signatures, then run
 `sh ./scripts/security-audit.sh` or `pwsh ./scripts/security-audit.ps1`. These
@@ -35,6 +53,13 @@ on every EnvBuilder or private-runtime update. The root-owned engine exists to
 apply XFS project quotas; access to its private provisioner-only API is a
 separate root-equivalent host trust boundary, not part of this container
 exception.
+
+The upstream EnvBuilder 1.3.0 source and the license copied into the image are
+Apache-2.0. That conclusion does not relicense this repository's patch: the
+patch is `LicenseRef-First-Party-No-License`, and the combined derivative is
+reported as `Apache-2.0 AND LicenseRef-First-Party-No-License`. The final
+image's Syft SBOM, not the source report alone, is authoritative for its
+transitive compiled modules.
 
 ## Release gate
 

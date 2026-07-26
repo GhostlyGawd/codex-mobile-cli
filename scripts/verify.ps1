@@ -53,6 +53,8 @@ try {
     }
     python ./scripts/verify-workspace-helper-checksums.py
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    python -I ./scripts/verify-envbuilder-source.py --static-only
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
     & ./infra/tests/run-static-tests.ps1
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
     & ./scripts/test-ios-static.ps1

@@ -81,7 +81,11 @@ UI; automation merely validates its result.
    Record the returned
    template UUID in `CODER_TEMPLATE_ID`; the bootstrap flag is rejected after
    an immutable release exists. These are manual credential gates; never print
-   tokens.
+   tokens. The image build reconstructs EnvBuilder from the exact source lock
+   and local patch, resolves the verified workspace-base tag to one immutable
+   local ID, and compares the complete helper seed without executing image
+   content. It must not accept `ENVBUILDER_BASE_IMAGE` or inherit the upstream
+   prebuilt image.
    The provisioner is unprivileged, but membership in
    `coder-provisioner` grants access to the private root-owned Podman socket and
    is therefore root-equivalent host authority. Confirm the socket is mode
@@ -107,7 +111,8 @@ UI; automation merely validates its result.
 ## Activate an immutable release
 
 On a trusted build host, run all commands in `AGENTS.md` and the source
-supply-chain audit. Stage an owner-reviewed tree named exactly
+supply-chain audit, including
+`python3 -I scripts/verify-envbuilder-source.py`. Stage an owner-reviewed tree named exactly
 `/opt/codex-mobile/staging/sha-<lowercase-commit>`, with matching
 `CONTROL_PLANE_IMAGE_TAG`. Do not stage `.git`, local secrets, reports with local
 paths, untracked code, or pre-generated image-audit evidence. The locked deploy

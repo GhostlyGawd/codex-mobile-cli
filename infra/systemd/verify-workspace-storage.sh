@@ -115,7 +115,7 @@ for managed_container in $managed_containers; do
       any($c.HostConfig.BlkioDeviceWriteBps[]?; .Path == $device and .Rate == 33554432) and
       any($c.HostConfig.BlkioDeviceReadIOps[]?; .Path == $device and .Rate == 2000) and
       any($c.HostConfig.BlkioDeviceWriteIOps[]?; .Path == $device and .Rate == 1000) and
-      (if $c.Config.Labels["com.codex-mobile.envbuilder-version"] == "1.3.0"
+      (if $c.Config.Labels["com.codex-mobile.envbuilder-version"] == "1.3.0-codex-mobile.1"
        then $c.HostConfig.ReadonlyRootfs == false and
             $c.HostConfig.StorageOpt.size == "4G" and
             $c.HostConfig.StorageOpt.inodes == "262144"

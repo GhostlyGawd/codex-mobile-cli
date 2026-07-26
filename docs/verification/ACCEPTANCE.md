@@ -1,6 +1,6 @@
 # Acceptance verification
 
-Last updated: 2026-07-25. `PASS` requires executed evidence; a fake at an
+Last updated: 2026-07-26. `PASS` requires executed evidence; a fake at an
 external boundary proves only the local contract. `GATED` means owner
 credentials, physical Apple devices, or a purchased target VPS is required.
 `GATED (backend PASS)` means the automated backend portion passed, but the
@@ -15,8 +15,8 @@ commands, evidence boundaries, and the live verification runbook.
   archived on GitHub.
 - The active product tree is public at `GhostlyGawd/codex-mobile-cli`,
   repository node `R_kgDOTjbM3w`, from the distinct clean root
-  `fee059a75afa8f0d07dc7dccdcbaaad5da82f0b4`; the verified public `main`
-  revision is
+  `fee059a75afa8f0d07dc7dccdcbaaad5da82f0b4`; the historical verified public
+  `main` baseline revision is
   [`c2aef5d3640f9f4660a550e1c0d3df6aacf26cf1`](https://github.com/GhostlyGawd/codex-mobile-cli/commit/c2aef5d3640f9f4660a550e1c0d3df6aacf26cf1).
 - Before publication, only this repository's owner-PC listener, GitHub
   registration, runner root, and launcher were removed. The public repository
@@ -26,13 +26,20 @@ commands, evidence boundaries, and the live verification runbook.
   GitHub-hosted runners. Jobs require public visibility plus
   `PUBLIC_CI_ENABLED == "true"`, have read-only permissions, and receive no
   secrets or persisted checkout credential.
-- The public `main` Linux [run `30183058698`](https://github.com/GhostlyGawd/codex-mobile-cli/actions/runs/30183058698)
+- On that historical baseline, the public `main` Linux [run `30183058698`](https://github.com/GhostlyGawd/codex-mobile-cli/actions/runs/30183058698)
   ([job `89742869774`](https://github.com/GhostlyGawd/codex-mobile-cli/actions/runs/30183058698/job/89742869774))
   and unsigned Xcode simulator [run `30183058643`](https://github.com/GhostlyGawd/codex-mobile-cli/actions/runs/30183058643)
   ([job `89742869559`](https://github.com/GhostlyGawd/codex-mobile-cli/actions/runs/30183058643/job/89742869559))
-  passed. This hosted evidence
-  does not satisfy any physical-device, signing, APNs, TestFlight, provider,
-  Docker, VPS, manual-accessibility, or credentialed acceptance gate.
+  passed. Those runs predate the current EnvBuilder source derivative, Codex
+  0.145.0 pin, and related dependency/policy changes. They are evidence only for
+  the linked revision, not the current tree; current-tree hosted Linux and macOS
+  runs are pending. The historical hosted evidence also does not satisfy any
+  physical-device, signing, APNs, TestFlight, provider, Docker, VPS,
+  manual-accessibility, or credentialed acceptance gate.
+
+Unless a row names a later exact revision, its reference to a hosted simulator
+pass means the historical baseline above and does not claim current-tree hosted
+execution.
 
 | # | Scenario | Status | Evidence / remaining gate |
 | ---: | --- | --- | --- |
@@ -43,7 +50,7 @@ commands, evidence boundaries, and the live verification runbook.
 | 5 | Host boundary | GATED | Compose, Caddy, Ansible, systemd, unprivileged provisioner separation, private socket membership, secret-file and billing-policy checks pass statically. Network tests validate the managed RFC1918 `codex-mobile-control` bridge, literal private Coder bind, and `INPUT`/`DOCKER-USER` rules that allow `cm-control0` only to the exact Coder address/port. The dedicated Podman API is root-owned, mode `0660` for `root:coder-provisioner`, deliberately root-equivalent, and absent from Coder/workspaces; privileged Coder control-plane/provisioner credentials are likewise absent. Every workspace necessarily contains its standard `CODER_AGENT_TOKEN` with `api_key_scope=no_user_data`, and same-authority repository code may observe/use it. Exact `/srv/codex-mobile` XFS `pquota`/`prjquota`, real rootful-Podman bridge/firewall paths, socket ownership, audit, AppArmor, reboot behavior, and hostile proof that the scoped agent token grants no privileged Coder API/cross-workspace authority require the configured Ubuntu 24.04 VPS. |
 | 6 | PTY persistence | GATED (backend PASS) | `coder` proves fixed persistent tmux command construction and PTY endpoint validation; `application`, `postgres`, `httpapi`, and `terminal` prove owner/workspace scoping, bounded metadata-only rename, exact atomic reorder, explicit confirmed/idempotent close, primary-Codex protection, PTY unregister, ticket/reconnect revocation, one-time lazy runtime registration, and authenticated fallback after a stale reconnect token. Adversarial concurrency tests prove a request authenticated before revocation cannot mint afterward: issue, session/device revoke, and refresh rotation/replay share a reference-counted per-owner/device gate with durable principal revalidation; replay sweeps terminal access before releasing it; ticket consumption/subscriber installation is atomic with the terminal sweep; and unregister/suspension waits for admitted PTY mutations and WebSocket writes before returning. Gate entries disappear after the final holder/waiter. Suspension tests prove every runtime authority is cleared and resume registers a fresh PTY. The live disposable PostgreSQL terminal-tab mutation race passed. iOS static policy covers gap reset/rebuild plus native rename/reorder/close confirmation controls, and the hosted unsigned simulator suite compiled and passed. Coder agent registration through the relay, process survival, and real PTY termination across control-plane/network interruption still need a Linux Coder workspace; real-device behavior remains gated. |
 | 7 | Terminal fidelity | GATED (backend PASS) | `terminal` proves frames, complete retained replay after a nonzero gap marker, lease/takeover, targeted reliable per-device/tab idempotent-input receipts after PTY write, retry dedupe, two-device isolation, receipt backpressure/capacity rejection before write, OSC 52 blocking, title sanitization, mandatory split-chunk active-grant redaction before output enters replay/subscribers/cache, and bounded tab/ticket/reconnect/subscriber/queue state at global and narrower scopes. Each subscriber has mutation and delivery gates, so revocation cannot return while an earlier PTY mutation or WebSocket write remains in flight and no later delivery can begin. Native model tests cover same-key composer retry, stale reconnect-token fallback, renderer/cache reset on gap, and resume from the announced earliest sequence; those tests compiled and passed in the hosted unsigned simulator suite. Dedupe/receipts are process-memory reliability, not durable exactly-once delivery: a gateway crash after PTY write but before receipt can make a later retry duplicate input. Pending composer keys are also memory-only, so app termination after receipt but before encrypted draft clearing can leave a stale resendable draft; attachments reuse the exact staged payload only until expiry. The VT/xterm corpus, Unicode width, hardware keys, SwiftTerm rendering fidelity, and input fidelity still require a Mac and physical Apple device. |
-| 8 | Genuine Codex | GATED (backend PASS) | Managed config forces ChatGPT and the file store; the trusted fixed-path wrapper tests authenticated encryption, tamper/wrong-key rejection, concurrent leases, request/API-key scrubbing, strict ambient-environment allowlisting, and absence of auth/environment plaintext from persistent workspace state. Owner-authenticated aggregate/per-workspace status validates only credential state. Confirmed Codex disconnect is owner/workspace scoped and rejected for unavailable/suspended runtimes. It validates every stored Codex tab, then the helper kills only those app-owned tmux sessions, waits for their leases and removes tmpfs key/materialized auth plus encrypted-at-rest auth as the security commit point; control-plane unregister follows. An injected unregister failure returns/audits partial cleanup while proving credentials remain revoked. Non-Codex processes and conversation history are preserved. iOS static policy covers bounded status, destructive confirmation, honest effects and device-login reauth guidance. The helper volume bundles Codex 0.144.5 for plain and approved Dev Containers. The authenticated attachment API validates owner/workspace/tab scope, content signatures, count and byte limits, returns randomized paths under a private dedicated no-exec tmpfs, records metadata-only audit, scrubs helper request bytes, and expires files through opportunistic and periodic cleanup. A real Linux tmpfs/helper-volume/disconnect run plus owner ChatGPT device login, reconnect/refresh, checkpoint, suspend/resume, attachment consumption, and TUI verification remain required; local disconnect does not claim to revoke the upstream ChatGPT account/session. |
+| 8 | Genuine Codex | GATED (backend PASS) | Managed config forces ChatGPT and the file store; the trusted fixed-path wrapper tests authenticated encryption, tamper/wrong-key rejection, concurrent leases, request/API-key scrubbing, strict ambient-environment allowlisting, and absence of auth/environment plaintext from persistent workspace state. Owner-authenticated aggregate/per-workspace status validates only credential state. Confirmed Codex disconnect is owner/workspace scoped and rejected for unavailable/suspended runtimes. It validates every stored Codex tab, then the helper kills only those app-owned tmux sessions, waits for their leases and removes tmpfs key/materialized auth plus encrypted-at-rest auth as the security commit point; control-plane unregister follows. An injected unregister failure returns/audits partial cleanup while proving credentials remain revoked. Non-Codex processes and conversation history are preserved. iOS static policy covers bounded status, destructive confirmation, honest effects and device-login reauth guidance. The helper volume is pinned and configured to bundle Codex 0.145.0 for plain and approved Dev Containers; exact built-image proof is pending. The authenticated attachment API validates owner/workspace/tab scope, content signatures, count and byte limits, returns randomized paths under a private dedicated no-exec tmpfs, records metadata-only audit, scrubs helper request bytes, and expires files through opportunistic and periodic cleanup. A real Linux tmpfs/helper-volume/disconnect run plus owner ChatGPT device login, reconnect/refresh, checkpoint, suspend/resume, attachment consumption, and TUI verification remain required; local disconnect does not claim to revoke the upstream ChatGPT account/session. |
 | 9 | Approvals/APNs | GATED (backend PASS) | `workspace`, `githubworkspace`, `coder`, and PostgreSQL tests prove the admitted plain workspace starts, receives its authenticated clone, stops, and only then waits for approval; both standard config locations persist exactly through queue/denial/failure/retry, supported approval selects EnvBuilder, and unsupported approval stays on the explicit plain fallback. `setupreview`, `application`, `lifecycle`, and a live disposable PostgreSQL race prove direct and queued transitions reconcile one atomic event/activity pair even under concurrent repair, remain pending beyond the former 24-hour window, notify only after commit, and retry event finalization without re-running already accepted setup. `apns` proves environment-key selection, generic payloads, retry/unregistered handling, invalid-device rejection, and live PostgreSQL registration/revocation ordering. Live APNs delivery, real Coder/EnvBuilder execution, notification delivery, and deep-link UX still require owner keys, a configured Ubuntu host, entitlements, and a device. |
 | 10 | Git/editor | GATED (backend PASS) | `files` proves bounded read/tree/search and create/update behavior. Production Linux pins the workspace root, uses fd-relative `O_NOFOLLOW` directory traversal and regular-file opens, and updates by rename-exchange followed by hashing the exact displaced file; commit-boundary mismatch rolls back. Parent/root/path swap, symlink/special-file, traversal, sensitive-path, resource/cancellation, create-race, and concurrent ETag tests pass. Portable `os.Root` tests prove confinement and deterministic conflicts, but non-Linux cannot guarantee external-writer CAS in the final check-to-rename window. Any save error after a possible commit requires a fresh read/ETag before retry. `gitops`/`workspacehelper` prove bounded status/stage/diff/commit, checkpoint-backed confirmed discard, strict Git subprocess environments, path safety, and active-grant scanning before mutation. Pull remains fast-forward-only. The hosted Accessibility XXXL UI test reaches Git review and opens the read-only diff destination. Live native editing against a workspace, target-Linux filesystem/scanner behavior, and terminal-vs-native contention still require a device and live-workspace verification. |
 | 11 | Preview | GATED (backend PASS) | `preview` proves audience- and device-bound expiry/revocation, loopback-only targets, fragment-token exchange with credential stripping, active HTTP/WS context cancellation, and route/grant/tunnel teardown. `application` proves fragment-only access URLs bound to the private Coder workspace target; durable-principal validation inside the device revocation gate; and device/session/suspension/deletion sweeps serialized against new grants under the workspace gate. Infrastructure validates separate API/wildcard Caddy sites and preserved preview `Host`. Wildcard DNS/TLS, real HTTP/WebSocket forwarding, hostile-origin isolation, and deployed revoke behavior still require a configured Linux deployment; stock Caddy cannot issue the wildcard via HTTP-01, so a reviewed DNS-01 provider build or externally managed wildcard certificate is also required. |
@@ -56,9 +63,9 @@ commands, evidence boundaries, and the live verification runbook.
 | 18 | Accessibility | GATED | The hosted unsigned simulator UI suite passed at the Accessibility XXXL content-size category and kept terminal switching, Git review/read-only diff, and Settings reachable. The asset catalog contains the universal app icon; static policy parses the PNG and proves a non-interlaced 1024×1024, 8-bit truecolor image without alpha/transparency. Manual VoiceOver, contrast, touch-target, orientation, and physical-device Dynamic Type evidence remain gated. |
 | 19 | Billing | GATED | Billing policy and negative tests pass and no script provisions a provider resource. Dated research found one published candidate within the fixed-price/no-overage/backup contract; no second qualifying plan was established. Taxed checkout terms and any purchase remain explicit owner gates. |
 
-## Executed infrastructure evidence
+## Executed infrastructure evidence by revision
 
-- On public `main` revision
+- Historical hosted baseline only: on public `main` revision
   [`c2aef5d3640f9f4660a550e1c0d3df6aacf26cf1`](https://github.com/GhostlyGawd/codex-mobile-cli/commit/c2aef5d3640f9f4660a550e1c0d3df6aacf26cf1),
   the hosted Linux [run `30183058698`](https://github.com/GhostlyGawd/codex-mobile-cli/actions/runs/30183058698)
   ([job `89742869774`](https://github.com/GhostlyGawd/codex-mobile-cli/actions/runs/30183058698/job/89742869774))
@@ -80,8 +87,9 @@ commands, evidence boundaries, and the live verification runbook.
   execution cases requiring POSIX and one installed-artifact case requiring
   root POSIX ownership/mode semantics. Workspace-control-network, billing, iOS
   static, deterministic supply-chain, public-workflow, and release-artifact
-  policy checks passed. Xcode was skipped locally; the executed unsigned
-  simulator result is the hosted macOS run above.
+  policy checks passed. Xcode was skipped locally; the hosted macOS result above
+  is historical evidence only for its linked revision, not a current-tree
+  simulator result.
 - On 2026-07-25, a fresh persistent D-drive clone ran
   `pwsh ./scripts/verify.ps1` successfully in 216.685 seconds. The 68-test
   infrastructure suite completed successfully with six expected Windows skips: five
@@ -124,8 +132,9 @@ their results must not be inferred from static evidence.
   Windows workspace path handling; the module-local equivalent
   `go -C services/control-plane fmt ./...` passed and left no source diff. The
   literal race command was attempted but could not allocate the race runtime
-  because this Windows host has no CGO compiler; the hosted public `main` Linux
-  run above supplies the required executed race gate.
+  because this Windows host has no CGO compiler. The hosted public `main` Linux
+  run above is historical evidence only for its linked revision and does not
+  supply the current-tree race gate.
 - The 2026-07-25 fresh-clone run used
   `go -C services/control-plane fmt ./...`, the module-local equivalent required
   by Go 1.26 when the checkout is outside GOPATH. Full `go vet` and a fresh
@@ -172,27 +181,30 @@ their results must not be inferred from static evidence.
 - On 2026-07-26, after the current Go security-dependency upgrade, two
   independent `GOOS=linux CGO_ENABLED=0 go build -trimpath -buildvcs=false
   -ldflags="-s -w"` cross-builds reproduced profile-2 hashes amd64
-  `11d1fb9c53549e98bb5a976c2958954ff6eb99fd9485dd09beac50f6157df924`
+  `ba7080f880206d90e05d751245c3635b9bdcbcbbc6152d61c3ec4221fd5bdf14`
   and arm64
-  `81a623dae961e640c18ac1df942baf9a797dbeb79b9f90312b62f241d36da1dd`.
+  `3042240a601842f35233e383835a3e40aef6b05640b44f723bafefb133fdf9aa`.
   The current `pwsh ./scripts/verify.ps1` run matched the active profile-2 pins;
   profile 1 remains accepted only for historical rollback compatibility.
 - The retired private Windows workflow completed a bounded trusted smoke before
   publication. Its exact run, runner identity, path metadata, and logs remain
   only in the private historical archive. That historical evidence is not used
   to satisfy Linux race, Xcode, container, or public-workflow acceptance; the
-  hosted public runs above supply the Linux and unsigned-simulator evidence.
+  hosted public runs above supply Linux and unsigned-simulator evidence only
+  for their linked historical public revision.
 - Local Compose startup and built OCI image Trivy/package/license scanning
   remain `GATED` and `NOT EXECUTED` because Docker/Podman image builds are
   unavailable on this host.
-- The unsigned Xcode/iOS simulator build and automated tests passed in hosted
-  CI. Signing, physical-device behavior, App registration, APNs, TestFlight,
-  GitHub App, DNS/TLS, VPS deployment, and every provider/restore/load/reboot
-  drill remain `GATED`. The runbooks are executable guidance and safety policy,
-  not evidence those external actions occurred.
+- The unsigned Xcode/iOS simulator build and automated tests passed in the
+  historical hosted run linked above. Current-tree hosted Xcode execution is
+  pending. Signing, physical-device behavior, App registration, APNs,
+  TestFlight, GitHub App, DNS/TLS, VPS deployment, and every
+  provider/restore/load/reboot drill remain `GATED`. The runbooks are executable
+  guidance and safety policy, not evidence those external actions occurred.
 - `pwsh ./scripts/test-ios-static.ps1` passed on Windows. It covers the universal
   1024×1024 app-icon mapping, accessibility identifiers, Accessibility XXXL
   UI-test scenarios, terminal receipt/gap contracts, encrypted caches, and
   cache-only heuristic redaction. Xcode 26.6/XcodeGen 2.45.4 generation and
-  `xcodebuild` testing were `NOT EXECUTED` on Windows but passed in the hosted
-  unsigned iPhone 17 Pro simulator run above.
+  `xcodebuild` testing were `NOT EXECUTED` on Windows. They passed only in the
+  historical hosted unsigned iPhone 17 Pro simulator run above; the current-tree
+  rerun is pending.
