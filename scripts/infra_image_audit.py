@@ -38,6 +38,8 @@ SCHEMA_VERSION = 1
 POLICY_SCHEMA_VERSION = 1
 CURRENT_SCANNER_POLICY_VERSION = 2
 SCANNER_POLICY_VERSION = CURRENT_SCANNER_POLICY_VERSION
+SUPPORTED_EVIDENCE_SCHEMA_VERSIONS = frozenset({1, 2})
+SUPPORTED_POLICY_SCHEMA_VERSIONS = frozenset({1, 2})
 
 DEFAULT_PODMAN_URL = "unix:///run/codex-mobile-podman/podman.sock"
 DOCKER_URL = "unix:///var/run/docker.sock"
@@ -67,6 +69,9 @@ TRIVY_TIMEOUT_SECONDS = 600
 TOTAL_AUDIT_TIMEOUT_SECONDS = 3600
 
 MAX_DISPOSITION_DAYS = 90
+MAX_LICENSE_BASELINES = 16
+MAX_BASELINE_LICENSES = 4096
+LICENSE_BASELINE_ALGORITHM = "sha256-json-sorted-v2-match-key-multiset-v1"
 MAX_VULNERABILITY_DB_AGE = timedelta(hours=48)
 MAX_DATABASE_DOWNLOAD_AGE = timedelta(hours=24)
 MAX_CLOCK_SKEW = timedelta(minutes=15)
@@ -149,9 +154,11 @@ _TOOL_POLICY_RECORD_V2 = {
 class ScannerProfile:
     version: int
     evidence_schema_version: int
+    policy_schema_version: int
     scanners: tuple[str, ...]
     image_config_scanners: tuple[str, ...]
     severities: tuple[str, ...]
+    pkg_types: tuple[str, ...] | None
     license_full: bool
     include_unfixed: bool
     exit_on_eol: bool
@@ -165,7 +172,7 @@ class ScannerProfile:
     tools: Mapping[str, Mapping[str, Mapping[str, str]]]
 
     def policy_document(self) -> dict[str, object]:
-        return {
+        document: dict[str, object] = {
             "version": self.version,
             "scanners": list(self.scanners),
             "image_config_scanners": list(self.image_config_scanners),
@@ -179,6 +186,12 @@ class ScannerProfile:
             "max_report_bytes": self.max_report_bytes,
             "max_database_bytes": self.max_database_bytes,
         }
+        if self.pkg_types is not None:
+            document["pkg_types"] = list(self.pkg_types)
+        if self.evidence_schema_version == 2:
+            document["finding_match_fields"] = list(MATCH_FIELDS_V2)
+            document["license_baseline_algorithm"] = LICENSE_BASELINE_ALGORITHM
+        return document
 
 
 def _freeze_tool_policy(
@@ -196,6 +209,7 @@ def _freeze_tool_policy(
 
 _PROFILE_1_TOOLS = _freeze_tool_policy(_TOOL_POLICY_RECORD_V1)
 _PROFILE_2_TOOLS = _freeze_tool_policy(_TOOL_POLICY_RECORD_V2)
+_PROFILE_3_TOOLS = _freeze_tool_policy(_TOOL_POLICY_RECORD_V2)
 del _TOOL_POLICY_RECORD_V1
 del _TOOL_POLICY_RECORD_V2
 
@@ -208,9 +222,11 @@ SCANNER_PROFILE_REGISTRY: Mapping[int, ScannerProfile] = MappingProxyType(
         1: ScannerProfile(
             version=1,
             evidence_schema_version=1,
+            policy_schema_version=1,
             scanners=("vuln", "secret", "license"),
             image_config_scanners=("secret",),
             severities=("UNKNOWN", "HIGH", "CRITICAL"),
+            pkg_types=None,
             license_full=True,
             include_unfixed=True,
             exit_on_eol=True,
@@ -226,9 +242,11 @@ SCANNER_PROFILE_REGISTRY: Mapping[int, ScannerProfile] = MappingProxyType(
         2: ScannerProfile(
             version=2,
             evidence_schema_version=1,
+            policy_schema_version=1,
             scanners=("vuln", "secret", "license"),
             image_config_scanners=("secret",),
             severities=("UNKNOWN", "HIGH", "CRITICAL"),
+            pkg_types=None,
             license_full=True,
             include_unfixed=True,
             exit_on_eol=True,
@@ -241,10 +259,31 @@ SCANNER_PROFILE_REGISTRY: Mapping[int, ScannerProfile] = MappingProxyType(
             trivy_report_schema_version=2,
             tools=_PROFILE_2_TOOLS,
         ),
+        3: ScannerProfile(
+            version=3,
+            evidence_schema_version=2,
+            policy_schema_version=2,
+            scanners=("vuln", "secret", "license"),
+            image_config_scanners=("secret",),
+            severities=("UNKNOWN", "HIGH", "CRITICAL"),
+            pkg_types=("os", "library"),
+            license_full=True,
+            include_unfixed=True,
+            exit_on_eol=True,
+            detection_priority="precise",
+            global_ignores=False,
+            max_image_size_bytes=8_589_934_592,
+            max_report_bytes=67_108_864,
+            max_database_bytes=2_147_483_648,
+            cyclonedx_spec_version="1.6",
+            trivy_report_schema_version=2,
+            tools=_PROFILE_3_TOOLS,
+        ),
     }
 )
 del _PROFILE_1_TOOLS
 del _PROFILE_2_TOOLS
+del _PROFILE_3_TOOLS
 
 # Compatibility alias for callers that inspect the pins used by new scans.
 TOOL_POLICY = SCANNER_PROFILE_REGISTRY[CURRENT_SCANNER_POLICY_VERSION].tools
@@ -346,23 +385,82 @@ class Finding:
 
 
 @dataclass(frozen=True)
+class FindingV2:
+    image: str
+    kind: str
+    category: str
+    target: str
+    finding_id: str
+    package: str
+    version: str
+    severity: str
+    path: str
+    result_class: str
+    result_type: str
+    status: str
+    fixed_version: str
+    package_purl: str
+
+    @property
+    def match_key(self) -> tuple[str, ...]:
+        return (
+            self.image,
+            self.kind,
+            self.category,
+            self.target,
+            self.finding_id,
+            self.package,
+            self.version,
+            self.severity,
+            self.path,
+            self.result_class,
+            self.result_type,
+            self.status,
+            self.fixed_version,
+            self.package_purl,
+        )
+
+    @property
+    def safe_id(self) -> str:
+        return f"{self.image}:{self.kind}:{self.finding_id}"
+
+
+FindingRecord = Finding | FindingV2
+
+
+@dataclass(frozen=True)
 class Disposition:
     disposition_id: str
     expires_on: date
     statement: str
-    match: Finding
+    match: FindingRecord
+
+
+@dataclass(frozen=True)
+class LicenseBaseline:
+    baseline_id: str
+    image: str
+    expires_on: date
+    statement: str
+    algorithm: str
+    finding_count: int
+    canonical_sha256: str
+    category_counts: tuple[tuple[str, int], ...]
+    severity_counts: tuple[tuple[str, int], ...]
 
 
 @dataclass(frozen=True)
 class DispositionPolicy:
+    schema_version: int
     policy_id: str
     sha256: str
     dispositions: tuple[Disposition, ...]
+    license_baselines: tuple[LicenseBaseline, ...] = ()
 
 
 @dataclass(frozen=True)
 class FindingDecision:
-    finding: Finding
+    finding: FindingRecord
     disposition_id: str | None
 
 
@@ -695,22 +793,189 @@ def _policy_string(
     return value
 
 
+MATCH_FIELDS_V1 = (
+    "image",
+    "kind",
+    "category",
+    "target",
+    "finding_id",
+    "package",
+    "version",
+    "severity",
+    "path",
+)
+MATCH_FIELDS_V2 = MATCH_FIELDS_V1 + (
+    "result_class",
+    "result_type",
+    "status",
+    "fixed_version",
+    "package_purl",
+)
+
+
+def finding_match_document(finding: FindingRecord) -> dict[str, str]:
+    if type(finding) is FindingV2:
+        fields = MATCH_FIELDS_V2
+    elif type(finding) is Finding:
+        fields = MATCH_FIELDS_V1
+    else:
+        raise AuditError("image finding type is unsupported")
+    return {field: str(getattr(finding, field)) for field in fields}
+
+
+def _parse_policy_finding(
+    match: Mapping[str, object],
+    *,
+    schema_version: int,
+    description: str,
+) -> FindingRecord:
+    fields = MATCH_FIELDS_V1 if schema_version == 1 else MATCH_FIELDS_V2
+    _exact_keys(match, set(fields), description)
+    image = _policy_string(match["image"], "image", maximum=64)
+    if image not in IMAGE_SPEC_BY_KEY:
+        raise AuditError(
+            f"{description} names an unknown image",
+            ExitCode.POLICY,
+        )
+    kind = _policy_string(match["kind"], "kind", maximum=32)
+    if kind not in {"vulnerability", "secret", "license"}:
+        raise AuditError(
+            f"{description} names an unsupported finding kind",
+            ExitCode.POLICY,
+        )
+    severity = _policy_string(match["severity"], "severity", maximum=16)
+    if severity not in {"UNKNOWN", "HIGH", "CRITICAL"}:
+        raise AuditError(
+            f"{description} has an unsupported severity",
+            ExitCode.POLICY,
+        )
+    common = {
+        "image": image,
+        "kind": kind,
+        "category": _policy_string(
+            match["category"], "category", allow_empty=True, maximum=256
+        ),
+        "target": _policy_string(match["target"], "target", maximum=4096),
+        "finding_id": _policy_string(match["finding_id"], "finding_id", maximum=256),
+        "package": _policy_string(
+            match["package"], "package", allow_empty=True, maximum=1024
+        ),
+        "version": _policy_string(
+            match["version"], "version", allow_empty=True, maximum=512
+        ),
+        "severity": severity,
+        "path": _policy_string(match["path"], "path", allow_empty=True, maximum=4096),
+    }
+    if schema_version == 1:
+        return Finding(**common)
+    return FindingV2(
+        **common,
+        result_class=_policy_string(
+            match["result_class"],
+            "result_class",
+            allow_empty=True,
+            maximum=256,
+        ),
+        result_type=_policy_string(
+            match["result_type"],
+            "result_type",
+            allow_empty=True,
+            maximum=256,
+        ),
+        status=_policy_string(
+            match["status"],
+            "status",
+            allow_empty=True,
+            maximum=256,
+        ),
+        fixed_version=_policy_string(
+            match["fixed_version"],
+            "fixed_version",
+            allow_empty=True,
+            maximum=512,
+        ),
+        package_purl=_policy_string(
+            match["package_purl"],
+            "package_purl",
+            allow_empty=True,
+            maximum=4096,
+            reject_globs=False,
+        ),
+    )
+
+
+def _policy_count_map(
+    value: object,
+    field: str,
+    *,
+    allowed_keys: set[str] | None = None,
+) -> tuple[tuple[str, int], ...]:
+    if not isinstance(value, dict) or not value or len(value) > 256:
+        raise AuditError(
+            f"license baseline {field} must be a bounded non-empty object",
+            ExitCode.POLICY,
+        )
+    counts: list[tuple[str, int]] = []
+    for raw_key, raw_count in value.items():
+        key = _policy_string(
+            raw_key,
+            field,
+            allow_empty=True,
+            maximum=256,
+            reject_globs=False,
+        )
+        if allowed_keys is not None and key not in allowed_keys:
+            raise AuditError(
+                f"license baseline {field} has an unsupported key",
+                ExitCode.POLICY,
+            )
+        if (
+            not isinstance(raw_count, int)
+            or isinstance(raw_count, bool)
+            or raw_count <= 0
+            or raw_count > MAX_BASELINE_LICENSES
+        ):
+            raise AuditError(
+                f"license baseline {field} has an invalid count",
+                ExitCode.POLICY,
+            )
+        counts.append((key, raw_count))
+    return tuple(sorted(counts))
+
+
 def load_disposition_policy(
     repo_root: Path,
     as_of: datetime,
+    expected_schema_version: int | None = None,
 ) -> DispositionPolicy:
     path = repo_root / POLICY_RELATIVE
     content = read_regular_bytes(path, MAX_POLICY_BYTES)
     document = parse_json_bytes(content, "image disposition policy")
-    _exact_keys(
-        document,
-        {"schema_version", "policy_id", "dispositions"},
-        "image disposition policy",
-    )
-    if document["schema_version"] != POLICY_SCHEMA_VERSION:
+    schema_version = document.get("schema_version")
+    if (
+        not isinstance(schema_version, int)
+        or isinstance(schema_version, bool)
+        or schema_version not in SUPPORTED_POLICY_SCHEMA_VERSIONS
+    ):
         raise AuditError(
             "image disposition policy schema is unsupported", ExitCode.POLICY
         )
+    if (
+        expected_schema_version is not None
+        and schema_version != expected_schema_version
+    ):
+        raise AuditError(
+            "image disposition policy uses another evidence schema",
+            ExitCode.POLICY,
+        )
+    top_level_fields = {"schema_version", "policy_id", "dispositions"}
+    if schema_version == 2:
+        top_level_fields.add("license_baselines")
+    _exact_keys(
+        document,
+        top_level_fields,
+        "image disposition policy",
+    )
     policy_id = _policy_string(
         document["policy_id"],
         "policy_id",
@@ -727,9 +992,63 @@ def load_disposition_policy(
     dispositions: list[Disposition] = []
     seen_ids: set[str] = set()
     seen_matches: set[tuple[str, ...]] = set()
-    allowed_kinds = {"vulnerability", "secret", "license"}
-    allowed_severities = {"UNKNOWN", "HIGH", "CRITICAL"}
     audit_date = as_of.astimezone(timezone.utc).date()
+
+    def policy_expiry(raw_value: object, record_id: str) -> date:
+        expires_raw = _policy_string(
+            raw_value,
+            "expires_on",
+            maximum=10,
+            reject_globs=False,
+        )
+        try:
+            expires_on = date.fromisoformat(expires_raw)
+        except ValueError as exc:
+            raise AuditError(
+                f"disposition {record_id} has an invalid expiry date",
+                ExitCode.POLICY,
+            ) from exc
+        if expires_on < audit_date:
+            raise AuditError(
+                f"disposition {record_id} expired",
+                ExitCode.POLICY,
+            )
+        if expires_on > audit_date + timedelta(days=MAX_DISPOSITION_DAYS):
+            raise AuditError(
+                f"disposition {record_id} expires more than "
+                f"{MAX_DISPOSITION_DAYS} days after the audit",
+                ExitCode.POLICY,
+            )
+        return expires_on
+
+    def policy_statement(raw_value: object, record_id: str) -> str:
+        statement = _policy_string(
+            raw_value,
+            "statement",
+            maximum=2000,
+            reject_globs=False,
+        )
+        if len(statement) < 20:
+            raise AuditError(
+                f"disposition {record_id} needs a meaningful statement",
+                ExitCode.POLICY,
+            )
+        return statement
+
+    def policy_record_id(raw_value: object) -> str:
+        record_id = _policy_string(
+            raw_value,
+            "id",
+            maximum=64,
+            reject_globs=False,
+        )
+        if not DISPOSITION_ID_PATTERN.fullmatch(record_id):
+            raise AuditError("disposition ID has an invalid shape", ExitCode.POLICY)
+        if record_id in seen_ids:
+            raise AuditError("disposition IDs must be unique", ExitCode.POLICY)
+        seen_ids.add(record_id)
+        return record_id
+
     for index, raw in enumerate(raw_dispositions):
         if not isinstance(raw, dict):
             raise AuditError(
@@ -741,106 +1060,19 @@ def load_disposition_policy(
             {"id", "expires_on", "statement", "match"},
             f"disposition record {index}",
         )
-        disposition_id = _policy_string(
-            raw["id"],
-            "id",
-            maximum=64,
-            reject_globs=False,
-        )
-        if not DISPOSITION_ID_PATTERN.fullmatch(disposition_id):
-            raise AuditError("disposition ID has an invalid shape", ExitCode.POLICY)
-        if disposition_id in seen_ids:
-            raise AuditError("disposition IDs must be unique", ExitCode.POLICY)
-        seen_ids.add(disposition_id)
-
-        expires_raw = _policy_string(
-            raw["expires_on"],
-            "expires_on",
-            maximum=10,
-            reject_globs=False,
-        )
-        try:
-            expires_on = date.fromisoformat(expires_raw)
-        except ValueError as exc:
-            raise AuditError(
-                f"disposition {disposition_id} has an invalid expiry date",
-                ExitCode.POLICY,
-            ) from exc
-        if expires_on < audit_date:
-            raise AuditError(
-                f"disposition {disposition_id} expired",
-                ExitCode.POLICY,
-            )
-        if expires_on > audit_date + timedelta(days=MAX_DISPOSITION_DAYS):
-            raise AuditError(
-                f"disposition {disposition_id} expires more than "
-                f"{MAX_DISPOSITION_DAYS} days after the audit",
-                ExitCode.POLICY,
-            )
-
-        statement = _policy_string(
-            raw["statement"],
-            "statement",
-            maximum=2000,
-            reject_globs=False,
-        )
-        if len(statement) < 20:
-            raise AuditError(
-                f"disposition {disposition_id} needs a meaningful statement",
-                ExitCode.POLICY,
-            )
+        disposition_id = policy_record_id(raw["id"])
+        expires_on = policy_expiry(raw["expires_on"], disposition_id)
+        statement = policy_statement(raw["statement"], disposition_id)
         match = raw["match"]
         if not isinstance(match, dict):
             raise AuditError(
                 f"disposition {disposition_id} match must be an object",
                 ExitCode.POLICY,
             )
-        match_fields = {
-            "image",
-            "kind",
-            "category",
-            "target",
-            "finding_id",
-            "package",
-            "version",
-            "severity",
-            "path",
-        }
-        _exact_keys(match, match_fields, f"disposition {disposition_id} match")
-        image = _policy_string(match["image"], "image", maximum=64)
-        if image not in IMAGE_SPEC_BY_KEY:
-            raise AuditError(
-                f"disposition {disposition_id} names an unknown image",
-                ExitCode.POLICY,
-            )
-        kind = _policy_string(match["kind"], "kind", maximum=32)
-        if kind not in allowed_kinds:
-            raise AuditError(
-                f"disposition {disposition_id} names an unsupported finding kind",
-                ExitCode.POLICY,
-            )
-        severity = _policy_string(match["severity"], "severity", maximum=16)
-        if severity not in allowed_severities:
-            raise AuditError(
-                f"disposition {disposition_id} has an unsupported severity",
-                ExitCode.POLICY,
-            )
-        finding = Finding(
-            image=image,
-            kind=kind,
-            category=_policy_string(
-                match["category"], "category", allow_empty=True, maximum=256
-            ),
-            target=_policy_string(match["target"], "target", maximum=4096),
-            finding_id=_policy_string(match["finding_id"], "finding_id", maximum=256),
-            package=_policy_string(
-                match["package"], "package", allow_empty=True, maximum=1024
-            ),
-            version=_policy_string(
-                match["version"], "version", allow_empty=True, maximum=512
-            ),
-            severity=severity,
-            path=_policy_string(match["path"], "path", allow_empty=True, maximum=4096),
+        finding = _parse_policy_finding(
+            match,
+            schema_version=schema_version,
+            description=f"disposition {disposition_id} match",
         )
         if finding.match_key in seen_matches:
             raise AuditError(
@@ -849,10 +1081,128 @@ def load_disposition_policy(
             )
         seen_matches.add(finding.match_key)
         dispositions.append(Disposition(disposition_id, expires_on, statement, finding))
+
+    baselines: list[LicenseBaseline] = []
+    seen_baseline_images: set[str] = set()
+    if schema_version == 2:
+        raw_baselines = document["license_baselines"]
+        if (
+            not isinstance(raw_baselines, list)
+            or len(raw_baselines) > MAX_LICENSE_BASELINES
+        ):
+            raise AuditError(
+                "image disposition policy has too many license baselines",
+                ExitCode.POLICY,
+            )
+        for index, raw in enumerate(raw_baselines):
+            if not isinstance(raw, dict):
+                raise AuditError(
+                    f"license baseline record {index} must be an object",
+                    ExitCode.POLICY,
+                )
+            _exact_keys(
+                raw,
+                {
+                    "id",
+                    "image",
+                    "expires_on",
+                    "statement",
+                    "algorithm",
+                    "finding_count",
+                    "canonical_sha256",
+                    "category_counts",
+                    "severity_counts",
+                },
+                f"license baseline record {index}",
+            )
+            baseline_id = policy_record_id(raw["id"])
+            image = _policy_string(raw["image"], "image", maximum=64)
+            if image not in IMAGE_SPEC_BY_KEY:
+                raise AuditError(
+                    f"license baseline {baseline_id} names an unknown image",
+                    ExitCode.POLICY,
+                )
+            if image in seen_baseline_images:
+                raise AuditError(
+                    "license baselines must name unique images",
+                    ExitCode.POLICY,
+                )
+            seen_baseline_images.add(image)
+            expires_on = policy_expiry(raw["expires_on"], baseline_id)
+            statement = policy_statement(raw["statement"], baseline_id)
+            algorithm = _policy_string(
+                raw["algorithm"],
+                "algorithm",
+                maximum=128,
+                reject_globs=False,
+            )
+            if algorithm != LICENSE_BASELINE_ALGORITHM:
+                raise AuditError(
+                    f"license baseline {baseline_id} uses an unsupported algorithm",
+                    ExitCode.POLICY,
+                )
+            finding_count = raw["finding_count"]
+            if (
+                not isinstance(finding_count, int)
+                or isinstance(finding_count, bool)
+                or not 0 < finding_count <= MAX_BASELINE_LICENSES
+            ):
+                raise AuditError(
+                    f"license baseline {baseline_id} has an invalid finding count",
+                    ExitCode.POLICY,
+                )
+            canonical_sha256 = _policy_string(
+                raw["canonical_sha256"],
+                "canonical_sha256",
+                maximum=64,
+                reject_globs=False,
+            )
+            if not SHA256_PATTERN.fullmatch(canonical_sha256):
+                raise AuditError(
+                    f"license baseline {baseline_id} has an invalid checksum",
+                    ExitCode.POLICY,
+                )
+            category_counts = _policy_count_map(
+                raw["category_counts"],
+                "category_counts",
+            )
+            severity_counts = _policy_count_map(
+                raw["severity_counts"],
+                "severity_counts",
+                allowed_keys={"UNKNOWN", "HIGH", "CRITICAL"},
+            )
+            if (
+                sum(count for _, count in category_counts) != finding_count
+                or sum(count for _, count in severity_counts) != finding_count
+            ):
+                raise AuditError(
+                    f"license baseline {baseline_id} count metadata is inconsistent",
+                    ExitCode.POLICY,
+                )
+            if any(is_forbidden_category(category) for category, _ in category_counts):
+                raise AuditError(
+                    "forbidden licenses require exact individual dispositions",
+                    ExitCode.POLICY,
+                )
+            baselines.append(
+                LicenseBaseline(
+                    baseline_id=baseline_id,
+                    image=image,
+                    expires_on=expires_on,
+                    statement=statement,
+                    algorithm=algorithm,
+                    finding_count=finding_count,
+                    canonical_sha256=canonical_sha256,
+                    category_counts=category_counts,
+                    severity_counts=severity_counts,
+                )
+            )
     return DispositionPolicy(
+        schema_version=schema_version,
         policy_id=policy_id,
         sha256=hashlib.sha256(content).hexdigest(),
         dispositions=tuple(dispositions),
+        license_baselines=tuple(baselines),
     )
 
 
@@ -968,10 +1318,250 @@ def trivy_findings(document: Mapping[str, object], image_key: str) -> list[Findi
     return findings
 
 
+def _finding_package_purl(record: Mapping[str, object]) -> str:
+    identifier = record.get("PkgIdentifier")
+    if identifier is None:
+        return ""
+    if not isinstance(identifier, dict):
+        raise AuditError("Trivy finding package identifier is malformed")
+    return _finding_string(identifier, "PURL")
+
+
+def trivy_findings_v2(
+    document: Mapping[str, object],
+    image_key: str,
+) -> list[FindingV2]:
+    raw_results = document.get("Results", [])
+    if raw_results is None:
+        raw_results = []
+    if not isinstance(raw_results, list):
+        raise AuditError("Trivy Results must be an array")
+    findings: list[FindingV2] = []
+    for result in raw_results:
+        if not isinstance(result, dict):
+            raise AuditError("Trivy result must be an object")
+        target = _finding_string(result, "Target")
+        if not target:
+            raise AuditError("Trivy result is missing Target")
+        result_class = _finding_string(result, "Class")
+        result_type = _finding_string(result, "Type")
+        for record in _finding_records(result, "Vulnerabilities"):
+            if not isinstance(record, dict):
+                raise AuditError("Trivy vulnerability record is malformed")
+            findings.append(
+                FindingV2(
+                    image=image_key,
+                    kind="vulnerability",
+                    category="",
+                    target=target,
+                    finding_id=_finding_string(record, "VulnerabilityID"),
+                    package=_finding_string(record, "PkgName"),
+                    version=_finding_string(record, "InstalledVersion"),
+                    severity=_finding_string(record, "Severity").upper(),
+                    path=_finding_string(record, "PkgPath"),
+                    result_class=result_class,
+                    result_type=result_type,
+                    status=_finding_string(record, "Status"),
+                    fixed_version=_finding_string(record, "FixedVersion"),
+                    package_purl=_finding_package_purl(record),
+                )
+            )
+        for record in _finding_records(result, "Secrets"):
+            if not isinstance(record, dict):
+                raise AuditError("Trivy secret record is malformed")
+            findings.append(
+                FindingV2(
+                    image=image_key,
+                    kind="secret",
+                    category=_finding_string(record, "Category"),
+                    target=target,
+                    finding_id=_finding_string(record, "RuleID"),
+                    package="",
+                    version="",
+                    severity=_finding_string(record, "Severity").upper(),
+                    path=_finding_string(record, "FilePath"),
+                    result_class=result_class,
+                    result_type=result_type,
+                    status=_finding_string(record, "Status"),
+                    fixed_version="",
+                    package_purl="",
+                )
+            )
+        for record in _finding_records(result, "Licenses"):
+            if not isinstance(record, dict):
+                raise AuditError("Trivy license record is malformed")
+            findings.append(
+                FindingV2(
+                    image=image_key,
+                    kind="license",
+                    category=_finding_string(record, "Category"),
+                    target=target,
+                    finding_id=_finding_string(record, "Name"),
+                    package=_finding_string(record, "PkgName"),
+                    version=_finding_string(
+                        record,
+                        "InstalledVersion",
+                        fallback=_finding_string(record, "Version"),
+                    ),
+                    severity=_finding_string(record, "Severity").upper(),
+                    path=_finding_string(record, "FilePath"),
+                    result_class=result_class,
+                    result_type=result_type,
+                    status=_finding_string(record, "Status"),
+                    fixed_version="",
+                    package_purl=_finding_package_purl(record),
+                )
+            )
+        modified = _finding_records(result, "ExperimentalModifiedFindings")
+        for index, record in enumerate(modified):
+            if not isinstance(record, dict):
+                raise AuditError("Trivy modified finding record is malformed")
+            findings.append(
+                FindingV2(
+                    image=image_key,
+                    kind="modified",
+                    category="",
+                    target=target,
+                    finding_id=f"MODIFIED-{index + 1}",
+                    package="",
+                    version="",
+                    severity="UNKNOWN",
+                    path="",
+                    result_class=result_class,
+                    result_type=result_type,
+                    status=_finding_string(record, "Status"),
+                    fixed_version="",
+                    package_purl="",
+                )
+            )
+    for finding in findings:
+        if not finding.finding_id or not finding.severity:
+            raise AuditError("Trivy finding lacks a stable ID or severity")
+    return findings
+
+
+def canonical_license_multiset(
+    findings: Sequence[FindingV2],
+) -> tuple[tuple[str, ...], ...]:
+    if any(type(finding) is not FindingV2 for finding in findings):
+        raise AuditError("license metadata requires evidence schema 2 findings")
+    licenses = [finding for finding in findings if finding.kind == "license"]
+    if len(licenses) > MAX_BASELINE_LICENSES:
+        raise AuditError("license metadata inventory exceeds its size limit")
+    return tuple(sorted(finding.match_key for finding in licenses))
+
+
+def is_forbidden_category(category: str) -> bool:
+    return category.strip().casefold() == "forbidden"
+
+
+def is_forbidden_license(finding: FindingRecord) -> bool:
+    return finding.kind == "license" and is_forbidden_category(finding.category)
+
+
+def license_baseline_summary(
+    findings: Sequence[FindingV2],
+) -> dict[str, object]:
+    keys = canonical_license_multiset(findings)
+    licenses = [finding for finding in findings if finding.kind == "license"]
+    if not licenses:
+        raise AuditError("license baseline inventory must not be empty")
+    images = {finding.image for finding in licenses}
+    if len(images) != 1:
+        raise AuditError("license baseline inventory must name exactly one image")
+    canonical_bytes = json.dumps(
+        keys,
+        ensure_ascii=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return {
+        "algorithm": LICENSE_BASELINE_ALGORITHM,
+        "finding_count": len(keys),
+        "canonical_sha256": hashlib.sha256(canonical_bytes).hexdigest(),
+        "category_counts": dict(
+            sorted(Counter(finding.category for finding in licenses).items())
+        ),
+        "severity_counts": dict(
+            sorted(Counter(finding.severity for finding in licenses).items())
+        ),
+    }
+
+
+def license_review_metadata(
+    findings: Sequence[FindingV2],
+) -> dict[str, object]:
+    """Return policy-ready license metadata without secret-match bodies."""
+
+    if any(type(finding) is not FindingV2 for finding in findings):
+        raise AuditError("license review requires evidence schema 2 findings")
+    by_image: dict[str, list[FindingV2]] = {}
+    for finding in findings:
+        if finding.kind == "license":
+            by_image.setdefault(finding.image, []).append(finding)
+    if len(by_image) > MAX_LICENSE_BASELINES or any(
+        len(items) > MAX_BASELINE_LICENSES for items in by_image.values()
+    ):
+        raise AuditError("license review inventory exceeds its size limit")
+    metadata: dict[str, object] = {
+        "schema_version": 2,
+        "algorithm": LICENSE_BASELINE_ALGORITHM,
+        "match_fields": list(MATCH_FIELDS_V2),
+        "images": [
+            {
+                "image": image,
+                "baseline": (
+                    {
+                        **license_baseline_summary(
+                            [item for item in items if not is_forbidden_license(item)]
+                        ),
+                        "licenses": [
+                            finding_match_document(item)
+                            for item in sorted(
+                                (
+                                    item
+                                    for item in items
+                                    if not is_forbidden_license(item)
+                                ),
+                                key=lambda item: item.match_key,
+                            )
+                        ],
+                    }
+                    if any(not is_forbidden_license(item) for item in items)
+                    else None
+                ),
+                "exact_disposition_candidates": [
+                    finding_match_document(item)
+                    for item in sorted(
+                        (item for item in items if is_forbidden_license(item)),
+                        key=lambda item: item.match_key,
+                    )
+                ],
+            }
+            for image, items in sorted(by_image.items())
+        ],
+    }
+    serialized = json.dumps(
+        metadata,
+        ensure_ascii=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    if len(serialized) > MAX_REPORT_BYTES:
+        raise AuditError("license review metadata exceeds its size limit")
+    return metadata
+
+
 def evaluate_dispositions(
-    findings: Sequence[Finding],
+    findings: Sequence[FindingRecord],
     policy: DispositionPolicy,
 ) -> tuple[FindingDecision, ...]:
+    if policy.schema_version not in SUPPORTED_POLICY_SCHEMA_VERSIONS:
+        raise AuditError("image disposition policy schema is unsupported")
+    expected_type = Finding if policy.schema_version == 1 else FindingV2
+    if any(type(finding) is not expected_type for finding in findings):
+        raise AuditError(
+            "image findings use another evidence schema",
+            ExitCode.POLICY,
+        )
     by_match = {item.match.match_key: item for item in policy.dispositions}
     used: set[str] = set()
     decisions: list[FindingDecision] = []
@@ -992,6 +1582,59 @@ def evaluate_dispositions(
             "tracked image dispositions were not exercised: " + ", ".join(unused),
             ExitCode.POLICY,
         )
+    if policy.schema_version == 2:
+        baseline_by_image = {
+            baseline.image: baseline for baseline in policy.license_baselines
+        }
+        remaining_by_image: dict[str, list[int]] = {}
+        for index, decision in enumerate(decisions):
+            finding = decision.finding
+            if (
+                decision.disposition_id is None
+                and type(finding) is FindingV2
+                and finding.kind == "license"
+                and not is_forbidden_license(finding)
+            ):
+                remaining_by_image.setdefault(finding.image, []).append(index)
+        missing = sorted(set(remaining_by_image) - set(baseline_by_image))
+        if missing:
+            raise AuditError(
+                "license inventory has no reviewed baseline for: " + ", ".join(missing),
+                ExitCode.POLICY,
+            )
+        for baseline in policy.license_baselines:
+            indices = remaining_by_image.get(baseline.image, [])
+            actual_findings = [
+                decisions[index].finding
+                for index in indices
+                if type(decisions[index].finding) is FindingV2
+            ]
+            if not actual_findings:
+                raise AuditError(
+                    f"reviewed license baseline was not exercised for image "
+                    f"{baseline.image}",
+                    ExitCode.POLICY,
+                )
+            actual = license_baseline_summary(
+                [finding for finding in actual_findings if type(finding) is FindingV2]
+            )
+            expected = {
+                "algorithm": baseline.algorithm,
+                "finding_count": baseline.finding_count,
+                "canonical_sha256": baseline.canonical_sha256,
+                "category_counts": dict(baseline.category_counts),
+                "severity_counts": dict(baseline.severity_counts),
+            }
+            if actual != expected:
+                raise AuditError(
+                    f"reviewed license baseline does not match image {baseline.image}",
+                    ExitCode.POLICY,
+                )
+            for index in indices:
+                decisions[index] = FindingDecision(
+                    decisions[index].finding,
+                    baseline.baseline_id,
+                )
     return tuple(decisions)
 
 
@@ -1016,7 +1659,11 @@ def finding_summary(decisions: Sequence[FindingDecision]) -> dict[str, object]:
         "undispositioned": total - disposed,
         "by_kind": dict(sorted(by_kind.items())),
         "disposition_ids": sorted(
-            item.disposition_id for item in decisions if item.disposition_id is not None
+            {
+                item.disposition_id
+                for item in decisions
+                if item.disposition_id is not None
+            }
         ),
     }
 
@@ -1074,7 +1721,7 @@ def validate_trivy_report(
     image_id: str,
     scanner_policy_version: int = CURRENT_SCANNER_POLICY_VERSION,
     architecture: str = "amd64",
-) -> list[Finding]:
+) -> list[FindingRecord]:
     profile = scanner_profile(scanner_policy_version)
     expected_tools = profile.tools[normalize_architecture(architecture)]
     expected_trivy_version = expected_tools["trivy"]["version"]
@@ -1095,7 +1742,11 @@ def validate_trivy_report(
         raise AuditError(
             "Trivy reports an end-of-life image operating system", ExitCode.POLICY
         )
-    return trivy_findings(document, image_key)
+    if profile.evidence_schema_version == 1:
+        return trivy_findings(document, image_key)
+    if profile.evidence_schema_version == 2:
+        return trivy_findings_v2(document, image_key)
+    raise AuditError("image scanner profile evidence schema is unsupported")
 
 
 def scanner_policy_document(
@@ -1578,11 +2229,16 @@ def prepare_trivy_database(
         os.close(lock_descriptor)
 
 
-def syft_argv(spec: ImageSpec, image_id: str, config: Path) -> list[str]:
+def syft_argv(
+    spec: ImageSpec,
+    image_id: str,
+    config: Path,
+    scanner_policy_version: int = CURRENT_SCANNER_POLICY_VERSION,
+) -> list[str]:
     normalize_image_id(image_id)
     if config.suffix not in {".yaml", ".yml"}:
         raise AuditError("Syft config must use a recognized YAML extension")
-    profile = scanner_profile(CURRENT_SCANNER_POLICY_VERSION)
+    profile = scanner_profile(scanner_policy_version)
     return [
         str(SYFT_PATH),
         "scan",
@@ -1606,8 +2262,18 @@ def trivy_argv(
     config: Path,
     empty_ignore: Path,
     podman_socket_path: str,
+    scanner_policy_version: int = CURRENT_SCANNER_POLICY_VERSION,
 ) -> list[str]:
     normalize_image_id(image_id)
+    profile = scanner_profile(scanner_policy_version)
+    if (
+        not profile.license_full
+        or not profile.include_unfixed
+        or not profile.exit_on_eol
+        or profile.global_ignores
+        or profile.max_image_size_bytes % (1024**3) != 0
+    ):
+        raise AuditError("image scanner profile cannot be executed safely")
     argv = [
         str(TRIVY_PATH),
         "image",
@@ -1625,12 +2291,12 @@ def trivy_argv(
     argv.extend(
         [
             "--scanners",
-            "vuln,secret,license",
+            ",".join(profile.scanners),
             "--image-config-scanners",
-            "secret",
+            ",".join(profile.image_config_scanners),
             "--license-full",
             "--severity",
-            "UNKNOWN,HIGH,CRITICAL",
+            ",".join(profile.severities),
             "--ignorefile",
             str(empty_ignore),
             "--exit-code",
@@ -1639,9 +2305,9 @@ def trivy_argv(
             "json",
             "--list-all-pkgs=false",
             "--detection-priority",
-            "precise",
+            profile.detection_priority,
             "--max-image-size",
-            "8GB",
+            f"{profile.max_image_size_bytes // (1024**3)}GB",
             "--parallel",
             "4",
             "--offline-scan",
@@ -1656,6 +2322,12 @@ def trivy_argv(
             image_id,
         ]
     )
+    if profile.pkg_types is not None:
+        image_index = len(argv) - 1
+        argv[image_index:image_index] = [
+            "--pkg-types",
+            ",".join(profile.pkg_types),
+        ]
     return argv
 
 
@@ -1924,6 +2596,35 @@ def _verify_then_publish_private_evidence(
     return receipt
 
 
+def _disposition_policy_receipt(
+    policy: DispositionPolicy,
+) -> dict[str, object]:
+    record: dict[str, object] = {
+        "path": POLICY_RELATIVE.as_posix(),
+        "schema_version": policy.schema_version,
+        "policy_id": policy.policy_id,
+        "sha256": policy.sha256,
+        "disposition_ids": sorted(item.disposition_id for item in policy.dispositions),
+    }
+    if policy.schema_version == 2:
+        record["license_baselines"] = [
+            {
+                "id": item.baseline_id,
+                "image": item.image,
+                "algorithm": item.algorithm,
+                "finding_count": item.finding_count,
+                "canonical_sha256": item.canonical_sha256,
+                "category_counts": dict(item.category_counts),
+                "severity_counts": dict(item.severity_counts),
+            }
+            for item in sorted(
+                policy.license_baselines,
+                key=lambda candidate: candidate.baseline_id,
+            )
+        ]
+    return record
+
+
 def _build_receipt(
     *,
     release_id: str,
@@ -1935,25 +2636,22 @@ def _build_receipt(
     policy: DispositionPolicy,
     images: dict[str, dict[str, object]],
     decisions: Sequence[FindingDecision],
+    profile: ScannerProfile | None = None,
 ) -> dict[str, object]:
+    if profile is None:
+        profile = scanner_profile(CURRENT_SCANNER_POLICY_VERSION)
+    if policy.schema_version != profile.policy_schema_version:
+        raise AuditError("image disposition policy uses another evidence schema")
     return {
-        "schema_version": SCHEMA_VERSION,
+        "schema_version": profile.evidence_schema_version,
         "status": "pass",
         "release_id": release_id,
         "source_commit": release_id.removeprefix("sha-"),
         "started_at": format_rfc3339(started_at),
         "completed_at": format_rfc3339(completed_at),
         "host": _host_document(architecture),
-        "scanner_policy": scanner_policy_document(),
-        "disposition_policy": {
-            "path": POLICY_RELATIVE.as_posix(),
-            "schema_version": POLICY_SCHEMA_VERSION,
-            "policy_id": policy.policy_id,
-            "sha256": policy.sha256,
-            "disposition_ids": sorted(
-                item.disposition_id for item in policy.dispositions
-            ),
-        },
+        "scanner_policy": scanner_policy_document(profile.version),
+        "disposition_policy": _disposition_policy_receipt(policy),
         "tools": tools,
         "trivy_database": database,
         "findings": finding_summary(decisions),
@@ -1980,7 +2678,12 @@ def audit_release_images(
 
     started_at = now().astimezone(timezone.utc)
     deadline = time.monotonic() + TOTAL_AUDIT_TIMEOUT_SECONDS
-    policy = load_disposition_policy(root, started_at)
+    profile = scanner_profile(CURRENT_SCANNER_POLICY_VERSION)
+    policy = load_disposition_policy(
+        root,
+        started_at,
+        profile.policy_schema_version,
+    )
     old_umask = os.umask(0o077)
     stage = Path(tempfile.mkdtemp(prefix=".image-audit.", dir=infra))
     try:
@@ -2020,7 +2723,7 @@ def audit_release_images(
             snapshots[spec.key] = snapshot
 
         images: dict[str, dict[str, object]] = {}
-        findings_by_image: dict[str, list[Finding]] = {}
+        findings_by_image: dict[str, list[FindingRecord]] = {}
         for spec in IMAGE_SPECS:
             if time.monotonic() >= deadline:
                 raise AuditError(
@@ -2037,7 +2740,12 @@ def audit_release_images(
             else:
                 scan_environment["CONTAINER_HOST"] = validated_podman_url
             sbom_document, sbom_sha256, sbom_size = _run_report(
-                syft_argv(spec, snapshot.image_id, syft_config),
+                syft_argv(
+                    spec,
+                    snapshot.image_id,
+                    syft_config,
+                    profile.version,
+                ),
                 sbom_path,
                 work,
                 scan_environment,
@@ -2070,6 +2778,7 @@ def audit_release_images(
                     config,
                     empty_ignore,
                     podman_socket_path,
+                    profile.version,
                 ),
                 trivy_path,
                 work,
@@ -2171,6 +2880,7 @@ def audit_release_images(
             policy=policy,
             images=images,
             decisions=decisions,
+            profile=profile,
         )
         serialized = (
             json.dumps(receipt, indent=2, sort_keys=True).encode("utf-8") + b"\n"
@@ -2358,9 +3068,15 @@ def _verify_evidence_directory(
         },
         "image-audit receipt",
     )
+    receipt_schema_version = receipt["schema_version"]
     if (
-        receipt["schema_version"] != SCHEMA_VERSION
-        or receipt["status"] != "pass"
+        not isinstance(receipt_schema_version, int)
+        or isinstance(receipt_schema_version, bool)
+        or receipt_schema_version not in SUPPORTED_EVIDENCE_SCHEMA_VERSIONS
+    ):
+        raise AuditError("image-audit receipt schema is unsupported")
+    if (
+        receipt["status"] != "pass"
         or receipt["release_id"] != release_id
         or receipt["source_commit"] != release_id.removeprefix("sha-")
     ):
@@ -2382,17 +3098,15 @@ def _verify_evidence_directory(
         raise AuditError("image scanner policy receipt is invalid")
     _verify_private_inventory(evidence, profile)
 
-    policy = load_disposition_policy(root, started_at)
+    policy = load_disposition_policy(
+        root,
+        started_at,
+        profile.policy_schema_version,
+    )
     policy_record = receipt["disposition_policy"]
     if not isinstance(policy_record, dict):
         raise AuditError("image disposition policy receipt is malformed")
-    expected_policy_record = {
-        "path": POLICY_RELATIVE.as_posix(),
-        "schema_version": POLICY_SCHEMA_VERSION,
-        "policy_id": policy.policy_id,
-        "sha256": policy.sha256,
-        "disposition_ids": sorted(item.disposition_id for item in policy.dispositions),
-    }
+    expected_policy_record = _disposition_policy_receipt(policy)
     if policy_record != expected_policy_record:
         raise AuditError("image disposition policy receipt is invalid")
 
@@ -2420,8 +3134,8 @@ def _verify_evidence_directory(
     references = image_references(release_id)
     if not isinstance(images, dict) or set(images) != set(references):
         raise AuditError("image-audit image inventory is invalid")
-    all_findings: list[Finding] = []
-    findings_by_image: dict[str, list[Finding]] = {}
+    all_findings: list[FindingRecord] = []
+    findings_by_image: dict[str, list[FindingRecord]] = {}
     for spec in IMAGE_SPECS:
         record = images[spec.key]
         if not isinstance(record, dict):

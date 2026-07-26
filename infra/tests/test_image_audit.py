@@ -58,17 +58,7 @@ def disposition(
         "id": disposition_id,
         "expires_on": expires_on,
         "statement": "Exact temporary disposition with a bounded review date.",
-        "match": {
-            "image": finding.image,
-            "kind": finding.kind,
-            "category": finding.category,
-            "target": finding.target,
-            "finding_id": finding.finding_id,
-            "package": finding.package,
-            "version": finding.version,
-            "severity": finding.severity,
-            "path": finding.path,
-        },
+        "match": AUDIT.finding_match_document(finding),
     }
 
 
@@ -77,6 +67,75 @@ def policy_document(dispositions: list[dict[str, object]]) -> dict[str, object]:
         "schema_version": 1,
         "policy_id": "test-image-dispositions",
         "dispositions": dispositions,
+    }
+
+
+def finding_v2(**changes: str):
+    finding = AUDIT.FindingV2(
+        image="control_plane",
+        kind="vulnerability",
+        category="",
+        target="ubuntu 24.04",
+        finding_id="CVE-2026-0001",
+        package="libexample",
+        version="1.2.3",
+        severity="HIGH",
+        path="",
+        result_class="os-pkgs",
+        result_type="ubuntu",
+        status="fixed",
+        fixed_version="1.2.4",
+        package_purl="pkg:deb/ubuntu/libexample@1.2.3?arch=amd64",
+    )
+    return dataclasses.replace(finding, **changes)
+
+
+def license_v2(**changes: str):
+    finding = AUDIT.FindingV2(
+        image="control_plane",
+        kind="license",
+        category="restricted",
+        target="ubuntu 24.04",
+        finding_id="GPL-2.0-only",
+        package="libexample",
+        version="1.2.3",
+        severity="HIGH",
+        path="usr/share/doc/libexample/copyright",
+        result_class="license-pkg",
+        result_type="ubuntu",
+        status="",
+        fixed_version="",
+        package_purl="pkg:deb/ubuntu/libexample@1.2.3?arch=amd64",
+    )
+    return dataclasses.replace(finding, **changes)
+
+
+def license_baseline(
+    licenses: list[object],
+    *,
+    baseline_id: str = "LIC-2026-900",
+    image: str = "control_plane",
+    expires_on: str = "2026-08-26",
+) -> dict[str, object]:
+    summary = AUDIT.license_baseline_summary(licenses)
+    return {
+        "id": baseline_id,
+        "image": image,
+        "expires_on": expires_on,
+        "statement": "Reviewed exact license inventory with a bounded review date.",
+        **summary,
+    }
+
+
+def policy_document_v2(
+    dispositions: list[dict[str, object]],
+    baselines: list[dict[str, object]],
+) -> dict[str, object]:
+    return {
+        "schema_version": 2,
+        "policy_id": "test-image-dispositions-v2",
+        "dispositions": dispositions,
+        "license_baselines": baselines,
     }
 
 
@@ -282,11 +341,15 @@ class IdentityAndCommandTests(unittest.TestCase):
 
     def test_scanner_profile_registry_retains_immutable_history(self) -> None:
         self.assertEqual(AUDIT.CURRENT_SCANNER_POLICY_VERSION, 2)
-        self.assertEqual(set(AUDIT.SCANNER_PROFILE_REGISTRY), {1, 2})
+        self.assertEqual(AUDIT.SCHEMA_VERSION, 1)
+        self.assertEqual(AUDIT.POLICY_SCHEMA_VERSION, 1)
+        self.assertEqual(set(AUDIT.SCANNER_PROFILE_REGISTRY), {1, 2, 3})
         historical = AUDIT.SCANNER_PROFILE_REGISTRY[1]
         current = AUDIT.SCANNER_PROFILE_REGISTRY[2]
+        future = AUDIT.SCANNER_PROFILE_REGISTRY[3]
         self.assertEqual(AUDIT.scanner_policy_document(1)["version"], 1)
         self.assertEqual(historical.tools, current.tools)
+        self.assertEqual(current.tools, future.tools)
         self.assertIsNot(historical.tools, current.tools)
         self.assertIsNot(
             historical.tools["amd64"],
@@ -305,14 +368,57 @@ class IdentityAndCommandTests(unittest.TestCase):
         self.assertEqual(current.max_image_size_bytes, AUDIT.MAX_IMAGE_BYTES)
         self.assertEqual(current.max_report_bytes, AUDIT.MAX_REPORT_BYTES)
         self.assertEqual(current.max_database_bytes, AUDIT.MAX_DATABASE_BYTES)
+        self.assertEqual(historical.evidence_schema_version, 1)
+        self.assertEqual(historical.policy_schema_version, 1)
+        self.assertEqual(current.evidence_schema_version, 1)
+        self.assertEqual(current.policy_schema_version, 1)
+        self.assertNotIn("pkg_types", AUDIT.scanner_policy_document(1))
+        self.assertNotIn("pkg_types", AUDIT.scanner_policy_document(2))
+        self.assertEqual(future.evidence_schema_version, 2)
+        self.assertEqual(future.policy_schema_version, 2)
+        self.assertEqual(
+            AUDIT.scanner_policy_document(3)["pkg_types"],
+            ["os", "library"],
+        )
+        self.assertEqual(
+            AUDIT.scanner_policy_document(3)["finding_match_fields"],
+            list(AUDIT.MATCH_FIELDS_V2),
+        )
+        self.assertEqual(
+            AUDIT.scanner_policy_document(3)["license_baseline_algorithm"],
+            AUDIT.LICENSE_BASELINE_ALGORITHM,
+        )
         with self.assertRaises(TypeError):
-            AUDIT.SCANNER_PROFILE_REGISTRY[3] = AUDIT.SCANNER_PROFILE_REGISTRY[2]
+            AUDIT.SCANNER_PROFILE_REGISTRY[4] = AUDIT.SCANNER_PROFILE_REGISTRY[2]
         with self.assertRaises(TypeError):
             current.tools["amd64"]["trivy"]["version"] = "changed"
         self.assertEqual(
             historical.tools["amd64"]["trivy"]["version"],
             "0.72.0",
         )
+
+    def test_profile_three_pins_package_types_without_changing_legacy_argv(
+        self,
+    ) -> None:
+        arguments = (
+            AUDIT.IMAGE_SPEC_BY_KEY["control_plane"],
+            "sha256:" + "a" * 64,
+            Path("/private/cache"),
+            Path("/private/trivy.yaml"),
+            Path("/private/empty.ignore"),
+            "/run/podman/podman.sock",
+        )
+        legacy = AUDIT.trivy_argv(*arguments, scanner_policy_version=2)
+        future = AUDIT.trivy_argv(*arguments, scanner_policy_version=3)
+        self.assertNotIn("--pkg-types", legacy)
+        self.assertEqual(
+            future[future.index("--pkg-types") + 1],
+            "os,library",
+        )
+        without_pkg_types = list(future)
+        index = without_pkg_types.index("--pkg-types")
+        del without_pkg_types[index : index + 2]
+        self.assertEqual(without_pkg_types, legacy)
 
 
 class DispositionPolicyTests(unittest.TestCase):
@@ -489,6 +595,379 @@ class DispositionPolicyTests(unittest.TestCase):
             AUDIT.enforce_dispositions(decisions)
 
 
+class DispositionPolicyV2Tests(unittest.TestCase):
+    def make_repo(self, document: dict[str, object]) -> Path:
+        root = Path(self.enterContext(tempfile.TemporaryDirectory()))
+        (root / "infra").mkdir()
+        (root / AUDIT.POLICY_RELATIVE).write_bytes(canonical(document))
+        return root
+
+    def load(self, document: dict[str, object]):
+        return AUDIT.load_disposition_policy(
+            self.make_repo(document),
+            AS_OF,
+            expected_schema_version=2,
+        )
+
+    def test_every_v2_exact_match_field_and_fix_transition_is_bound(self) -> None:
+        finding = finding_v2()
+        policy = self.load(policy_document_v2([disposition(finding=finding)], []))
+        decisions = AUDIT.evaluate_dispositions([finding], policy)
+        AUDIT.enforce_dispositions(decisions)
+        replacements = {
+            "image": "workspace_base",
+            "kind": "secret",
+            "category": "different",
+            "target": "different",
+            "finding_id": "CVE-2026-9999",
+            "package": "other",
+            "version": "9.9.9",
+            "severity": "CRITICAL",
+            "path": "different/path",
+            "result_class": "lang-pkgs",
+            "result_type": "gobinary",
+            "status": "affected",
+            "fixed_version": "",
+            "package_purl": "pkg:deb/ubuntu/other@9.9.9?arch=amd64",
+        }
+        for field, value in replacements.items():
+            with (
+                self.subTest(field=field),
+                self.assertRaisesRegex(AUDIT.AuditError, "not exercised"),
+            ):
+                AUDIT.evaluate_dispositions(
+                    [dataclasses.replace(finding, **{field: value})],
+                    policy,
+                )
+
+    def test_policy_and_finding_schema_crossovers_fail_closed(self) -> None:
+        v1_root = self.make_repo(policy_document([]))
+        v2_root = self.make_repo(policy_document_v2([], []))
+        with self.assertRaisesRegex(AUDIT.AuditError, "another evidence schema"):
+            AUDIT.load_disposition_policy(
+                v1_root,
+                AS_OF,
+                expected_schema_version=2,
+            )
+        with self.assertRaisesRegex(AUDIT.AuditError, "another evidence schema"):
+            AUDIT.load_disposition_policy(
+                v2_root,
+                AS_OF,
+                expected_schema_version=1,
+            )
+        v1_policy = AUDIT.load_disposition_policy(v1_root, AS_OF)
+        v2_policy = AUDIT.load_disposition_policy(v2_root, AS_OF)
+        with self.assertRaisesRegex(AUDIT.AuditError, "another evidence schema"):
+            AUDIT.evaluate_dispositions([finding_v2()], v1_policy)
+        with self.assertRaisesRegex(AUDIT.AuditError, "another evidence schema"):
+            AUDIT.evaluate_dispositions(
+                [
+                    AUDIT.Finding(
+                        image="control_plane",
+                        kind="vulnerability",
+                        category="",
+                        target="target",
+                        finding_id="CVE-1",
+                        package="package",
+                        version="1",
+                        severity="HIGH",
+                        path="",
+                    )
+                ],
+                v2_policy,
+            )
+
+    def test_license_baseline_is_permutation_invariant_and_duplicate_sensitive(
+        self,
+    ) -> None:
+        first = license_v2(finding_id="Apache-2.0", package="alpha")
+        second = license_v2(finding_id="MIT", package="beta")
+        policy = self.load(
+            policy_document_v2(
+                [],
+                [license_baseline([first, second])],
+            )
+        )
+        decisions = AUDIT.evaluate_dispositions([second, first], policy)
+        AUDIT.enforce_dispositions(decisions)
+        self.assertEqual(
+            [item.disposition_id for item in decisions],
+            ["LIC-2026-900", "LIC-2026-900"],
+        )
+        self.assertEqual(
+            AUDIT.finding_summary(decisions)["disposition_ids"],
+            ["LIC-2026-900"],
+        )
+        receipt_baseline = AUDIT._disposition_policy_receipt(policy)[
+            "license_baselines"
+        ][0]
+        self.assertEqual(receipt_baseline["finding_count"], 2)
+        self.assertRegex(receipt_baseline["canonical_sha256"], r"^[0-9a-f]{64}$")
+        self.assertEqual(
+            receipt_baseline["category_counts"],
+            {"restricted": 2},
+        )
+
+        duplicate_policy = self.load(
+            policy_document_v2(
+                [],
+                [license_baseline([first, first])],
+            )
+        )
+        AUDIT.enforce_dispositions(
+            AUDIT.evaluate_dispositions([first, first], duplicate_policy)
+        )
+        for actual in ([first], [first, first, first]):
+            with (
+                self.subTest(count=len(actual)),
+                self.assertRaisesRegex(AUDIT.AuditError, "baseline does not match"),
+            ):
+                AUDIT.evaluate_dispositions(actual, duplicate_policy)
+
+    def test_license_baseline_metadata_and_algorithm_are_exact(self) -> None:
+        finding = license_v2()
+        baseline = license_baseline([finding])
+        invalid_algorithm = dict(baseline, algorithm="sha256-unsorted")
+        with self.assertRaisesRegex(AUDIT.AuditError, "unsupported algorithm"):
+            self.load(policy_document_v2([], [invalid_algorithm]))
+
+        inconsistent = dict(baseline, finding_count=2)
+        with self.assertRaisesRegex(AUDIT.AuditError, "inconsistent"):
+            self.load(policy_document_v2([], [inconsistent]))
+
+        changed_digest = dict(baseline, canonical_sha256="f" * 64)
+        policy = self.load(policy_document_v2([], [changed_digest]))
+        with self.assertRaisesRegex(AUDIT.AuditError, "baseline does not match"):
+            AUDIT.evaluate_dispositions([finding], policy)
+
+    def test_license_baseline_add_remove_and_field_mutation_fail_closed(self) -> None:
+        first = license_v2(finding_id="Apache-2.0", package="alpha")
+        second = license_v2(finding_id="MIT", package="beta")
+        policy = self.load(
+            policy_document_v2(
+                [],
+                [license_baseline([first, second])],
+            )
+        )
+        changes = (
+            [first],
+            [first, second, license_v2(finding_id="BSD-3-Clause", package="gamma")],
+            [first, dataclasses.replace(second, result_type="debian")],
+        )
+        for actual in changes:
+            with (
+                self.subTest(actual=actual),
+                self.assertRaisesRegex(
+                    AUDIT.AuditError,
+                    "baseline does not match",
+                ),
+            ):
+                AUDIT.evaluate_dispositions(actual, policy)
+
+    def test_expired_unused_and_missing_license_baselines_fail_closed(self) -> None:
+        finding = license_v2()
+        with self.assertRaisesRegex(AUDIT.AuditError, "expired"):
+            self.load(
+                policy_document_v2(
+                    [],
+                    [license_baseline([finding], expires_on="2026-07-25")],
+                )
+            )
+        unused_baseline = self.load(
+            policy_document_v2([], [license_baseline([finding])])
+        )
+        with self.assertRaisesRegex(AUDIT.AuditError, "not exercised"):
+            AUDIT.evaluate_dispositions([], unused_baseline)
+        missing_baseline = self.load(policy_document_v2([], []))
+        with self.assertRaisesRegex(AUDIT.AuditError, "no reviewed baseline"):
+            AUDIT.evaluate_dispositions([finding], missing_baseline)
+
+        exact = finding_v2()
+        unused_exact = self.load(policy_document_v2([disposition(finding=exact)], []))
+        with self.assertRaisesRegex(AUDIT.AuditError, "not exercised"):
+            AUDIT.evaluate_dispositions([], unused_exact)
+
+    def test_forbidden_license_requires_and_prefers_exact_disposition(self) -> None:
+        reviewed = license_v2(finding_id="MIT", package="reviewed")
+        forbidden = license_v2(
+            finding_id="AGPL-3.0-only",
+            package="forbidden",
+            category="forbidden",
+            severity="CRITICAL",
+        )
+        with self.assertRaisesRegex(
+            AUDIT.AuditError,
+            "require exact individual dispositions",
+        ):
+            self.load(
+                policy_document_v2(
+                    [],
+                    [license_baseline([forbidden])],
+                )
+            )
+
+        baseline_only = self.load(
+            policy_document_v2([], [license_baseline([reviewed])])
+        )
+        decisions = AUDIT.evaluate_dispositions(
+            [reviewed, forbidden],
+            baseline_only,
+        )
+        self.assertEqual(decisions[0].disposition_id, "LIC-2026-900")
+        self.assertIsNone(decisions[1].disposition_id)
+        with self.assertRaisesRegex(AUDIT.AuditError, "undispositioned"):
+            AUDIT.enforce_dispositions(decisions)
+
+        exact_and_baseline = self.load(
+            policy_document_v2(
+                [
+                    disposition(
+                        disposition_id="IMG-2026-901",
+                        finding=forbidden,
+                    )
+                ],
+                [license_baseline([reviewed])],
+            )
+        )
+        decisions = AUDIT.evaluate_dispositions(
+            [reviewed, forbidden],
+            exact_and_baseline,
+        )
+        AUDIT.enforce_dispositions(decisions)
+        self.assertEqual(
+            {item.disposition_id for item in decisions},
+            {"LIC-2026-900", "IMG-2026-901"},
+        )
+
+    def test_license_review_metadata_splits_forbidden_inventory_into_valid_policy(
+        self,
+    ) -> None:
+        first = license_v2(finding_id="MIT", package="zeta")
+        second = license_v2(finding_id="Apache-2.0", package="alpha")
+        forbidden = license_v2(
+            finding_id="AGPL-3.0-only",
+            package="envbuilder",
+            category=" FoRbIdDeN ",
+            severity="CRITICAL",
+        )
+        secret = finding_v2(
+            kind="secret",
+            finding_id="github-pat",
+            package="",
+            version="",
+            severity="CRITICAL",
+            result_class="secret",
+            result_type="",
+            status="",
+            fixed_version="",
+            package_purl="",
+            path="config.Env",
+        )
+        metadata = AUDIT.license_review_metadata(
+            [forbidden, first, secret, second, first]
+        )
+        serialized = json.dumps(metadata)
+        self.assertEqual(metadata["schema_version"], 2)
+        image = metadata["images"][0]
+        baseline = image["baseline"]
+        self.assertIsNotNone(baseline)
+        self.assertEqual(baseline["finding_count"], 3)
+        self.assertEqual(len(image["exact_disposition_candidates"]), 1)
+        self.assertEqual(
+            image["exact_disposition_candidates"][0],
+            AUDIT.finding_match_document(forbidden),
+        )
+        self.assertNotIn("github-pat", serialized)
+        self.assertNotIn("secret", serialized)
+        self.assertNotIn("config.Env", serialized)
+        self.assertEqual(
+            set(baseline["licenses"][0]),
+            set(AUDIT.MATCH_FIELDS_V2),
+        )
+        keys = AUDIT.canonical_license_multiset([first, second, first])
+        self.assertEqual(len(keys), 3)
+        self.assertEqual(len(keys[0]), len(AUDIT.MATCH_FIELDS_V2))
+        self.assertEqual(keys, tuple(sorted(keys)))
+        self.assertEqual(keys.count(first.match_key), 2)
+
+        generated_baseline = {
+            "id": "LIC-2026-901",
+            "image": image["image"],
+            "expires_on": "2026-08-26",
+            "statement": "Reviewed exact license inventory with a bounded review date.",
+            **{key: value for key, value in baseline.items() if key != "licenses"},
+        }
+        generated_disposition = {
+            "id": "IMG-2026-902",
+            "expires_on": "2026-08-26",
+            "statement": "Exact forbidden license disposition with bounded review.",
+            "match": image["exact_disposition_candidates"][0],
+        }
+        policy = self.load(
+            policy_document_v2(
+                [generated_disposition],
+                [generated_baseline],
+            )
+        )
+        decisions = AUDIT.evaluate_dispositions(
+            [first, forbidden, second, first],
+            policy,
+        )
+        AUDIT.enforce_dispositions(decisions)
+
+    def test_license_review_metadata_handles_only_forbidden_and_multiplicity(
+        self,
+    ) -> None:
+        forbidden = license_v2(
+            finding_id="AGPL-3.0-only",
+            package="envbuilder",
+            category="forbidden",
+            severity="CRITICAL",
+        )
+        metadata = AUDIT.license_review_metadata([forbidden])
+        image = metadata["images"][0]
+        self.assertIsNone(image["baseline"])
+        self.assertEqual(
+            image["exact_disposition_candidates"],
+            [AUDIT.finding_match_document(forbidden)],
+        )
+        policy = self.load(
+            policy_document_v2(
+                [
+                    {
+                        "id": "IMG-2026-903",
+                        "expires_on": "2026-08-26",
+                        "statement": "Exact forbidden license disposition with bounded review.",
+                        "match": image["exact_disposition_candidates"][0],
+                    }
+                ],
+                [],
+            )
+        )
+        decisions = AUDIT.evaluate_dispositions([forbidden], policy)
+        AUDIT.enforce_dispositions(decisions)
+
+        other_forbidden = dataclasses.replace(
+            forbidden,
+            finding_id="SSPL-1.0",
+            package="another-package",
+        )
+        candidates = [forbidden, other_forbidden, forbidden]
+        duplicate_metadata = AUDIT.license_review_metadata(candidates)
+        reversed_metadata = AUDIT.license_review_metadata(list(reversed(candidates)))
+        self.assertEqual(duplicate_metadata, reversed_metadata)
+        self.assertEqual(
+            len(duplicate_metadata["images"][0]["exact_disposition_candidates"]),
+            3,
+        )
+        self.assertEqual(
+            duplicate_metadata["images"][0]["exact_disposition_candidates"].count(
+                AUDIT.finding_match_document(forbidden)
+            ),
+            2,
+        )
+
+
 class ReportValidationTests(unittest.TestCase):
     image_id = "sha256:" + "a" * 64
 
@@ -587,6 +1066,65 @@ class ReportValidationTests(unittest.TestCase):
         wrong["Metadata"]["ImageID"] = "sha256:" + "b" * 64
         with self.assertRaisesRegex(AUDIT.AuditError, "subject"):
             AUDIT.validate_trivy_report(wrong, "control_plane", self.image_id)
+
+    def test_v2_parser_adds_result_fix_and_package_identity_without_reinterpreting_v1(
+        self,
+    ) -> None:
+        report = self.trivy()
+        vulnerability_result = report["Results"][0]
+        vulnerability_result["Type"] = "ubuntu"
+        vulnerability = vulnerability_result["Vulnerabilities"][0]
+        vulnerability["Status"] = "fixed"
+        vulnerability["FixedVersion"] = "v1.2.4"
+        vulnerability["PkgIdentifier"] = {"PURL": "pkg:golang/example/module@v1.2.3"}
+        license_result = report["Results"][1]
+        license_result["Type"] = "ubuntu"
+        license_result["Licenses"][0]["PkgIdentifier"] = {
+            "PURL": "pkg:deb/ubuntu/coder@2.34.6?arch=amd64"
+        }
+
+        legacy = AUDIT.validate_trivy_report(
+            report,
+            "control_plane",
+            self.image_id,
+            scanner_policy_version=2,
+        )
+        self.assertTrue(all(type(item) is AUDIT.Finding for item in legacy))
+        self.assertEqual(
+            legacy[0].match_key,
+            AUDIT.trivy_findings(report, "control_plane")[0].match_key,
+        )
+
+        findings = AUDIT.validate_trivy_report(
+            report,
+            "control_plane",
+            self.image_id,
+            scanner_policy_version=3,
+        )
+        self.assertTrue(all(type(item) is AUDIT.FindingV2 for item in findings))
+        vulnerability_finding = findings[0]
+        self.assertEqual(vulnerability_finding.result_class, "lang-pkgs")
+        self.assertEqual(vulnerability_finding.result_type, "ubuntu")
+        self.assertEqual(vulnerability_finding.status, "fixed")
+        self.assertEqual(vulnerability_finding.fixed_version, "v1.2.4")
+        self.assertEqual(
+            vulnerability_finding.package_purl,
+            "pkg:golang/example/module@v1.2.3",
+        )
+        self.assertEqual(
+            findings[1].package_purl,
+            "pkg:deb/ubuntu/coder@2.34.6?arch=amd64",
+        )
+
+        malformed = self.trivy()
+        malformed["Results"][0]["Vulnerabilities"][0]["PkgIdentifier"] = []
+        with self.assertRaisesRegex(AUDIT.AuditError, "identifier is malformed"):
+            AUDIT.validate_trivy_report(
+                malformed,
+                "control_plane",
+                self.image_id,
+                scanner_policy_version=3,
+            )
 
     def test_end_of_life_and_modified_findings_fail_closed(self) -> None:
         eol = self.trivy()
@@ -833,13 +1371,26 @@ class EvidenceVerificationTests(unittest.TestCase):
         "envbuilder": "sha256:" + "3" * 64,
     }
 
-    def make_fixture(self) -> tuple[Path, dict[str, dict[str, str]]]:
+    def make_fixture(
+        self,
+        scanner_policy_version: int = 2,
+    ) -> tuple[Path, dict[str, dict[str, str]]]:
         root = Path(self.enterContext(tempfile.TemporaryDirectory()))
         infra = root / "infra"
         infra.mkdir()
-        policy_bytes = canonical(policy_document([]))
+        profile = AUDIT.scanner_profile(scanner_policy_version)
+        policy = (
+            policy_document([])
+            if profile.policy_schema_version == 1
+            else policy_document_v2([], [])
+        )
+        policy_bytes = canonical(policy)
         (root / AUDIT.POLICY_RELATIVE).write_bytes(policy_bytes)
-        policy = AUDIT.load_disposition_policy(root, AS_OF)
+        loaded_policy = AUDIT.load_disposition_policy(
+            root,
+            AS_OF,
+            profile.policy_schema_version,
+        )
         evidence = root / AUDIT.EVIDENCE_RELATIVE
         evidence.mkdir(mode=0o700)
         reports_directory = evidence / "reports"
@@ -940,11 +1491,12 @@ class EvidenceVerificationTests(unittest.TestCase):
             started_at=AS_OF,
             completed_at=AS_OF,
             architecture="amd64",
-            tools=AUDIT._expected_tool_receipt("amd64"),
+            tools=AUDIT._expected_tool_receipt("amd64", profile.version),
             database=database,
-            policy=policy,
+            policy=loaded_policy,
             images=image_records,
             decisions=[],
+            profile=profile,
         )
         receipt_path = evidence / "receipt.json"
         receipt_path.write_bytes(canonical(receipt))
@@ -1086,6 +1638,39 @@ class EvidenceVerificationTests(unittest.TestCase):
 
         verified = AUDIT.verify_evidence(root, RELEASE_ID)
         self.assertEqual(verified["scanner_policy"]["version"], 1)
+
+    def test_schema_two_receipt_uses_profile_and_policy_dispatch(self) -> None:
+        root, _ = self.make_fixture(scanner_policy_version=3)
+        verified = AUDIT.verify_evidence(root, RELEASE_ID)
+        self.assertEqual(verified["schema_version"], 2)
+        self.assertEqual(verified["scanner_policy"]["version"], 3)
+        self.assertEqual(verified["disposition_policy"]["schema_version"], 2)
+        self.assertEqual(
+            verified["disposition_policy"]["license_baselines"],
+            [],
+        )
+
+    def test_receipt_and_policy_cross_schema_combinations_fail_closed(self) -> None:
+        root, _ = self.make_fixture(scanner_policy_version=3)
+        receipt_path = root / AUDIT.EVIDENCE_RELATIVE / "receipt.json"
+        receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+        receipt["schema_version"] = 1
+        receipt_path.write_bytes(canonical(receipt))
+        with self.assertRaisesRegex(AUDIT.AuditError, "another evidence schema"):
+            AUDIT.verify_evidence(root, RELEASE_ID)
+
+        root, _ = self.make_fixture(scanner_policy_version=2)
+        receipt_path = root / AUDIT.EVIDENCE_RELATIVE / "receipt.json"
+        receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+        receipt["schema_version"] = 2
+        receipt_path.write_bytes(canonical(receipt))
+        with self.assertRaisesRegex(AUDIT.AuditError, "another evidence schema"):
+            AUDIT.verify_evidence(root, RELEASE_ID)
+
+        root, _ = self.make_fixture(scanner_policy_version=3)
+        (root / AUDIT.POLICY_RELATIVE).write_bytes(canonical(policy_document([])))
+        with self.assertRaisesRegex(AUDIT.AuditError, "another evidence schema"):
+            AUDIT.verify_evidence(root, RELEASE_ID)
 
     def test_unknown_or_tampered_scanner_profiles_fail_closed(self) -> None:
         root, _ = self.make_fixture()
