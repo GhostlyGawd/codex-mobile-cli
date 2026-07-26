@@ -133,6 +133,7 @@ struct WorkspaceGitView: View {
                     }
                     if let errorMessage { Section { Text(errorMessage).foregroundStyle(.red) } }
                 }
+                .accessibilityIdentifier("git.status.list")
             } else if !cachedDiffs.isEmpty {
                 List(cachedDiffs) { diff in
                     NavigationLink {

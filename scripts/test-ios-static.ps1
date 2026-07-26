@@ -246,6 +246,7 @@ Assert-Contains $filesUI 'path: result[.]path' 'File API navigation must retain 
 $gitUI = Join-Path $ios 'Sources/Features/Git/WorkspaceGitView.swift'
 Assert-Contains $gitUI 'HostileDisplayText[.]sanitized[(]change[.]path[)]' 'Git filename labels must be sanitized.'
 Assert-Contains $gitUI 'path: change[.]path, staged: staged' 'Git API operations must retain the raw repository path.'
+Assert-Contains $gitUI 'accessibilityIdentifier\("git[.]status[.]list"\)' 'The Git status list must retain a stable accessibility scroll-surface identifier.'
 $terminalModel = Join-Path $ios 'Sources/Terminal/TerminalSessionModel.swift'
 Assert-Contains $terminalModel 'terminalTitle = HostileDisplayText.sanitized' 'Terminal-controlled window titles must be sanitized before display state.'
 Assert-Contains (Join-Path $ios 'Tests/TerminalSessionModelTests.swift') 'testTerminalDerivedTitlesAndCloseReasonsAreSafeDisplayText' 'Terminal tests must cover hostile title and close-reason labels.'

@@ -17,6 +17,7 @@ final class CodexMobileUITests: XCTestCase {
 
     private func assertReachable(
         _ element: XCUIElement,
+        scrollSurface: XCUIElement? = nil,
         maximumSwipes: Int = 24,
         file: StaticString = #filePath,
         line: UInt = #line
@@ -26,6 +27,7 @@ final class CodexMobileUITests: XCTestCase {
         var recentFiniteFrames: [CGRect] = []
         var correctionUpward: Bool?
         var previousAttemptHadFiniteFrame = false
+        let gestureSurface: XCUIElement = scrollSurface ?? app
 
         for attempt in 0...maximumSwipes {
             let timeout = attempt == 0 ? 2.0 : 0.5
@@ -48,7 +50,7 @@ final class CodexMobileUITests: XCTestCase {
                     return
                 }
 
-                correctionUpward = frame.midY >= app.frame.midY
+                correctionUpward = frame.midY >= gestureSurface.frame.midY
             } else if previousAttemptHadFiniteFrame, let direction = correctionUpward {
                 // Lazy lists remove an overscrolled row from the accessibility
                 // tree. Reverse once, then preserve that direction until it
@@ -60,9 +62,9 @@ final class CodexMobileUITests: XCTestCase {
 
             if attempt < maximumSwipes {
                 if let correctionUpward {
-                    dragApplication(upward: correctionUpward)
+                    drag(gestureSurface, upward: correctionUpward)
                 } else {
-                    app.swipeUp()
+                    gestureSurface.swipeUp()
                 }
             }
         }
@@ -81,6 +83,7 @@ final class CodexMobileUITests: XCTestCase {
             Could not scroll \(element) into a hittable position after \(maximumSwipes) gestures; \
             app frame: \(app.frame); first finite frame: \(firstFrameDescription); \
             last finite frame: \(frameDescription); midpoint delta: \(midpointDelta); \
+            gesture surface frame: \(gestureSurface.frame); \
             workspace Git control frame: \(gitSurfaceFrame); \
             target overlaps Git control: \(lastFiniteFrame?.intersects(gitSurfaceFrame) == true); \
             recent finite frames: \(recentFiniteFrames)
@@ -99,11 +102,11 @@ final class CodexMobileUITests: XCTestCase {
             && frame.maxY.isFinite
     }
 
-    private func dragApplication(upward: Bool) {
-        let start = app.coordinate(
+    private func drag(_ surface: XCUIElement, upward: Bool) {
+        let start = surface.coordinate(
             withNormalizedOffset: CGVector(dx: 0.5, dy: 0.50)
         )
-        let end = app.coordinate(
+        let end = surface.coordinate(
             withNormalizedOffset: CGVector(dx: 0.5, dy: upward ? 0.35 : 0.65)
         )
         start.press(forDuration: 0.05, thenDragTo: end)
@@ -147,9 +150,12 @@ final class CodexMobileUITests: XCTestCase {
         XCTAssertTrue(gitSurface.exists)
         gitSurface.tap()
         XCTAssertTrue(gitSurface.isSelected, "The Git surface control did not become selected.")
+        let gitList = app.collectionViews["git.status.list"]
+        XCTAssertTrue(gitList.waitForExistence(timeout: 5), "The Git status list did not load.")
+        XCTAssertTrue(gitList.isHittable, "The Git status list is not directly scrollable.")
         let diffIdentifier = "git.diff.staged:Sources/App.swift"
         let diff = app.buttons[diffIdentifier]
-        assertReachable(diff)
+        assertReachable(diff, scrollSurface: gitList)
         XCTAssertEqual(app.buttons.matching(identifier: diffIdentifier).count, 1)
         for surfaceIdentifier in [
             "terminal",
