@@ -1,9 +1,19 @@
-# Complete server loss
+# Active host loss and deferred VPS recovery
 
-Assume local checkpoints, terminal replay, active tmux processes, unpushed Git
-work and all changes since the latest provider capture may be lost. The expected
-recovery point can be about 24 hours. This is a single VPS with no HA and no
-automatic failover or capacity purchase.
+The active private beta runs on the owner PC and D-backed Ubuntu WSL under
+[ADR 0025](../adr/0025-owner-pc-private-beta-hosting.md). If Windows, WSL, or
+its storage is lost, stop or revoke public ingress and active sessions, preserve
+available metadata, recover only from owner-controlled validated copies, and
+revalidate services, credentials, repository state, and acceptance gates before
+readmission. Local checkpoints, terminal replay, active tmux processes,
+unpushed Git work, and unbacked changes may be lost. No provider backup,
+automatic failover, or replacement purchase is assumed for this beta.
+
+## Deferred future VPS procedure
+
+The remaining procedure applies only if the owner explicitly reopens and
+deploys the VPS design. Its expected provider recovery point can be about 24
+hours, with no HA or automatic failover or capacity purchase.
 
 1. Declare an incident and determine whether loss is availability-only or a
    compromise. Revoke public sessions/routes, GitHub keys/tokens, Coder tokens,

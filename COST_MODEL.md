@@ -2,11 +2,23 @@
 
 Research date: 2026-07-15. Region assumption: United States East. All figures are before applicable tax unless stated otherwise.
 
-> **Purchase status: OWNER-GATED — NOT AUTHORIZED.** No VPS has been purchased. The final owner-region checkout must be revalidated immediately before the owner explicitly approves a purchase.
+> **Active private-beta hosting cost: $0 new recurring hosting.** The owner
+> selected the existing Windows PC and D-backed Ubuntu WSL host. No VPS has
+> been purchased or authorized, and a VPS must not be treated as a launch
+> requirement unless the owner explicitly reopens that decision.
 
 ## Hard contract
 
-The only new recurring bill may be one fixed-price, month-to-month VPS between USD $25 and $75 before tax. It must include at least 8 shared vCPUs, 24 GiB RAM, 200 GB NVMe storage, enough transfer that usage cannot create an automatic overage, and a provider-native daily whole-server or volume backup. There may be no annual commitment or prepayment, metered compute, automatic scaling, paid usage overage, automatic top-up, or second paid recurring service. Under this fixed-cost contract the included whole-server backup is an availability/RPO control: it is expected to contain both encrypted application data and the root-owned host master key, so it provides no cryptographic separation from provider or full-backup compromise.
+The active private beta may add no recurring hosting bill. It uses already-owned
+PC, storage, network, GitHub, Apple, ChatGPT, and domain access. Paid or metered
+tunnels, compute, storage, databases, observability, CI overages, automatic
+scaling, automatic top-up, and paid usage overages remain forbidden.
+
+If the owner later reopens always-on hosting, the only permitted new recurring
+bill remains one fixed-price, month-to-month VPS between USD $25 and $75 before
+tax. The historical requirements and provider research below are retained for
+that future decision only; they are not permission or a current recommendation
+to purchase.
 
 Existing ChatGPT, GitHub, owner-controlled domain, and Apple Developer Program
 access are outside this VPS limit. Paid GitHub Actions overages remain
@@ -17,13 +29,17 @@ and persistent owner-PC runners are prohibited.
 
 ## Research outcome
 
-- **Sole qualifying recommendation on published US terms:** OVHcloud US `VPS-4 2027` in `US-EAST-VA`.
+- **Active decision:** defer all VPS purchasing and run the private beta on the
+  owner PC.
+- **Historical future-host candidate:** OVHcloud US `VPS-4 2027` in
+  `US-EAST-VA`, subject to complete revalidation if the owner reopens hosting.
 - **Required second qualifying plan:** not found. Several apparent matches have an overage clause, a separately paid backup, metered billing, the wrong currency or commitment, conflicting specifications, or an incomplete checkout contract.
-- **Purchase remains blocked on owner action:** the owner must review and explicitly approve the final checkout after the checks below. No provider create, resize, or purchase API may be called automatically.
+- **Purchase is outside the active path:** no provider create, resize, or
+  purchase API may be called automatically.
 
 Detailed provider evidence and rejected candidates are recorded in [docs/research/2026-07-15-vps.md](docs/research/2026-07-15-vps.md).
 
-## Recommended VPS
+## Deferred future VPS research
 
 | Field | Verified value |
 | --- | --- |
@@ -73,12 +89,13 @@ Because no second plan conclusively passes every condition, this comparison is n
 
 | Item | New recurring cost | Billing status | Enforcement |
 | --- | ---: | --- | --- |
+| Owner PC plus D-backed Ubuntu WSL | $0 new hosting cost | **Active private-beta host** | Availability ends when the PC, WSL, services, network, or ingress is offline |
 | OVHcloud VPS-4 2027, if owner-approved | $27.50/month before tax | Owner-gated; not purchased | Manual checkout review and explicit owner approval |
-| PostgreSQL | $0 | Local container on VPS | Compose policy |
+| PostgreSQL | $0 | Local container on the active host | Compose policy |
 | Coder Community | $0 | Self-hosted community features only | Version/license pin and feature policy |
 | Caddy/TLS | $0 | Self-hosted plus ACME | Compose policy |
-| Provider backup | $0 additional | Must remain included in VPS checkout | Pre-purchase and post-deploy restore checks; availability/RPO only, because a whole-server capture includes the host key with encrypted data |
-| Local checkpoints | $0 additional | VPS local disk | Quota and pruning policy |
+| Provider backup | $0 additional | Deferred future VPS only | If hosting is reopened: pre-purchase and post-deploy restore checks; availability/RPO only, because a whole-server capture includes the host key with encrypted data |
+| Local checkpoints | $0 additional | Active owner-PC/WSL storage | Quota and pruning policy; lost with the underlying PC/WSL storage |
 | Syft/Trivy release audit | $0 | Checksum-pinned open-source binaries and host-local cache/evidence | Manifest-bound deploy gate; no hosted scanner, registry, upload, or metered API |
 | APNs | $0 additional | Existing Apple Developer access | Direct control-plane delivery |
 | GitHub/CI | $0 additional | Existing account plus standard hosted runners for the public repository; paid overages forbidden | Public-visibility and explicit-variable gate; immutable Action SHAs; standard-runner policy; concurrency/timeouts |
@@ -87,7 +104,12 @@ Because no second plan conclusively passes every condition, this comparison is n
 
 ## External and billable mutation gate
 
-Repository automation may configure an existing owner-supplied host, but it must not create, purchase, resize, upgrade, or attach paid provider resources. Before purchase, show the owner the final provider, plan, region, monthly commitment, setup fee, tax, backup line, transfer policy, and recurring total. Continue only after explicit owner approval.
+Repository automation may configure the existing owner PC for the private beta,
+but it must not create, purchase, resize, upgrade, or attach paid provider
+resources. Do not initiate VPS research or checkout unless the owner explicitly
+reopens the deferred hosting decision.
+External-account, DNS, public-ingress, and release-activation mutations still
+stop at their exact owner approval gates.
 
 ## Policy test
 

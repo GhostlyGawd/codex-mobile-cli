@@ -70,10 +70,9 @@ operation:
 2. Generate a different 32-byte key into a new root-owned mode-`0400` or
    mode-`0600` file beneath a root-owned mode-`0700` directory. Keep both key
    files outside PostgreSQL, database-only dumps, command arguments, shell
-   history, and evidence records. They remain host files, so a scheduled
-   whole-server provider backup can capture them; access to such a backup must
-   be treated as access to the wrapping keys, not as cryptographically separated
-   ciphertext.
+   history, and evidence records. They remain host files, so any whole-host
+   recovery copy can capture them; access to such a copy must be treated as
+   access to the wrapping keys, not as cryptographically separated ciphertext.
 3. Run exactly:
 
    ```shell
@@ -107,16 +106,18 @@ operation:
    checkpoint and the old key reference together; mixing either key with the
    other database state fails authentication. Securely destroy rollback
    material after verification. Record which key/database generation is present
-   in each retained provider recovery point. A provider backup captured during
+   in each retained whole-host recovery point. A recovery copy captured during
    rotation may retain an old or new host key for its normal retention period;
-   deleting the live rollback copy does not erase that provider copy.
+   deleting the live rollback copy does not erase that copy. The active beta
+   assumes no provider backup; apply the same rule to one only if the owner
+   later configures it.
 
 The command never rewrites, renames, deletes, or chmods either key file. Its
 transactional rollback covers failures before commit; the operator-controlled
 database checkpoint is the rollback boundary after commit.
 
-If the master key, host, or whole-server provider backup is suspected
-compromised, contain the service, revoke public
+If the master key, host, or whole-host recovery copy is suspected compromised,
+contain the service, revoke public
 sessions/routes and upstream credentials, preserve metadata-only evidence, and
 assume every encrypted value available to the running host may be exposed.
 Rewrapping prevents future use of the old wrapping key but does not erase prior

@@ -14,7 +14,7 @@ struct PasskeysSettingsView: View {
                 if passkeys.isEmpty, isWorking {
                     ProgressView("Loading passkeys…")
                 } else if passkeys.isEmpty {
-                    Text("No passkeys were returned. Use SSH recovery before signing out.")
+                    Text("No passkeys were returned. Use privileged host recovery before signing out.")
                         .foregroundStyle(.secondary)
                 } else {
                     ForEach(passkeys) { passkey in
@@ -59,7 +59,7 @@ struct PasskeysSettingsView: View {
             }
 
             Section("Lockout protection") {
-                Text("Keep at least two passkeys when possible. The server refuses to revoke your final passkey. If all passkeys are lost, use the SSH-only recovery runbook to enroll a replacement, then add a second passkey here.")
+                Text("Keep at least two passkeys when possible. The server refuses to revoke your final passkey. If all passkeys are lost, use the owner-controlled privileged-console recovery runbook to enroll a replacement, then add a second passkey here.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Text("Revoking a passkey does not revoke app sessions. Revoking an app device does not necessarily invalidate a synced passkey.")

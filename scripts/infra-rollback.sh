@@ -13,6 +13,7 @@ unset CONTAINERS_REGISTRIES_CONF CONTAINERS_POLICY REGISTRY_AUTH_FILE XDG_CONFIG
 release_root=${RELEASE_ROOT:-/opt/codex-mobile}
 env_file=${ENV_FILE:-/etc/codex-mobile/production.env}
 podman_url=${PODMAN_URL:-unix:///run/codex-mobile-podman/podman.sock}
+deployment_profile=$(awk -F= '$1 == "DEPLOYMENT_PROFILE" {sub(/^[^=]*=/, ""); print; found=1} END {if (!found) exit 1}' "$env_file")
 current="$release_root/current"
 previous="$release_root/previous"
 
@@ -35,7 +36,8 @@ manifest_verifier="$old/scripts/infra_release_manifest.py"
 /usr/bin/python3 -I "$manifest_verifier" verify \
   --repo-root "$target" --require-images --require-image-audit \
   --podman-url "$podman_url"
-/usr/bin/python3 -I "$target/scripts/check-billing-policy.py" --repo-root "$target"
+/usr/bin/python3 -I "$target/scripts/check-billing-policy.py" \
+  --repo-root "$target" --deployment-profile "$deployment_profile"
 /usr/bin/python3 -I "$target/scripts/infra-preflight.py" --env-file "$env_file" --repo-root "$target"
 REPO_ROOT="$old" ENV_FILE="$env_file" \
   /bin/sh "$old/scripts/infra-checkpoint.sh" --database

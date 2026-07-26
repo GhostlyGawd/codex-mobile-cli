@@ -87,7 +87,7 @@ struct NewWorkspaceView: View {
                         Stepper("Writable disk: \(requestedDisk) GiB", value: $requestedDisk, in: 8...16, step: 4)
                         Toggle("Nested Docker compatibility", isOn: $nestedDocker)
                             .disabled(true)
-                        Text("Unavailable until the selected VPS passes the rootless nested-container isolation spike. The host socket and privileged mode are never used as fallbacks.")
+                        Text("Unavailable until the active deployment host passes the rootless nested-container isolation spike. The host socket and privileged mode are never used as fallbacks.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
 

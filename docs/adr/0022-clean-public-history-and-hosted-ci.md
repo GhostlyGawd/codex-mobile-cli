@@ -2,7 +2,8 @@
 
 ## Status
 
-Accepted on 2026-07-25. Supersedes ADR 0021 for active CI.
+Accepted on 2026-07-25. Supersedes ADR 0021 for active CI. ADR 0025 changes
+only the beta deployment host; this hosted-CI decision remains active.
 
 ## Context
 
@@ -57,5 +58,6 @@ first-party source or media.
   records remain available only in the private archive.
 - A future private-visibility change causes the visibility guard to skip hosted
   jobs until the owner deliberately establishes a new billing policy.
-- Device behavior, signing, APNs, TestFlight, and the target VPS remain separate
-  acceptance gates.
+- Device behavior, signing, APNs, TestFlight, and the owner-PC/WSL deployment
+  with stable HTTPS ingress remain separate acceptance gates. A VPS is deferred
+  and is not a private-beta gate.

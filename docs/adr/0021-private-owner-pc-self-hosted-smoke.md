@@ -5,6 +5,10 @@
   private-runner design history
 - Date: 2026-07-25
 
+This ADR concerns a historical GitHub Actions runner only. It does not prohibit
+hosting the product's private-beta backend on the owner PC; that separate
+decision is recorded in [ADR 0025](0025-owner-pc-private-beta-hosting.md).
+
 ## Context
 
 Paid GitHub Actions overages are forbidden, and the hosted Linux workflow stays

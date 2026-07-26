@@ -1,8 +1,9 @@
 # Application rollback
 
-Rollback changes the active release on the existing VPS. It does not reverse
-forward-only migrations, downgrade Coder/PostgreSQL data, or recover data that
-was already modified by the newer application.
+Rollback changes the active release on the existing owner-approved host. For
+the private beta this is the D-backed Ubuntu WSL environment. It does not
+reverse forward-only migrations, downgrade Coder/PostgreSQL data, or recover
+data that was already modified by the newer application.
 
 1. Open an incident/change record, stop new workspace admission through the
    application maintenance control if available, and record dirty/unpushed

@@ -25,14 +25,16 @@ explicit migration decision—not a troubleshooting shortcut.
 
 ## All passkeys/devices are lost
 
-Use only the audited SSH break-glass command; never edit identity tables by
-hand. From a key-authenticated console on the VPS:
+Use only the audited break-glass command; never edit identity tables by hand.
+For the active beta, run it from an owner-controlled privileged console inside
+the D-backed Ubuntu WSL host. Use a key-authenticated SSH console only for a
+separately approved remote-host deployment:
 
 1. Stop the public control-plane service and confirm it cannot accept new
    requests. Leave PostgreSQL running. The command also checks
    `pg_stat_activity` and refuses to run while a `codex-mobile-control-plane`
    server connection exists.
-2. Preserve the current database/provider backup recovery point. This command
+2. Preserve the current database and active-host checkpoint/recovery point. This command
    is intentionally destructive to identity credentials, although it preserves
    the owner, repositories, workspaces, checkpoints, vault, and audit history.
 3. Run:
@@ -70,15 +72,17 @@ hand. From a key-authenticated console on the VPS:
    command. The replacement transaction invalidates the prior recovery token.
 
 The source and portable tests cover the binding, single-use token, transaction,
-and command guard. The live PostgreSQL/production-origin recovery drill remains
-a release gate until the owner-controlled VPS and RP domain are configured.
+and command guard. The live PostgreSQL/stable-RP-origin recovery drill remains
+a private-beta gate until the owner-PC profile and reviewed HTTPS ingress are
+configured.
 
-Total VPS/storage loss is a **release-blocking operational limitation** for this
-procedure: the SSH command requires the application database and master-key
-recovery material to be present. Restore the provider's included backup and the
-owner-held master-key copy through the server-loss runbook first; do not create
-a replacement owner or weaker password path. That provider-restore sequence
-remains a live release gate and may recover only to the latest daily backup.
+Total owner-PC/WSL storage loss is a **release-blocking operational limitation**
+for this procedure: the command requires the application database and
+master-key recovery material to be present. Restore only validated
+owner-controlled recovery material through the server-loss runbook first; do
+not create a replacement owner or weaker password path. No provider backup is
+assumed for the active beta. If VPS hosting is later reopened, its separate
+provider-restore procedure and recovery point must be validated then.
 
 After any recovery, enroll and test at least two owner-controlled passkeys,
 review the administrator audit event, reconnect APNs, and record the drill in

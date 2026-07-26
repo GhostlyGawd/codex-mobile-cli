@@ -501,6 +501,60 @@ def main() -> int:
     check_ci(failures)
     check_sbom(failures)
 
+    decision_controls = {
+        "AGENTS.md": (
+            "D-backed Ubuntu WSL",
+            "Treat a VPS as a future availability option, not a launch blocker",
+        ),
+        "docs/adr/0025-owner-pc-private-beta-hosting.md": (
+            "not a private-beta launch dependency",
+            "supersedes the fixed-VPS host and provider-backup assumptions",
+        ),
+        "COST_MODEL.md": (
+            "Active private-beta hosting cost: $0 new recurring hosting",
+            "No VPS has",
+        ),
+        "infra/policy/billing-policy.yml": (
+            "profile: owner_pc_beta",
+            "maximum: 0",
+            "authorized: false",
+        ),
+        "infra/env/production.env.example": (
+            "DEPLOYMENT_PROFILE=owner_pc_beta",
+            "# VPS_PROVIDER=REPLACE_ME",
+        ),
+        "scripts/infra-preflight.py": (
+            "owner_pc_beta must omit deferred VPS checkout variables",
+            "do not substitute fixed_price_vps",
+        ),
+    }
+    for relative, controls in decision_controls.items():
+        raw = (ROOT / relative).read_text(encoding="utf-8")
+        for control in controls:
+            if control not in raw:
+                failures.append(
+                    f"{relative}: missing owner-PC decision-continuity control {control!r}"
+                )
+
+    for number in ("0004", "0005", "0008", "0010", "0012", "0014", "0020", "0023"):
+        matches = sorted((ROOT / "docs" / "adr").glob(f"{number}-*.md"))
+        if len(matches) != 1 or "0025-owner-pc-private-beta-hosting.md" not in matches[
+            0
+        ].read_text(encoding="utf-8"):
+            failures.append(
+                f"ADR {number} must scope its old host assumptions through ADR 0025"
+            )
+
+    ios_sources = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in sorted((ROOT / "apps" / "ios" / "Sources").rglob("*.swift"))
+    )
+    for stale_copy in ("selected VPS", "provider backup", "SSH-only recovery"):
+        if stale_copy.lower() in ios_sources.lower():
+            failures.append(
+                f"apps/ios: stale deployment copy is forbidden: {stale_copy!r}"
+            )
+
     passkey = (runbooks / "PASSKEY_RECOVERY.md").read_text(encoding="utf-8")
     if (
         "release-blocking operational limitation" not in passkey

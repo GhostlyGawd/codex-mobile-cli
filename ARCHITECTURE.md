@@ -31,10 +31,12 @@ RFC1918 Coder listener, the container engine, workspace agents, metrics, and
 admin endpoints live on private networks, private Unix sockets, or loopback.
 Workspaces do not join the Coder/control network: each Coder agent connects
 through a per-workspace relay and an exact host-firewall allow rule. The
-workspace engine runs as root only to apply XFS project quotas; its mode-`0660`
+workspace engine runs as root only to apply the selected fail-closed storage
+limits; its mode-`0660`
 `root:coder-provisioner` socket grants root-equivalent authority to the
-provisioner and is never mounted into Coder or a workspace. Recovery SSH is
-key-only, firewall-restricted, and audited.
+provisioner and is never mounted into Coder or a workspace. Active-beta
+recovery uses the owner-controlled privileged WSL console; SSH is key-only,
+firewall-restricted, and audited only for an approved future remote host.
 
 ## Monorepo boundaries
 
@@ -43,7 +45,7 @@ key-only, firewall-restricted, and audited.
 | `apps/ios` | Native navigation, terminal rendering/input and target-labeled composer, passkey ceremony, Keychain, encrypted read-only cache/drafts/history, Git/editor/preview UI | GitHub App/Coder admin tokens, direct workspace access, business policy, persistent attachment bytes |
 | `services/control-plane` | Public API, sessions, provider orchestration, policy, audit, terminal/preview gateways, APNs, vault | UI rendering, provider-specific types outside adapters |
 | `packages/api-contract` | OpenAPI, generated Swift types, binary terminal protocol | Runtime secrets or environment-specific URLs |
-| `infra` | Single-host hardening, private networking, pinned deployment, Coder template | Automatic VPS creation or scaling |
+| `infra` | Owner-PC/WSL beta profile, deferred single-host hardening, private networking, pinned deployment, Coder template | Automatic VPS creation or scaling |
 
 ## Control-plane packages
 
@@ -53,7 +55,7 @@ key-only, firewall-restricted, and audited.
   ambiguity phases, exact-running start boundary, devcontainer trust, and unique
   branch/worktree policy.
 - `admission`: equal CPU/memory fair shares, immutable 8–16 GiB disk requests,
-  ten-running cap, 40 GiB host reserve, worst-case start guard, continuous
+  configurable running cap bounded by ten, 40 GiB host reserve, worst-case start guard, continuous
   admission-to-runtime reservation, conservative quota high-water persistence,
   and level-triggered repair.
 - `terminal`: tmux-backed PTYs, mandatory pre-sequence active-grant redaction,
@@ -90,8 +92,8 @@ key-only, firewall-restricted, and audited.
    so the owner must delete and recreate the workspace.
 4. Before the first provider call, the reservation changes to
    `provider_provision_unconfirmed`. The unprivileged provisioner asks the
-   private root-owned engine to create a
-   one-time XFS project-quota volume, then provisions a user-namespaced,
+   private root-owned engine to create a one-time capacity-bounded volume under
+   the active host profile, then provisions a user-namespaced,
    non-root, non-privileged workspace without engine socket, host path, device,
    or cross-workspace mounts. The same build creates an immutable non-root relay
    between that workspace's private bridge and the fixed control uplink; the
@@ -386,7 +388,12 @@ it before promotion, while public CI remains authoritative for hosted
 current-head execution. See
 [ADR 0024](docs/adr/0024-pinned-source-envbuilder-derivative.md).
 
-### Host storage and workspace disk quotas
+### Deferred VPS host storage and workspace disk quotas
+
+The following XFS capacity profile belongs to the deferred always-on VPS
+design. The owner-PC private beta instead requires measured local limits and a
+separate fail-closed host profile; it must not claim this XFS, AppArmor, or
+ten-session evidence.
 
 Operator-managed encrypted storage is mounted exactly at `/srv/codex-mobile`
 as XFS with `pquota` or `prjquota`. Ansible, deploy preflight, and the dedicated
@@ -418,15 +425,19 @@ file switch and matching database-checkpoint rollback. See ADR 0008.
 ### Backup and master-key recovery boundary
 
 The wrapping master is a root-owned host file, separate from PostgreSQL and
-database-only exports. The contracted provider product takes a whole-server
-backup, so a normal capture is expected to contain both encrypted database/data
-and that file. This makes a consistent provider restore available without
-silently mixing a database with the wrong key, but it does not protect encrypted
-values from a provider administrator or attacker who obtains the full backup.
+database-only exports. The active owner-PC beta assumes no provider backup; any
+owner-controlled whole-host recovery copy must be assessed for whether it
+contains both encrypted database/data and that file.
+
+If the owner later reopens the VPS design, its historical provider product
+takes a whole-server backup expected to contain both encrypted database/data and
+the host key. This can provide a consistent restore without silently mixing a
+database with the wrong key, but it does not protect encrypted values from a
+provider administrator or attacker who obtains the full backup.
 
 The owner also keeps a matching offline key copy for loss/corruption recovery.
-That is an independent availability copy, not evidence that the provider backup
-lacks the key. A host or full-backup compromise is therefore handled as
+That is an independent availability copy, not evidence that another whole-host
+copy lacks the key. A host or full-backup compromise is therefore handled as
 master-key compromise: rotate or re-enter upstream/runtime values rather than
 claiming envelope encryption kept them confidential.
 
@@ -450,12 +461,18 @@ Every mutable core record contains `owner_id`, even though the MVP has one owner
 - A pending or partially persisted creation-time environment/prompt is never
   retried from an uncertain subset; it fails closed with
   `private_inputs_recreate_required` for deletion and recreation.
-- Capacity shortfall queues rather than scales.
+- Capacity shortfall queues rather than scales. The active owner-PC beta uses a
+  measured conservative local cap; the historical ten-session/XFS target is
+  deferred with the VPS profile.
 - Dirty or unpushed workspaces are never automatically deleted.
 - A file-save error after a possible commit is reconciled by a fresh read/ETag,
   never a blind retry.
 - Input receipts are process-local reliability, not durable exactly-once
   delivery across a gateway crash.
-- The provider whole-server backup is an availability copy, not a cryptographic
-  trust boundary; it co-captures the host master key with encrypted state.
-- Host reboot cannot preserve processes; files/checkpoints persist and the UI reports processes as restarted or stopped.
+- If future VPS hosting is reopened, its provider whole-server backup is an
+  availability copy, not a cryptographic trust boundary; it co-captures the
+  host master key with encrypted state. No such backup is assumed for the
+  active beta.
+- A Windows, WSL, service, or future-host restart cannot preserve processes;
+  persistent files/checkpoints can survive, and the UI reports processes as
+  restarted or stopped.

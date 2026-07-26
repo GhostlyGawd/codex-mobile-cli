@@ -1,8 +1,18 @@
-# Guided production deployment
+# Guided future VPS deployment
 
-This deploys to an existing, owner-approved Ubuntu 24.04 VPS. Nothing in the
+This runbook is the deferred always-on VPS path from ADR 0005. It is not the
+active private-beta deployment direction and must not be presented as a launch
+requirement unless the owner explicitly reopens that decision. The active
+owner-PC direction is recorded in
+[ADR 0025](../adr/0025-owner-pc-private-beta-hosting.md).
+
+If reopened, this deploys to an existing, owner-approved Ubuntu 24.04 VPS. Nothing in the
 repository purchases or resizes a server, attaches storage/backup, changes DNS,
 creates integration credentials, or uploads an app.
+
+The tracked billing policy currently marks `fixed_price_vps` unauthorized.
+Reopening hosting therefore requires a separate reviewed repository decision;
+changing only an environment value cannot enable this runbook.
 
 ## External-action gates
 
@@ -46,9 +56,11 @@ UI; automation merely validates its result.
 ## Configure without exposing integrations
 
 1. Copy `infra/env/production.env.example` to
-   `/etc/codex-mobile/production.env`, mode `0600`. Fill domain, existing VPS,
-   immutable release tag, and billing confirmations. Keep `GITHUB_ENABLED=false`
-   and `APNS_ENABLED=false` during Coder bootstrap.
+   `/etc/codex-mobile/production.env`, mode `0600`. Only after the reviewed
+   policy change, set `DEPLOYMENT_PROFILE=fixed_price_vps`, uncomment all seven
+   `VPS_*` values, and fill the domain, existing VPS, immutable release tag, and
+   billing confirmations. Keep `GITHUB_ENABLED=false` and
+   `APNS_ENABLED=false` during Coder bootstrap.
 2. Generate local application/database secrets once:
 
    ```shell
@@ -99,10 +111,15 @@ UI; automation merely validates its result.
 4. Run the full preflight and billing guard:
 
    ```shell
-   python3 scripts/check-billing-policy.py --repo-root "$PWD"
+   python3 scripts/check-billing-policy.py --repo-root "$PWD" \
+     --deployment-profile fixed_price_vps
    python3 scripts/infra-preflight.py \
      --env-file /etc/codex-mobile/production.env --repo-root "$PWD"
    ```
+
+   Under the current decision both commands must reject this deferred profile.
+   Do not continue unless a later reviewed repository decision explicitly
+   authorizes `fixed_price_vps` and updates both guards.
 
 5. Only after separate owner approvals, complete [GITHUB_APP.md](GITHUB_APP.md),
    [APNS.md](APNS.md), and the DNS/certificate gate in `infra/README.md`. Enable

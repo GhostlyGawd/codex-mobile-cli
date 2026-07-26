@@ -58,6 +58,15 @@
       - xfsprogs
 
   pre_tasks:
+    - name: Refuse the deferred VPS playbook unless that profile was explicitly selected
+      ansible.builtin.assert:
+        that:
+          - codex_deployment_profile | default('') == 'fixed_price_vps'
+        fail_msg: >-
+          This playbook is only for the deferred fixed_price_vps profile. It is
+          not the owner-PC/WSL beta setup path and must not be used to make a
+          VPS a beta launch requirement.
+
     - name: Refuse any host other than explicitly confirmed Ubuntu 24.04
       ansible.builtin.assert:
         that:

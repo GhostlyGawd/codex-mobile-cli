@@ -222,7 +222,10 @@ grep -Fq 'terminalTitle = HostileDisplayText.sanitized' apps/ios/Sources/Termina
 grep -Fq 'testTerminalDerivedTitlesAndCloseReasonsAreSafeDisplayText' apps/ios/Tests/TerminalSessionModelTests.swift
 grep -Fq 'isServerUnavailable = Self.isServerAvailabilityFailure' apps/ios/Sources/App/AppModel.swift
 grep -Fq 'Server unavailable — cached data is read only' apps/ios/Sources/App/RootView.swift
+grep -Fq 'owner PC, WSL, local services, network, or secure ingress' apps/ios/Sources/App/RootView.swift
 grep -Fq 'This app cannot recreate the server' apps/ios/Sources/App/RootView.swift
+grep -Fq 'active deployment host passes the rootless nested-container isolation spike' apps/ios/Sources/Features/Workspaces/NewWorkspaceView.swift
+grep -Fq 'owner-controlled privileged-console recovery runbook' apps/ios/Sources/Features/Settings/PasskeysSettingsView.swift
 grep -Fq 'List(selection: sidebarSelection)' apps/ios/Sources/App/RootView.swift
 grep -Fq 'ForEach(AppSection.allCases)' apps/ios/Sources/App/RootView.swift
 grep -Fq 'private var sidebarSelection: Binding<AppSection?>' apps/ios/Sources/App/RootView.swift

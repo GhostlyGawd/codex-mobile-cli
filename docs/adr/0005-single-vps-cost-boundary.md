@@ -1,6 +1,8 @@
 # ADR 0005: One fixed-price VPS and no managed dependencies
 
-- Status: accepted; provider selection pending official checkout verification
+- Status: superseded for the active private beta by
+  [ADR 0025](0025-owner-pc-private-beta-hosting.md); retained as an optional
+  future always-on-host design
 - Date: 2026-07-15
 
 ## Decision

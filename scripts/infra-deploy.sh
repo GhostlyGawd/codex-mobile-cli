@@ -71,6 +71,7 @@ configured_tag=$(awk -F= '$1 == "CONTROL_PLANE_IMAGE_TAG" {sub(/^[^=]*=/, ""); p
   echo "release directory name must equal owner-approved CONTROL_PLANE_IMAGE_TAG ($configured_tag)" >&2
   exit 1
 }
+deployment_profile=$(awk -F= '$1 == "DEPLOYMENT_PROFILE" {sub(/^[^=]*=/, ""); print; found=1} END {if (!found) exit 1}' "$env_file")
 target="$releases/$release_id"
 [ ! -e "$target" ] || { echo "immutable release already exists: $target" >&2; exit 1; }
 
@@ -81,7 +82,8 @@ chmod -R go-w "$release"
 manifest_verifier="$release/scripts/infra_release_manifest.py"
 /usr/bin/python3 -I "$manifest_verifier" validate-podman-url \
   --podman-url "$podman_url" >/dev/null
-/usr/bin/python3 -I "$release/scripts/check-billing-policy.py" --repo-root "$release"
+/usr/bin/python3 -I "$release/scripts/check-billing-policy.py" \
+  --repo-root "$release" --deployment-profile "$deployment_profile"
 /usr/bin/python3 -I "$release/scripts/infra-preflight.py" --env-file "$env_file" --repo-root "$release"
 
 current="$release_root/current"

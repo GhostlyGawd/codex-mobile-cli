@@ -2,8 +2,8 @@
 
 Apple identifier registration, entitlement changes, key creation/revocation,
 and TestFlight upload are external account mutations. The owner must approve
-each exact change. APNs must be direct from the VPS; do not add a push broker or
-metered notification service.
+each exact change. APNs must be sent directly from the active control-plane
+host; do not add a push broker or metered notification service.
 
 1. Confirm the final explicit `IOS_BUNDLE_ID` and Apple team. Register/modify it
    only after owner approval, enable Push Notifications and the associated

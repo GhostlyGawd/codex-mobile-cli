@@ -1,7 +1,9 @@
 all:
   hosts:
     codex-mobile-vps:
+      # Deferred fixed_price_vps profile only; not the owner-PC beta.
       ansible_host: REPLACE_WITH_EXISTING_VPS_IP
+      codex_deployment_profile: fixed_price_vps
       ansible_user: REPLACE_WITH_EXISTING_ADMIN_USER
   vars:
     # Deliberately awkward confirmation: this playbook configures an existing

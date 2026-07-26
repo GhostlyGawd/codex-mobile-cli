@@ -1,5 +1,10 @@
 # Provider included-backup restore
 
+This entire runbook is a **deferred future VPS procedure**. The active owner-PC
+private beta assumes no provider backup, and this document is not a launch gate
+or authorization to purchase hosting. Use it only if the owner explicitly
+reopens and deploys the VPS design.
+
 The provider's included daily whole-server/volume backup is the only off-host
 recovery layer. Local checkpoints are lost with the server. A restore can roll
 back roughly 24 hours, destroy newer state, change IP/boot state, and be an

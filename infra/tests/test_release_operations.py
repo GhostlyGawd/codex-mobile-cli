@@ -1137,6 +1137,9 @@ class ReleaseScriptStaticTests(unittest.TestCase):
                 '/usr/bin/python3 -I "$target/scripts/check-billing-policy.py"'
             ),
         )
+        for script in (deploy, rollback):
+            self.assertIn('--deployment-profile "$deployment_profile"', script)
+        self.assertIn("--deployment-profile ${DEPLOYMENT_PROFILE}", unit)
         self.assertIn("--no-build", unit)
         self.assertNotIn("--build", unit)
 
