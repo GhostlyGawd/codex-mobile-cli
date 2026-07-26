@@ -7,15 +7,4 @@
 !services/control-plane/cmd/workspace-helper/
 !services/control-plane/cmd/workspace-helper/**
 !services/control-plane/internal/
-!services/control-plane/internal/codex/
-!services/control-plane/internal/codex/**
-!services/control-plane/internal/core/
-!services/control-plane/internal/core/**
-!services/control-plane/internal/files/
-!services/control-plane/internal/files/**
-!services/control-plane/internal/githubapp/
-!services/control-plane/internal/githubapp/**
-!services/control-plane/internal/gitops/
-!services/control-plane/internal/gitops/**
-!services/control-plane/internal/workspacehelper/
-!services/control-plane/internal/workspacehelper/**
+!services/control-plane/internal/**

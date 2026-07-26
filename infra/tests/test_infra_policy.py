@@ -447,6 +447,9 @@ class ImageSupplyChainTests(unittest.TestCase):
         dockerfile = (ROOT / "infra" / "workspace" / "Dockerfile").read_text(
             encoding="utf-8"
         )
+        dockerignore = (
+            ROOT / "infra" / "workspace" / "Dockerfile.dockerignore"
+        ).read_text(encoding="utf-8")
         envbuilder_dockerfile = (
             ROOT / "infra" / "workspace" / "EnvBuilder.Dockerfile"
         ).read_text(encoding="utf-8")
@@ -462,6 +465,19 @@ class ImageSupplyChainTests(unittest.TestCase):
         self.assertIn("docker.io/library/ubuntu:24.04@sha256:", dockerfile)
         self.assertIn("COPY services/control-plane/internal ./internal", dockerfile)
         self.assertNotRegex(dockerfile, r"COPY services/control-plane/internal/[^\s]+")
+        self.assertIn("!services/control-plane/internal/**", dockerignore)
+        self.assertNotRegex(
+            dockerignore, r"(?m)^!services/control-plane/internal/(?!\*\*$).+"
+        )
+        self.assertIn('test "$(getent group 1000 | cut -d: -f1)" = ubuntu', dockerfile)
+        self.assertIn('test "$(getent passwd 1000 | cut -d: -f1)" = ubuntu', dockerfile)
+        self.assertIn("groupmod --new-name codex ubuntu", dockerfile)
+        self.assertIn(
+            "usermod --login codex --home /home/codex --move-home --shell /bin/bash ubuntu",
+            dockerfile,
+        )
+        self.assertNotIn("groupadd --gid 1000 codex", dockerfile)
+        self.assertNotIn("useradd --uid 1000", dockerfile)
         self.assertIn("./cmd/workspace-helper", dockerfile)
         self.assertIn("-ldflags='-s -w'", dockerfile)
         self.assertIn("--chown=0:0 --chmod=0755", dockerfile)
@@ -473,6 +489,7 @@ class ImageSupplyChainTests(unittest.TestCase):
         self.assertIn("/opt/codex-mobile-helper/codex-code-mode-host", dockerfile)
         self.assertNotIn("ARG WORKSPACE_HELPER_COMMAND", dockerfile)
         self.assertIn("Dockerfile.dockerignore", build)
+        self.assertEqual(build.count("--format docker"), 2)
         for checksum in (
             "11d1fb9c53549e98bb5a976c2958954ff6eb99fd9485dd09beac50f6157df924",
             "81a623dae961e640c18ac1df942baf9a797dbeb79b9f90312b62f241d36da1dd",

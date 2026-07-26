@@ -120,8 +120,10 @@ RUN apt-get update \
     && ln -s /opt/codex-mobile-helper/codex /usr/local/bin/codex \
     && ln -s /opt/codex-mobile-helper/codex-code-mode-host /usr/local/bin/codex-code-mode-host \
     && /opt/codex-mobile-helper/codex-real --version | grep -F "codex-cli ${CODEX_CLI_VERSION}" \
-    && groupadd --gid 1000 codex \
-    && useradd --uid 1000 --gid 1000 --create-home --shell /bin/bash codex \
+    && test "$(getent group 1000 | cut -d: -f1)" = ubuntu \
+    && test "$(getent passwd 1000 | cut -d: -f1)" = ubuntu \
+    && groupmod --new-name codex ubuntu \
+    && usermod --login codex --home /home/codex --move-home --shell /bin/bash ubuntu \
     && install -d -o codex -g codex -m 0700 \
       /workspaces \
       /workspaces/repository \

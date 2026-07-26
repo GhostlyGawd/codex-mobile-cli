@@ -27,6 +27,7 @@ helper_arm64_sha256=81a623dae961e640c18ac1df942baf9a797dbeb79b9f90312b62f241d36d
 [ -f "$repo_root/infra/workspace/EnvBuilder.Dockerfile" ] || { echo "EnvBuilder Dockerfile is missing" >&2; exit 1; }
 /usr/bin/podman --url "$podman_url" info >/dev/null
 /usr/bin/podman --url "$podman_url" build \
+  --format docker \
   --file "$repo_root/infra/workspace/Dockerfile" \
   --ignorefile "$repo_root/infra/workspace/Dockerfile.dockerignore" \
   --tag "$image" \
@@ -62,6 +63,7 @@ fi
   '
 
 /usr/bin/podman --url "$podman_url" build \
+  --format docker \
   --file "$repo_root/infra/workspace/EnvBuilder.Dockerfile" \
   --ignorefile "$repo_root/infra/workspace/Dockerfile.dockerignore" \
   --build-arg "WORKSPACE_BASE_IMAGE=$image" \
