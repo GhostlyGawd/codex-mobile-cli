@@ -44,7 +44,7 @@ uploaded automatically.
 | Gitleaks 8.30.1 | PASS | No leaks. The general ignored-output rule is path-scoped to local `tmp`, `artifacts`, `coverage`, and Python cache directories; two line-scoped allowlists cover only deliberate invalid PEM fixtures/boundaries |
 | Trivy 0.72.0 source scan | PASS | No unsuppressed high/critical misconfiguration, secret, or license finding. The one recorded exception is EnvBuilder's required initial root inside a private user namespace on the dedicated Podman runtime; that container receives no engine socket or host path. Trivy also logged a harmless parser limitation for a `Dockerfile.dockerignore` file. |
 | govulncheck 1.6.0 | PASS | The final post-edit run found 0 reachable and 0 imported-package vulnerabilities. Seven vulnerabilities exist only in required modules whose affected symbols are not called. |
-| Built-image OS/package scan | NOT EXECUTED | Docker/Podman is unavailable on this Windows host. Scan each immutable built image on the target Linux staging host before deployment. |
+| Built-image OS/package scan | PASS (local candidate) | D-backed Ubuntu WSL built and runtime-checked the exact commit-tagged candidates, then profile 3/schema 2 accounted for the complete frozen-database inventory and manifest schema 2 bound the root-only evidence. This is candidate evidence only; repeat the exact gate for every later commit and on the target Linux staging host before deployment. |
 
 The EnvBuilder exception is constrained in `.trivyignore.yaml` to one rule and
 one Dockerfile, includes the user-namespace/capability/socket rationale, and

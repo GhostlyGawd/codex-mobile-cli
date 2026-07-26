@@ -380,8 +380,10 @@ image ID before copying the helper seed, then compare every seed file's
 canonical metadata and content digest without executing image content. The
 source SBOM records the upstream ancestor and local patch as distinct
 pedigree/license boundaries; the built-image SBOM remains authoritative for the
-shipped module graph. Current-tree hosted execution and exact built-image proof
-are still pending. See
+shipped module graph. The final documentation-bearing candidate passed the
+exact local build/runtime/audit/manifest gate; every later commit must repeat
+it before promotion, while public CI remains authoritative for hosted
+current-head execution. See
 [ADR 0024](docs/adr/0024-pinned-source-envbuilder-derivative.md).
 
 ### Host storage and workspace disk quotas

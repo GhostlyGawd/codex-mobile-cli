@@ -70,7 +70,9 @@ directory is copied. A non-executing Podman inspection compares a canonical
 digest of every expected seed path, type, mode, owner, link target, size, and
 file hash between that exact workspace image and the final EnvBuilder image.
 Both resulting image IDs remain bound by the release manifest and image audit.
-Exact built-image proof for this current tree remains pending on Linux.
+The final documentation-bearing candidate passed that exact Linux build,
+runtime, audit, and manifest gate. The proof is release-identity-bound, so
+every later commit must repeat it before promotion.
 
 The source SBOM represents the derivative as an application with an upstream
 ancestor and an unofficial patch pedigree. It separately inventories the

@@ -110,12 +110,15 @@ Recorded local evidence on 2026-07-16:
   the two forbidden-license findings) and one duplicate-sensitive baseline for
   the 1,232 non-forbidden workspace-license findings. Raw reports remained
   root-only and outside the repository.
-- That WSL result is developmental evidence for the exact commit-88 candidate
-  images only. The final integrated commit must be rebuilt, runtime-checked,
-  rescanned under profile 3/schema 2, and bound into its release manifest.
-  Production Compose/Coder activation, the dedicated provisioner runtime,
-  XFS/AppArmor enforcement, and host isolation remain `GATED` and `NOT
-  EXECUTED`.
+- That commit-88 result established the profile-3 policy. Before handoff, the
+  final documentation-bearing candidate independently repeated the exact image
+  build/runtime checks, profile-3/schema-2 scan, receipt verification, and
+  manifest-schema-2 create/verify gate. The root-only receipt/report tree and
+  generated manifest, rather than this self-referential document, name the
+  authoritative revision. Every later commit must repeat the gate before
+  promotion. Production Compose/Coder activation, the dedicated provisioner
+  runtime, XFS/AppArmor enforcement, and host isolation remain `GATED` and
+  `NOT EXECUTED`.
 - These local runs did not contact GitHub/ChatGPT, execute a real Linux Coder
   workspace, or compile Swift with Xcode.
 

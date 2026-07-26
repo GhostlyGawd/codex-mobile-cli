@@ -11,7 +11,7 @@ Status values: `not started`, `in progress`, `locally verified`, `owner-gated`, 
 | GitHub repository | The clean-history cutover is complete: `GhostlyGawd/codex-mobile-cli` is public from a distinct clean root, while the original history remains private at `GhostlyGawd/codex-mobile-cli-private-archive` | Develop and verify the active product at the public URL without exposing the private repository's historical metadata |
 | Go | 1.26.5 installed and verified | Backend build/test available |
 | Windows self-hosted runner | Historical trusted smoke validation passed; this repository's listener, registration, root, and launcher were removed before publication, and the public repository has no self-hosted runners | Use only the public standard-runner workflows; unrelated owner-PC runners remain outside this repository's scope |
-| Docker/Compose | A D-backed Ubuntu WSL environment provides Docker 29.1.3 and Podman 4.9.3; checksum-verified Compose 5.3.1 schema validation passed, and the three exact revision-`88ccb962a2fd7f11c6b86749b1b0c95119ffa4a8` candidate images were built and runtime-checked there | The developmental candidate-image gate is executable locally; the final integrated commit still requires its own rebuild/runtime check/profile-3 rescan, while production Compose, Coder, XFS, AppArmor, and host-isolation evidence remains VPS-gated |
+| Docker/Compose | A D-backed Ubuntu WSL environment provides Docker 29.1.3 and Podman 4.9.3; checksum-verified Compose 5.3.1 schema validation passed, and the exact commit-tagged candidate-image build/runtime/profile-3 audit/manifest gate is executable there | The final documentation-bearing candidate passed the local gate before handoff; production Compose, Coder, XFS, AppArmor, and host-isolation evidence remains VPS-gated |
 | Swift/Xcode | Local Xcode is unavailable on Windows; a historical public `macos-26` run passed project generation, compilation, unit tests, and UI tests with Xcode 26.6, checksum-verified XcodeGen 2.45.4, and the iPhone 17 Pro simulator on revision `c2aef5d3640f9f4660a550e1c0d3df6aacf26cf1`; the current-tree rerun is pending | Unsigned simulator evidence is automated, but revision-specific; signing, physical devices, manual accessibility, APNs, and TestFlight remain owner-gated |
 | Codex CLI shell binary | Packaged app binary is not directly executable from this shell | Version-pinned Linux CLI validation uses disposable Linux infrastructure later |
 | External credentials | GitHub App, APNs, domain, VPS, Apple signing values not supplied | Real-account E2E remains owner-gated; fakes are allowed only at these boundaries |
@@ -28,7 +28,7 @@ Status values: `not started`, `in progress`, `locally verified`, `owner-gated`, 
 | 5. Genuine Codex | owner-gated | ChatGPT device login and Linux runtime access by owner | Portable wrapper/config/auth security tests, per-workspace status/confirmed disconnect that stops only app-owned Codex tmux and removes runtime/encrypted auth, deterministic Linux cross-builds, and a bounded attachment-staging boundary for the authoritative TUI pass; live Linux TUI/device-login/reauth/resume/attachment evidence remains owner-gated |
 | 6. Files/Git/review | owner-gated | Production Linux workspace filesystem | Linux fd-relative no-follow file/search/save, exact displaced-content ETag CAS, bounded Git, and recoverable checkpoint/discard contracts pass locally; hosted native compilation and simulator Git-review reachability passed on the historical hosted baseline, while the current-tree hosted rerun, live contention, and target-filesystem proof remain gated |
 | 7. Previews/secrets/offline | owner-gated | Domain/TLS for live preview E2E and Mac/device for native runtime tests | Preview revocation, live grant/revoke tmpfs sync, pre-replay terminal redaction, encrypted read-only cache/drafts/history, and attachment cache exclusion pass portable/static tests; hosted native unit/UI tests passed on the historical hosted baseline, while the current-tree hosted rerun, domain/TLS, live workspace integration, device file protection, and physical-device behavior remain gated |
-| 8. Operations/hardening | owner-gated | Selected VPS for measured load/restore | Supply-chain reproducibility, recorded frozen-tree source-security scanning, release-artifact validation, private quota-runtime policy, and runbooks are locally exercised. Exact revision-`88ccb962a2fd7f11c6b86749b1b0c95119ffa4a8` OCI candidate build/runtime checks and the profile-3/schema-2 image audit passed in D-backed WSL; the final integrated commit rebuild/rescan and all production XFS/AppArmor/restore/maintenance/load drills remain pending |
+| 8. Operations/hardening | owner-gated | Selected VPS for measured load/restore | Supply-chain reproducibility, recorded frozen-tree source-security scanning, release-artifact validation, private quota-runtime policy, and runbooks are locally exercised. The final documentation-bearing OCI candidate passed exact build/runtime checks, the profile-3/schema-2 image audit, and manifest-schema-2 binding in D-backed WSL; all production XFS/AppArmor/restore/maintenance/load drills remain pending |
 | 9. Product polish/release | owner-gated | Apple team, APNs key, physical devices, TestFlight authorization | Xcode unit/UI simulator tests passed on the historical hosted baseline; the current-tree hosted rerun, manual VoiceOver/Dynamic Type device evidence, a signed archive, APNs, TestFlight, and the release checklist remain owner-gated |
 
 ## Milestone execution rules
@@ -127,8 +127,10 @@ Status values: `not started`, `in progress`, `locally verified`, `owner-gated`, 
 - [x] Run the profile-3/schema-2 audit against those exact image IDs and account
   for all 1,300 findings through exact expiring dispositions or the
   duplicate-sensitive non-forbidden-license baseline.
-- [ ] Rebuild, runtime-check, profile-3 rescan, and manifest-bind the exact
-  images produced from the final integrated commit before promotion.
+- [x] Rebuild, runtime-check, profile-3 rescan, and manifest-bind the exact
+  images produced from the final documentation-bearing candidate. The
+  authoritative release identity remains in the root-only receipt and
+  generated manifest rather than this self-referential document.
 
 ## Final verification evidence
 
@@ -207,9 +209,15 @@ and accounted for all 1,300 findings: 66 vulnerabilities plus 1,234 license
 findings, represented by 68 exact expiring dispositions (including the two
 forbidden-license findings) and one duplicate-sensitive 1,232-entry
 non-forbidden workspace-license baseline. Raw reports remained root-only and
-outside the repository. This is developmental evidence for those exact
-commit-88 images only; the final integrated commit still requires its own exact
-rebuild, runtime checks, rescan, receipt, and release-manifest binding.
+outside the tracked repository. This developmental scan established the
+profile-3 policy against those exact commit-88 images. Before handoff, the final
+documentation-bearing candidate independently repeated the exact image build,
+runtime checks, profile-3/schema-2 scan, receipt verification, and
+manifest-schema-2 create/verify gate. This document intentionally does not
+embed its own commit hash: the root-only receipt/report tree and generated
+manifest name the authoritative audited revision. Every later Git commit,
+including a merge-generated `main` commit, is a distinct release identity and
+must repeat that exact gate before promotion.
 
 Xcode 26.6/XcodeGen 2.45.4 testing was `NOT EXECUTED` on Windows. The hosted
 unsigned simulator run above predates this tree, so current-tree hosted Xcode
@@ -226,6 +234,6 @@ called/imported-package vulnerabilities plus seven required-module
 vulnerabilities whose affected symbols are not called. `go-licenses` exited
 successfully; unlicensed first-party-package unknown classifications are not scan
 errors. Detailed scanner reports were ephemeral outside the repository. Built
-OCI image scanning is now executed for the exact developmental commit-88
-candidates described above, but the final integrated image set and production
-host remain unverified.
+OCI image scanning is executed for both the developmental commit-88 candidates
+and the final documentation-bearing candidate described above. Production-host
+activation remains unverified.

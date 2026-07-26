@@ -141,6 +141,19 @@ def policy_document_v2(
 
 
 class IdentityAndCommandTests(unittest.TestCase):
+    def test_scanner_timeouts_are_bounded_for_large_local_images(self) -> None:
+        self.assertEqual(AUDIT.SYFT_TIMEOUT_SECONDS, 600)
+        self.assertEqual(AUDIT.TRIVY_TIMEOUT_SECONDS, 600)
+        self.assertEqual(AUDIT.TOTAL_AUDIT_TIMEOUT_SECONDS, 3600)
+        self.assertLessEqual(
+            AUDIT.SYFT_TIMEOUT_SECONDS,
+            AUDIT.TOTAL_AUDIT_TIMEOUT_SECONDS,
+        )
+        self.assertLessEqual(
+            AUDIT.TRIVY_TIMEOUT_SECONDS,
+            AUDIT.TOTAL_AUDIT_TIMEOUT_SECONDS,
+        )
+
     def test_release_references_are_fixed_and_commit_derived(self) -> None:
         references = AUDIT.image_references(RELEASE_ID)
         self.assertEqual(

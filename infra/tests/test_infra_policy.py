@@ -19,6 +19,14 @@ COMPOSE_APNS = ROOT / "infra" / "compose.apns.yaml"
 TEMPLATE = (
     ROOT / "infra" / "coder" / "templates" / "codex-mobile-envbuilder" / "main.tf"
 )
+POLICY_FIXTURE_IGNORES = (
+    "image-audit",
+    ".image-audit.*",
+    "release.env",
+    ".release.env.*",
+    "release-manifest.json",
+    ".release-manifest.json.*",
+)
 
 
 def load_script(name: str):
@@ -601,8 +609,29 @@ class PolicyCheckerTests(unittest.TestCase):
         self.assertEqual(BILLING.validate_policy(ROOT), [])
 
     def copy_policy_tree(self, destination: Path) -> None:
-        shutil.copytree(ROOT / "infra", destination / "infra")
+        shutil.copytree(
+            ROOT / "infra",
+            destination / "infra",
+            ignore=shutil.ignore_patterns(*POLICY_FIXTURE_IGNORES),
+        )
         (destination / "scripts").mkdir()
+
+    def test_policy_fixture_ignores_generated_release_evidence(self) -> None:
+        ignore = shutil.ignore_patterns(*POLICY_FIXTURE_IGNORES)
+        names = [
+            "image-audit",
+            ".image-audit.staging",
+            "release.env",
+            ".release.env.temporary",
+            "release-manifest.json",
+            ".release-manifest.json.temporary",
+            "image-audit-policy.json",
+            "release.env.example",
+        ]
+        self.assertEqual(
+            ignore(str(ROOT / "infra"), names),
+            set(names[:-2]),
+        )
 
     def test_cloud_terraform_resource_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
