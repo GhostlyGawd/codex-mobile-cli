@@ -74,7 +74,7 @@ final class CodexMobileUITests: XCTestCase {
         let midpointDelta = if let firstFiniteFrame, let lastFiniteFrame {
             lastFiniteFrame.midY - firstFiniteFrame.midY
         } else {
-            0
+            CGFloat.zero
         }
         XCTFail(
             """
