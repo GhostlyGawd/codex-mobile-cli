@@ -262,7 +262,7 @@ final class TerminalSessionModel {
 
                 let stream = await socket.connect(to: descriptor, ownerID: ownerID)
                 guard generation == connectionGeneration, !Task.isCancelled else {
-                    await socket.disconnect(ownerID: ownerID)
+                    await socket.disconnect(ownerID: ownerID, code: .goingAway)
                     break
                 }
                 state = .connected
@@ -458,7 +458,7 @@ final class TerminalSessionModel {
             try await Task.sleep(for: remaining < inputReceiptRetryDelay ? remaining : inputReceiptRetryDelay)
         }
 
-        _ = consumeInputReceipt(idempotencyKey)
+        if consumeInputReceipt(idempotencyKey) { return }
         if let lastSendError { throw lastSendError }
         throw ClientError.unavailable("The terminal did not acknowledge this draft. It was kept so you can retry safely.")
     }

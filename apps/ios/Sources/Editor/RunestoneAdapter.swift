@@ -87,7 +87,7 @@ final class RunestoneAdapter: NSObject, TextEditing {
         let pathExtension = (document.path as NSString).pathExtension.lowercased()
         let identifier = (hint?.isEmpty == false ? hint : nil) ?? pathExtension
 
-        switch identifier {
+        return switch identifier {
         case "bash", "shell", "shellscript", "sh", "zsh": .bash
         case "css": .css
         case "go", "golang": .go

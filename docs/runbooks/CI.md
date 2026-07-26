@@ -49,9 +49,16 @@ xcodebuild \
   -project apps/ios/CodexMobile.xcodeproj \
   -scheme CodexMobile \
   -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
+  -onlyUsePackageVersionsFromResolvedFile \
+  -skipPackagePluginValidation \
   CODE_SIGNING_ALLOWED=NO \
   test
 ```
+
+The resolved-file flag prevents dependency drift. Plugin validation is skipped
+only for the exact `swift-openapi-generator` revision pinned in
+`Package.resolved`, because hosted Xcode cannot accept an interactive
+plugin-trust prompt.
 
 The simulator workflow contains no Apple account, signing, APNs, App Store
 Connect, repository, or environment secret. It does not archive or upload an

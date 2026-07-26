@@ -15,22 +15,204 @@ final class CodexMobileUITests: XCTestCase {
         app.launch()
     }
 
+    private func assertReachable(
+        _ element: XCUIElement,
+        scrollSurface: XCUIElement? = nil,
+        maximumSwipes: Int = 24,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        var firstFiniteFrame: CGRect?
+        var lastFiniteFrame: CGRect?
+        var recentFiniteFrames: [CGRect] = []
+        var correctionUpward: Bool?
+        var previousAttemptHadFiniteFrame = false
+        let scrollRegion: CGRect?
+        if let scrollSurface {
+            let candidate = visibleScrollRegion(for: scrollSurface)
+            guard isFiniteNonempty(candidate), candidate.height >= 80 else {
+                XCTFail(
+                    "The scroll surface has no usable visible region; surface frame: \(scrollSurface.frame); app frame: \(app.frame)",
+                    file: file,
+                    line: line
+                )
+                return
+            }
+            scrollRegion = candidate
+        } else {
+            scrollRegion = nil
+        }
+        let comparisonFrame = scrollRegion ?? app.frame
+
+        for attempt in 0...maximumSwipes {
+            let timeout = attempt == 0 ? 2.0 : 0.5
+            let exists = element.waitForExistence(timeout: timeout)
+            let frame = exists ? element.frame : .null
+            let hasFiniteFrame = isFiniteNonempty(frame)
+
+            if hasFiniteFrame {
+                if firstFiniteFrame == nil {
+                    firstFiniteFrame = frame
+                }
+                lastFiniteFrame = frame
+                if recentFiniteFrames.last != frame {
+                    recentFiniteFrames.append(frame)
+                    if recentFiniteFrames.count > 4 {
+                        recentFiniteFrames.removeFirst()
+                    }
+                }
+                if element.isHittable {
+                    return
+                }
+
+                correctionUpward = frame.midY >= comparisonFrame.midY
+            } else if previousAttemptHadFiniteFrame, let direction = correctionUpward {
+                // Lazy lists remove an overscrolled row from the accessibility
+                // tree. Reverse once, then preserve that direction until it
+                // appears again.
+                correctionUpward = !direction
+            }
+
+            previousAttemptHadFiniteFrame = hasFiniteFrame
+
+            if attempt < maximumSwipes {
+                if let scrollRegion {
+                    dragApplication(
+                        in: scrollRegion,
+                        upward: correctionUpward ?? true,
+                        travelFraction: correctionUpward == nil ? 0.65 : 0.25
+                    )
+                } else if let correctionUpward {
+                    drag(app, upward: correctionUpward)
+                } else {
+                    app.swipeUp()
+                }
+            }
+        }
+
+        let gitSurface = app.buttons["workspace.surface.git"]
+        let gitSurfaceFrame = gitSurface.exists ? gitSurface.frame : .null
+        let frameDescription = lastFiniteFrame.map { "\($0)" } ?? "none"
+        let firstFrameDescription = firstFiniteFrame.map { "\($0)" } ?? "none"
+        let midpointDelta = if let firstFiniteFrame, let lastFiniteFrame {
+            lastFiniteFrame.midY - firstFiniteFrame.midY
+        } else {
+            CGFloat.zero
+        }
+        let scrollSurfaceFrame = scrollSurface.map { "\($0.frame)" } ?? "none"
+        let scrollRegionDescription = scrollRegion.map { "\($0)" } ?? "none"
+        XCTFail(
+            """
+            Could not scroll \(element) into a hittable position after \(maximumSwipes) gestures; \
+            app frame: \(app.frame); first finite frame: \(firstFrameDescription); \
+            last finite frame: \(frameDescription); midpoint delta: \(midpointDelta); \
+            scroll surface frame: \(scrollSurfaceFrame); visible scroll region: \(scrollRegionDescription); \
+            workspace Git control frame: \(gitSurfaceFrame); \
+            target overlaps Git control: \(lastFiniteFrame?.intersects(gitSurfaceFrame) == true); \
+            recent finite frames: \(recentFiniteFrames)
+            """,
+            file: file,
+            line: line
+        )
+    }
+
+    private func isFiniteNonempty(_ frame: CGRect) -> Bool {
+        !frame.isNull
+            && !frame.isEmpty
+            && frame.minX.isFinite
+            && frame.minY.isFinite
+            && frame.maxX.isFinite
+            && frame.maxY.isFinite
+    }
+
+    private func visibleScrollRegion(for surface: XCUIElement) -> CGRect {
+        let appFrame = app.frame
+        let surfaceTop = [
+            "terminal",
+            "files",
+            "git",
+            "preview",
+            "secrets",
+            "details",
+        ].compactMap { identifier -> CGFloat? in
+            let control = app.buttons["workspace.surface.\(identifier)"]
+            guard control.exists, isFiniteNonempty(control.frame) else { return nil }
+            return control.frame.minY
+        }.min()
+
+        guard let surfaceTop else { return .null }
+        let unobscuredAppFrame = CGRect(
+            x: appFrame.minX,
+            y: appFrame.minY,
+            width: appFrame.width,
+            height: Swift.max(0, surfaceTop - appFrame.minY)
+        )
+        let visible = surface.frame
+            .intersection(appFrame)
+            .intersection(unobscuredAppFrame)
+        guard isFiniteNonempty(visible) else { return .null }
+        return visible.insetBy(
+            dx: Swift.min(16, visible.width * 0.1),
+            dy: Swift.min(16, visible.height * 0.1)
+        )
+    }
+
+    private func drag(_ surface: XCUIElement, upward: Bool) {
+        let start = surface.coordinate(
+            withNormalizedOffset: CGVector(dx: 0.5, dy: 0.50)
+        )
+        let end = surface.coordinate(
+            withNormalizedOffset: CGVector(dx: 0.5, dy: upward ? 0.35 : 0.65)
+        )
+        start.press(forDuration: 0.05, thenDragTo: end)
+    }
+
+    private func dragApplication(in region: CGRect, upward: Bool, travelFraction: CGFloat) {
+        let travel = region.height * travelFraction
+        let direction: CGFloat = upward ? 1 : -1
+        let startPoint = CGPoint(
+            x: region.midX,
+            y: region.midY + direction * travel / 2
+        )
+        let endPoint = CGPoint(
+            x: region.midX,
+            y: region.midY - direction * travel / 2
+        )
+        let start = applicationCoordinate(at: startPoint)
+        let end = applicationCoordinate(at: endPoint)
+        start.press(forDuration: 0.05, thenDragTo: end)
+    }
+
+    private func applicationCoordinate(at point: CGPoint) -> XCUICoordinate {
+        let frame = app.frame
+        let normalizedX = Swift.min(
+            1,
+            Swift.max(0, (point.x - frame.minX) / frame.width)
+        )
+        let normalizedY = Swift.min(
+            1,
+            Swift.max(0, (point.y - frame.minY) / frame.height)
+        )
+        return app.coordinate(
+            withNormalizedOffset: CGVector(dx: normalizedX, dy: normalizedY)
+        )
+    }
+
     func testWorkspaceDashboardAndCreationFlowAreAccessible() {
         XCTAssertTrue(app.buttons["workspace.new"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["workspace.card.11111111-1111-4111-8111-111111111111"].exists)
         app.buttons["workspace.new"].tap()
         XCTAssertTrue(app.buttons["new-workspace.repository.repo-codex-mobile"].waitForExistence(timeout: 3))
         app.buttons["new-workspace.repository.repo-codex-mobile"].tap()
-        XCTAssertTrue(app.buttons["new-workspace.start"].exists)
-        XCTAssertTrue(app.buttons["new-workspace.start"].isHittable)
+        assertReachable(app.buttons["new-workspace.start"])
     }
 
     func testApprovalRequiresAuthenticatedInAppReview() {
         app.tabBars.buttons["Activity"].tap()
         XCTAssertTrue(app.buttons["activity.approval-1"].waitForExistence(timeout: 3))
         app.buttons["activity.approval-1"].tap()
-        XCTAssertTrue(app.buttons["approval.approve"].waitForExistence(timeout: 3))
-        XCTAssertTrue(app.buttons["approval.deny"].exists)
+        assertReachable(app.buttons["approval.approve"])
+        assertReachable(app.buttons["approval.deny"])
     }
 
     func testCoreNavigationLabelsExist() {
@@ -53,16 +235,41 @@ final class CodexMobileUITests: XCTestCase {
         let gitSurface = app.buttons["workspace.surface.git"]
         XCTAssertTrue(gitSurface.exists)
         gitSurface.tap()
-        let diff = app.buttons["git.diff.Sources/App.swift"]
-        XCTAssertTrue(diff.waitForExistence(timeout: 5))
+        XCTAssertTrue(gitSurface.isSelected, "The Git surface control did not become selected.")
+        let gitList = app.collectionViews["git.status.list"]
+        XCTAssertTrue(gitList.waitForExistence(timeout: 5), "The Git status list did not load.")
+        let diffIdentifier = "git.diff.staged:Sources/App.swift"
+        let diff = app.buttons[diffIdentifier]
+        assertReachable(diff, scrollSurface: gitList)
+        XCTAssertEqual(app.buttons.matching(identifier: diffIdentifier).count, 1)
+        for surfaceIdentifier in [
+            "terminal",
+            "files",
+            "git",
+            "preview",
+            "secrets",
+            "details",
+        ] {
+            let control = app.buttons["workspace.surface.\(surfaceIdentifier)"]
+            if control.exists, control.isHittable {
+                XCTAssertFalse(
+                    diff.frame.intersects(control.frame),
+                    "The diff row overlaps the \(surfaceIdentifier) surface control."
+                )
+            }
+        }
         diff.tap()
-        XCTAssertTrue(app.navigationBars["Sources/App.swift"].waitForExistence(timeout: 3))
+        let loadedDiff = app.staticTexts["git.diff.review.loaded"]
+        XCTAssertTrue(
+            loadedDiff.waitForExistence(timeout: 10),
+            "The diff destination did not load. Accessibility hierarchy:\n\(app.debugDescription)"
+        )
     }
 
     func testSettingsFlowRemainsReachableAtAccessibilityTextSize() {
         app.tabBars.buttons["Settings"].tap()
         XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.buttons["settings.save"].exists)
-        XCTAssertTrue(app.buttons["settings.sign-out"].exists)
+        assertReachable(app.buttons["settings.save"])
+        assertReachable(app.buttons["settings.sign-out"])
     }
 }

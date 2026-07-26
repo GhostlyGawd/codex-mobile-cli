@@ -27,7 +27,7 @@ enum PushNotificationRegistration {
 }
 
 @MainActor
-final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
+final class AppDelegate: NSObject, UIApplicationDelegate, @MainActor UNUserNotificationCenterDelegate {
     private let coldStartDeepLinks = ColdStartDeepLinkInbox()
 
     func application(

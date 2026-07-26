@@ -434,8 +434,8 @@ actor HTTPAPIClient: CodexMobileAPI {
               queryIsSafe,
               (32...512).contains(descriptor.connectionTicket.utf8.count),
               Self.validIdentifier(descriptor.deviceID),
-              descriptor.reconnectToken.map { (32...512).contains($0.utf8.count) } ?? true,
-              descriptor.leaseHolderDeviceID.map { Self.validIdentifier($0) } ?? true,
+              descriptor.reconnectToken.map({ (32...512).contains($0.utf8.count) }) ?? true,
+              descriptor.leaseHolderDeviceID.map({ Self.validIdentifier($0) }) ?? true,
               descriptor.protocolVersion == TerminalFrame.protocolVersion,
               descriptor.maximumFrameBytes >= 1_024,
               descriptor.maximumFrameBytes <= 1_048_576 else {
@@ -892,11 +892,11 @@ actor HTTPAPIClient: CodexMobileAPI {
         let problem = try? JSONDecoder.codex.decode(APIProblem.self, from: Data(data.prefix(4_096)))
         let message = problem?.detail ?? problem?.title ?? HTTPURLResponse.localizedString(forStatusCode: status)
         switch status {
-        case 401: .unauthorized
-        case 403: .forbidden(message)
-        case 409, 412: .conflict(message)
-        case 423, 429, 503: .unavailable(message)
-        default: .server(status: status, message: message)
+        case 401: return .unauthorized
+        case 403: return .forbidden(message)
+        case 409, 412: return .conflict(message)
+        case 423, 429, 503: return .unavailable(message)
+        default: return .server(status: status, message: message)
         }
     }
 

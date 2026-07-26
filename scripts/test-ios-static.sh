@@ -13,6 +13,8 @@ grep -Eq 'exactVersion: 0\.1\.10' apps/ios/project.yml
 grep -Eq 'exactVersion: 1\.11\.1' apps/ios/project.yml
 grep -Eq 'exactVersion: 1\.11\.0' apps/ios/project.yml
 grep -Eq 'plugin: OpenAPIGenerator' apps/ios/project.yml
+grep -Eq 'PRODUCT_NAME: CodexMobile' apps/ios/project.yml
+grep -Fq 'CFBundleDisplayName: $(APP_DISPLAY_NAME)' apps/ios/project.yml
 grep -Fq '592434a103a4d1ab83e14f87ac6eef569dd7a99d' apps/ios/Package.resolved
 grep -Fq '849e8a4f3d6f79ddee07152400137f1370c32621' apps/ios/Package.resolved
 grep -Fq '15cf3a9ec3ab95e0d058b7df9f35619123c9e02d' apps/ios/Package.resolved
@@ -55,6 +57,7 @@ grep -Fq 'expected_e_tag:' packages/api-contract/openapi.yaml
 grep -Eq 'SecretValue: \{type: string, minLength: 4, maxLength: 8192, writeOnly: true\}' packages/api-contract/openapi.yaml
 grep -Eq 'value_bytes: \{type: integer, minimum: 4, maximum: 8192\}' packages/api-contract/openapi.yaml
 grep -Eq 'enum: \[sandbox, production\]' packages/api-contract/openapi.yaml
+grep -Fq "'200': {description: 'Restore result, updated Git status, and pre-restore recovery identity', content:" packages/api-contract/openapi.yaml
 
 expected_routes="$(printf '%s\n' \
   'GET /v1/capabilities getCapabilities' \
@@ -185,6 +188,10 @@ grep -Fq 'detail.summary.lifecycle == .suspended' apps/ios/Sources/Features/Work
 grep -Fq 'showsFullAccessConfirmation' apps/ios/Sources/Features/Workspaces/WorkspaceScreen.swift
 grep -Fq 'Button("Use Full Access", role: .destructive)' apps/ios/Sources/Features/Workspaces/WorkspaceScreen.swift
 grep -Fq 'matching network policy and managed Codex configuration' apps/ios/Sources/Features/Workspaces/WorkspaceScreen.swift
+grep -Fq 'dynamicTypeSize.isAccessibilitySize' apps/ios/Sources/Features/Workspaces/WorkspaceScreen.swift
+grep -Fq 'LazyVGrid(' apps/ios/Sources/Features/Workspaces/WorkspaceScreen.swift
+grep -Fq 'count: 3' apps/ios/Sources/Features/Workspaces/WorkspaceScreen.swift
+grep -Fq 'workspace.surface.\(destination.rawValue)' apps/ios/Sources/Features/Workspaces/WorkspaceScreen.swift
 grep -Fq 'update_autonomy' packages/api-contract/openapi.yaml
 grep -Eq 'pendingDeepLinkRoute = route' apps/ios/Sources/App/AppModel.swift
 grep -Fq 'applyPendingDeepLinkIfReady()' apps/ios/Sources/App/AppModel.swift
@@ -192,6 +199,11 @@ grep -Fq 'consumeColdStartDeepLink()' apps/ios/Sources/App/CodexMobileApp.swift
 grep -Fq 'await model.bootstrap()' apps/ios/Sources/App/CodexMobileApp.swift
 grep -Fq 'launchOptions?[.remoteNotification]' apps/ios/Sources/Notifications/PushNotifications.swift
 grep -Fq 'coldStartDeepLinks.store(url)' apps/ios/Sources/Notifications/PushNotifications.swift
+grep -Fq '@MainActor UNUserNotificationCenterDelegate' apps/ios/Sources/Notifications/PushNotifications.swift
+grep -Fq 'if #available(iOS 17.4, *) {' apps/ios/Sources/Authentication/PasskeyClient.swift
+grep -Fq 'request.excludedCredentials = excludedCredentials' apps/ios/Sources/Authentication/PasskeyClient.swift
+grep -Fq '} else if !excludedCredentials.isEmpty {' apps/ios/Sources/Authentication/PasskeyClient.swift
+grep -Fq 'throw ClientError.unavailable("Adding another passkey requires iOS 17.4 or later.")' apps/ios/Sources/Authentication/PasskeyClient.swift
 grep -Fq 'testValidatedLinkWaitsForSessionBootstrap' apps/ios/Tests/ColdStartDeepLinkTests.swift
 grep -Eq 'StructuredApprovalsAvailable:[[:space:]]*true' services/control-plane/internal/application/passkeys.go
 grep -Fq '0x2028...0x202E' apps/ios/Sources/Security/HostileDisplayText.swift
@@ -203,11 +215,26 @@ grep -Fq 'HostileDisplayText.sanitized(result.path)' apps/ios/Sources/Features/F
 grep -Fq 'FileEditorView(workspaceID: workspaceID, path: result.path)' apps/ios/Sources/Features/Files/WorkspaceFilesView.swift
 grep -Fq 'HostileDisplayText.sanitized(change.path)' apps/ios/Sources/Features/Git/WorkspaceGitView.swift
 grep -Fq 'path: change.path, staged: staged' apps/ios/Sources/Features/Git/WorkspaceGitView.swift
+grep -Fq 'accessibilityIdentifier("git.status.list")' apps/ios/Sources/Features/Git/WorkspaceGitView.swift
+grep -Fq 'app.collectionViews["git.status.list"]' apps/ios/UITests/CodexMobileUITests.swift
+grep -Fq 'visibleScrollRegion(for:' apps/ios/UITests/CodexMobileUITests.swift
 grep -Fq 'terminalTitle = HostileDisplayText.sanitized' apps/ios/Sources/Terminal/TerminalSessionModel.swift
 grep -Fq 'testTerminalDerivedTitlesAndCloseReasonsAreSafeDisplayText' apps/ios/Tests/TerminalSessionModelTests.swift
 grep -Fq 'isServerUnavailable = Self.isServerAvailabilityFailure' apps/ios/Sources/App/AppModel.swift
 grep -Fq 'Server unavailable — cached data is read only' apps/ios/Sources/App/RootView.swift
 grep -Fq 'This app cannot recreate the server' apps/ios/Sources/App/RootView.swift
+grep -Fq 'List(selection: sidebarSelection)' apps/ios/Sources/App/RootView.swift
+grep -Fq 'ForEach(AppSection.allCases)' apps/ios/Sources/App/RootView.swift
+grep -Fq 'private var sidebarSelection: Binding<AppSection?>' apps/ios/Sources/App/RootView.swift
+grep -Fq 'guard let proposedSelection else { return }' apps/ios/Sources/App/RootView.swift
+if grep -Fq 'List(selection: $selection)' apps/ios/Sources/App/RootView.swift; then
+  echo "iOS sidebar selection must use an optional Binding because the nonoptional List selection overload is unavailable" >&2
+  exit 1
+fi
+if grep -Fq 'List(AppSection.allCases, selection: $selection)' apps/ios/Sources/App/RootView.swift; then
+  echo "regular-width navigation must use the iOS-supported List(selection:) content initializer" >&2
+  exit 1
+fi
 grep -Fq 'repository_id' apps/ios/Tests/JSONCodingContractTests.swift
 grep -Fq 'content_base64' apps/ios/Tests/JSONCodingContractTests.swift
 grep -Fq 'SecureField("Secret value"' apps/ios/Sources/Features/Settings/SecretsSettingsView.swift
@@ -246,7 +273,9 @@ fi
 grep -Eq 'websiteDataStore = \.nonPersistent\(\)' apps/ios/Sources/Preview/HostilePreviewWebView.swift
 grep -Eq 'async -> WKNavigationActionPolicy' apps/ios/Sources/Preview/HostilePreviewWebView.swift
 grep -Fq 'requestMediaCapturePermissionFor' apps/ios/Sources/Preview/HostilePreviewWebView.swift
-grep -Fq 'decisionHandler(.deny)' apps/ios/Sources/Preview/HostilePreviewWebView.swift
+grep -Fq 'requestDeviceOrientationAndMotionPermissionFor' apps/ios/Sources/Preview/HostilePreviewWebView.swift
+[[ "$(grep -Fc 'decisionHandler: @escaping @MainActor @Sendable (WKPermissionDecision) -> Void' apps/ios/Sources/Preview/HostilePreviewWebView.swift)" -eq 2 ]]
+[[ "$(grep -Fc 'decisionHandler(.deny)' apps/ios/Sources/Preview/HostilePreviewWebView.swift)" -eq 2 ]]
 grep -Fq '#details' apps/ios/Tests/PreviewOriginPolicyTests.swift
 grep -Fq 'XCTAssertTrue(policy.permits(withFragment))' apps/ios/Tests/PreviewOriginPolicyTests.swift
 grep -Fq 'terminalHistories' apps/ios/Sources/Security/EncryptedOfflineCache.swift
@@ -264,5 +293,7 @@ grep -Fq 'resetTerminalHistory' apps/ios/Sources/Terminal/TerminalSessionModel.s
 grep -Fq 'mayRefresh: request.reconnectToken == nil' apps/ios/Sources/Networking/HTTPAPIClient.swift
 grep -Eq '\.task\(id: model\.network\.isConnected\)' apps/ios/Sources/Features/Terminal/TerminalWorkspaceView.swift
 grep -Fq 'cp Package.resolved' scripts/generate-ios-project.sh
+grep -Fq -- '-onlyUsePackageVersionsFromResolvedFile' .github/workflows/ios.yml
+grep -Fq -- '-skipPackagePluginValidation' .github/workflows/ios.yml
 
 echo 'iOS static policy checks passed. Swift compilation requires the hosted Xcode gate; device-only behavior remains owner-gated.'

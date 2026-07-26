@@ -26,7 +26,7 @@ On macOS with the pinned Xcode/XcodeGen versions:
 
 ```shell
 ./scripts/generate-ios-project.sh
-xcodebuild -project apps/ios/CodexMobile.xcodeproj -scheme CodexMobile -destination 'platform=iOS Simulator,name=iPhone 17 Pro' test
+xcodebuild -project apps/ios/CodexMobile.xcodeproj -scheme CodexMobile -destination 'platform=iOS Simulator,name=iPhone 17 Pro' -onlyUsePackageVersionsFromResolvedFile -skipPackagePluginValidation CODE_SIGNING_ALLOWED=NO test
 ```
 
 Run `pwsh ./scripts/verify.ps1` or `./scripts/verify.sh` before handoff. If a platform tool is unavailable, record the exact skipped check in `docs/verification/ACCEPTANCE.md`; do not report it as passing.

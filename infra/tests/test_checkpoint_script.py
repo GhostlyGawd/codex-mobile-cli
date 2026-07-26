@@ -19,7 +19,16 @@ SCRIPT = ROOT / "scripts" / "infra-checkpoint.sh"
 )
 class CheckpointScriptTests(unittest.TestCase):
     def setUp(self) -> None:
-        for executable in ("awk", "df", "flock", "gzip", "mkfifo", "sync", "tar"):
+        for executable in (
+            "awk",
+            "dd",
+            "df",
+            "flock",
+            "gzip",
+            "mkfifo",
+            "sync",
+            "tar",
+        ):
             if shutil.which(executable) is None:
                 self.skipTest(f"{executable} is required")
 
@@ -87,7 +96,7 @@ class CheckpointScriptTests(unittest.TestCase):
             "printf '%s\\n' 'truncated output'\nexit 7\n"
         )
         result = self.run_script(["--database"], environment)
-        self.assertNotEqual(result.returncode, 0)
+        self.assertNotEqual(result.returncode, 0, result.stderr)
         self.assertEqual(
             list((checkpoint_root / "database").glob("postgres-*.sql.gz")), []
         )
@@ -124,7 +133,7 @@ esac
         podman.chmod(0o700)
         environment["PATH"] = str(fake_bin) + os.pathsep + environment["PATH"]
         result = self.run_script(["--workspace", "ws-123"], environment)
-        self.assertNotEqual(result.returncode, 0)
+        self.assertNotEqual(result.returncode, 0, result.stderr)
         self.assertIn("not a valid tar archive", result.stderr)
         self.assertEqual(list((checkpoint_root / "workspaces").glob("*.tar.gz")), [])
         self.assert_no_staging_files(checkpoint_root)

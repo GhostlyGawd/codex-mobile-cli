@@ -15,7 +15,9 @@ DEVELOPER_DIR=/Applications/Xcode_26.6.app/Contents/Developer ./scripts/generate
 DEVELOPER_DIR=/Applications/Xcode_26.6.app/Contents/Developer \
   xcodebuild -resolvePackageDependencies \
   -project apps/ios/CodexMobile.xcodeproj \
-  -scheme CodexMobile
+  -scheme CodexMobile \
+  -onlyUsePackageVersionsFromResolvedFile \
+  -skipPackagePluginValidation
 DEVELOPER_DIR=/Applications/Xcode_26.6.app/Contents/Developer \
   xcodebuild -showdestinations \
   -project apps/ios/CodexMobile.xcodeproj \
@@ -24,12 +26,16 @@ DEVELOPER_DIR=/Applications/Xcode_26.6.app/Contents/Developer \
   xcodebuild -project apps/ios/CodexMobile.xcodeproj \
   -scheme CodexMobile \
   -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
-  test
+  -onlyUsePackageVersionsFromResolvedFile \
+  -skipPackagePluginValidation \
+  CODE_SIGNING_ALLOWED=NO test
 DEVELOPER_DIR=/Applications/Xcode_26.6.app/Contents/Developer \
   xcodebuild -project apps/ios/CodexMobile.xcodeproj \
   -scheme CodexMobile \
   -destination 'platform=iOS Simulator,name=iPad Pro 13-inch (M5)' \
-  test
+  -onlyUsePackageVersionsFromResolvedFile \
+  -skipPackagePluginValidation \
+  CODE_SIGNING_ALLOWED=NO test
 ```
 
 Use the exact device names printed by `-showdestinations` if the local simulator set differs. Project generation synchronizes `packages/api-contract/openapi.yaml` into the app target before Xcode invokes the pinned OpenAPI build plugin. Before a private TestFlight archive, configure `Local.xcconfig`, then enable Associated Domains plus Push Notifications for the final App ID. Those signing and domain steps cannot be completed with checked-in example identifiers.

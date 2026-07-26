@@ -16,6 +16,8 @@ Assert-Contains (Join-Path $ios 'project.yml') 'SwiftOpenAPIGenerator:[\s\S]*exa
 Assert-Contains (Join-Path $ios 'project.yml') 'OpenAPIRuntime:[\s\S]*exactVersion:\s*1\.11\.0' 'Swift OpenAPI Runtime must remain pinned to 1.11.0.'
 Assert-Contains (Join-Path $ios 'project.yml') 'buildToolPlugins:[\s\S]*plugin:\s*OpenAPIGenerator' 'The native target must compile a generated OpenAPI client.'
 Assert-Contains (Join-Path $ios 'project.yml') 'deploymentTarget:\s*"17\.0"' 'The iOS deployment target must remain 17.0.'
+Assert-Contains (Join-Path $ios 'project.yml') 'PRODUCT_NAME:\s*CodexMobile' 'The executable product name must remain stable for the unit-test host.'
+Assert-Contains (Join-Path $ios 'project.yml') 'CFBundleDisplayName:\s*\$\(APP_DISPLAY_NAME\)' 'The user-facing app name must remain separate from the executable product name.'
 Assert-Contains (Join-Path $ios 'Package.resolved') '592434a103a4d1ab83e14f87ac6eef569dd7a99d' 'Runestone lockfile revision changed.'
 Assert-Contains (Join-Path $ios 'Package.resolved') '849e8a4f3d6f79ddee07152400137f1370c32621' 'SwiftTerm lockfile revision changed.'
 Assert-Contains (Join-Path $ios 'Package.resolved') '15cf3a9ec3ab95e0d058b7df9f35619123c9e02d' 'TreeSitterLanguages lockfile revision changed.'
@@ -82,6 +84,7 @@ Assert-Contains $openAPI 'expected_e_tag:' 'OpenAPI expected_e_tag spelling chan
 Assert-Contains $openAPI 'SecretValue:\s*\{type:\s*string,\s*minLength:\s*4,\s*maxLength:\s*8192,\s*writeOnly:\s*true\}' 'Secret values must remain 4-8192 bytes so mandatory terminal redaction can fail closed.'
 Assert-Contains $openAPI 'value_bytes:\s*\{type:\s*integer,\s*minimum:\s*4,\s*maximum:\s*8192\}' 'Secret metadata bounds must match the accepted plaintext contract.'
 Assert-Contains $openAPI 'enum:\s*\[sandbox, production\]' 'OpenAPI APNs environments must remain sandbox and production.'
+Assert-Contains $openAPI '''200'':\s*\{description:\s*''Restore result, updated Git status, and pre-restore recovery identity'',\s*content:' 'OpenAPI response descriptions containing flow-mapping commas must remain quoted.'
 
 $expectedRoutes = @(
     'GET /v1/capabilities getCapabilities'
@@ -210,6 +213,10 @@ Assert-Contains $workspaceUI 'detail\.summary\.lifecycle\s*==\s*\.suspended' 'Wo
 Assert-Contains $workspaceUI 'showsFullAccessConfirmation' 'Workspace Full Access changes must require explicit confirmation.'
 Assert-Contains $workspaceUI 'Button\("Use Full Access",\s*role:\s*\.destructive\)' 'Workspace Full Access confirmation must be destructive.'
 Assert-Contains $workspaceUI 'matching network policy and managed Codex configuration' 'Workspace autonomy UI must explain the atomic resume boundary.'
+Assert-Contains $workspaceUI 'dynamicTypeSize\.isAccessibilitySize' 'Workspace surface navigation must adapt at accessibility Dynamic Type sizes.'
+Assert-Contains $workspaceUI 'LazyVGrid\(' 'Workspace surface navigation must use a bounded grid at accessibility Dynamic Type sizes.'
+Assert-Contains $workspaceUI 'count:\s*3' 'Workspace accessibility surface navigation must retain a deterministic three-column layout.'
+Assert-Contains $workspaceUI 'workspace\.surface\.\\\(destination\.rawValue\)' 'Workspace surface controls must retain stable accessibility identifiers.'
 Assert-Contains $openAPI 'update_autonomy' 'OpenAPI must expose the suspended workspace autonomy transition.'
 $appModel = Join-Path $ios 'Sources/App/AppModel.swift'
 Assert-Contains $appModel 'pendingDeepLinkRoute = route' 'Validated deep links must wait for authenticated navigation instead of being dropped during session restore.'
@@ -220,6 +227,9 @@ Assert-Contains $appEntry 'await model.bootstrap' 'The app entry point must boot
 $pushNotifications = Join-Path $ios 'Sources/Notifications/PushNotifications.swift'
 Assert-Contains $pushNotifications 'remoteNotification' 'Cold-launch APNs payloads must be captured before SwiftUI subscriptions are installed.'
 Assert-Contains $pushNotifications 'coldStartDeepLinks.store' 'Notification deep links must be retained until the app model can consume them.'
+Assert-Contains $pushNotifications '@MainActor UNUserNotificationCenterDelegate' 'The notification-center delegate conformance must remain explicitly main-actor isolated under Swift 6.'
+$passkeyClient = Join-Path $ios 'Sources/Authentication/PasskeyClient.swift'
+Assert-Contains $passkeyClient 'if #available\(iOS 17\.4, \*\)\s*\{\s*request\.excludedCredentials = excludedCredentials\s*\}\s*else if !excludedCredentials\.isEmpty\s*\{\s*throw ClientError\.unavailable\("Adding another passkey requires iOS 17\.4 or later\."\)\s*\}' 'The iOS 17.4 passkey exclusion API must remain availability-guarded and fail closed for additional registration on iOS 17.0-17.3.'
 $coldStartTests = Join-Path $ios 'Tests/ColdStartDeepLinkTests.swift'
 Assert-Contains $coldStartTests 'testValidatedLinkWaitsForSessionBootstrap' 'iOS tests must cover a deep link arriving before session bootstrap.'
 Assert-Contains (Join-Path $root 'services/control-plane/internal/application/passkeys.go') 'StructuredApprovalsAvailable: true' 'The control plane must advertise its internally structured setup approvals.'
@@ -236,6 +246,10 @@ Assert-Contains $filesUI 'path: result[.]path' 'File API navigation must retain 
 $gitUI = Join-Path $ios 'Sources/Features/Git/WorkspaceGitView.swift'
 Assert-Contains $gitUI 'HostileDisplayText[.]sanitized[(]change[.]path[)]' 'Git filename labels must be sanitized.'
 Assert-Contains $gitUI 'path: change[.]path, staged: staged' 'Git API operations must retain the raw repository path.'
+Assert-Contains $gitUI 'accessibilityIdentifier\("git[.]status[.]list"\)' 'The Git status list must retain a stable accessibility scroll-surface identifier.'
+$workspaceUITests = Join-Path $ios 'UITests/CodexMobileUITests.swift'
+Assert-Contains $workspaceUITests 'app[.]collectionViews\["git[.]status[.]list"\]' 'Accessibility UI tests must target the identified Git status list.'
+Assert-Contains $workspaceUITests 'visibleScrollRegion\(for:' 'Accessibility UI tests must keep scroll gestures above the workspace navigation controls.'
 $terminalModel = Join-Path $ios 'Sources/Terminal/TerminalSessionModel.swift'
 Assert-Contains $terminalModel 'terminalTitle = HostileDisplayText.sanitized' 'Terminal-controlled window titles must be sanitized before display state.'
 Assert-Contains (Join-Path $ios 'Tests/TerminalSessionModelTests.swift') 'testTerminalDerivedTitlesAndCloseReasonsAreSafeDisplayText' 'Terminal tests must cover hostile title and close-reason labels.'
@@ -243,6 +257,17 @@ $rootView = Join-Path $ios 'Sources/App/RootView.swift'
 Assert-Contains $appModel 'isServerUnavailable = Self.isServerAvailabilityFailure' 'Server reachability must be tracked independently from device network reachability.'
 Assert-Contains $rootView 'Server unavailable — cached data is read only' 'The native app must persistently distinguish an unreachable server from device offline state.'
 Assert-Contains $rootView 'This app cannot recreate the server' 'The server-unavailable surface must explain the VPS-loss recovery boundary.'
+Assert-Contains $rootView 'List\(selection:\s*sidebarSelection\)' 'Regular-width navigation must use the iOS-supported optional selection binding.'
+Assert-Contains $rootView 'ForEach\(AppSection\.allCases\)' 'Regular-width navigation must render every application section inside List(selection:).'
+Assert-Contains $rootView 'private var sidebarSelection:\s*Binding<AppSection\?>' 'The sidebar must adapt shared nonoptional navigation state to the optional selection binding available on iOS.'
+Assert-Contains $rootView 'guard let proposedSelection else \{ return \}' 'Clearing the sidebar selection must not erase the shared TabView and detail selection.'
+$rootViewText = Get-Content -Raw $rootView
+if ($rootViewText -match 'List\(selection:\s*\$selection\)') {
+    throw 'The nonoptional List selection overload is unavailable on iOS; pass an explicit Binding<AppSection?>.'
+}
+if ($rootViewText -match 'List\(AppSection\.allCases,\s*selection:\s*\$selection\)') {
+    throw 'The data-and-selection List initializer is unavailable on iOS; use List(selection:) with ForEach.'
+}
 Assert-Contains $codingTests 'repository_id' 'JSON coding tests must cover secret repository scope.'
 Assert-Contains $codingTests 'content_base64' 'JSON coding tests must cover attachment base64 encoding.'
 
@@ -296,8 +321,17 @@ if ($webView -notmatch 'websiteDataStore\s*=\s*\.nonPersistent\(\)') {
 if ($webView -notmatch 'async\s*->\s*WKNavigationActionPolicy') {
     throw 'Hostile preview navigation must use the Swift concurrency policy callback.'
 }
-if ($webView -notmatch 'requestMediaCapturePermissionFor' -or $webView -notmatch 'decisionHandler\(\.deny\)') {
-    throw 'Hostile preview must explicitly deny device media permissions.'
+if ($webView -notmatch 'requestMediaCapturePermissionFor' -or
+    $webView -notmatch 'requestDeviceOrientationAndMotionPermissionFor' -or
+    ([regex]::Matches(
+        $webView,
+        [regex]::Escape('decisionHandler: @escaping @MainActor @Sendable (WKPermissionDecision) -> Void')
+    )).Count -ne 2 -or
+    ([regex]::Matches(
+        $webView,
+        [regex]::Escape('decisionHandler(.deny)')
+    )).Count -ne 2) {
+    throw 'Hostile preview must explicitly deny media capture and device motion permissions.'
 }
 $previewPolicyTests = Join-Path $ios 'Tests/PreviewOriginPolicyTests.swift'
 Assert-Contains $previewPolicyTests '#details' 'Preview-origin tests must cover same-origin fragment navigation.'
@@ -329,5 +363,8 @@ $terminalWorkspace = Join-Path $ios 'Sources/Features/Terminal/TerminalWorkspace
 Assert-Contains $terminalWorkspace '\.task\(id:\s*model\.network\.isConnected\)' 'Terminal tabs must resynchronize when connectivity changes.'
 
 Assert-Contains (Join-Path $root 'scripts/generate-ios-project.ps1') 'Copy-Item\s+''Package\.resolved''' 'PowerShell generation must install the pinned Swift package lockfile.'
+$iosWorkflow = Join-Path $root '.github/workflows/ios.yml'
+Assert-Contains $iosWorkflow '-onlyUsePackageVersionsFromResolvedFile' 'Hosted Xcode must use only the checked-in resolved package versions.'
+Assert-Contains $iosWorkflow '-skipPackagePluginValidation' 'Hosted Xcode must non-interactively enable the pinned OpenAPI build plugin.'
 
 Write-Host 'iOS static policy checks passed. Swift compilation requires the hosted Xcode gate; device-only behavior remains owner-gated.'

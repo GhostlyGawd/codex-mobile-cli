@@ -15,11 +15,11 @@ private final class NoRedirectSessionDelegate: NSObject, URLSessionTaskDelegate,
 
 struct WorkspaceGitView: View {
     @Environment(AppModel.self) private var model
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let workspaceID: String
     let baseBranch: String
 
     @State private var status: GitStatusDetail?
-    @State private var selectedDiffPath: String?
     @State private var showsCommit = false
     @State private var showsPullRequest = false
     @State private var pullRequestResult: PullRequestResult?
@@ -133,14 +133,16 @@ struct WorkspaceGitView: View {
                     }
                     if let errorMessage { Section { Text(errorMessage).foregroundStyle(.red) } }
                 }
+                .accessibilityIdentifier("git.status.list")
             } else if !cachedDiffs.isEmpty {
                 List(cachedDiffs) { diff in
-                    Button {
-                        selectedDiffPath = diff.path
+                    NavigationLink {
+                        GitDiffView(workspaceID: workspaceID, path: diff.path)
                     } label: {
                         Label(HostileDisplayText.sanitized(diff.path), systemImage: "doc.text.magnifyingglass")
                             .font(.subheadline.monospaced())
                     }
+                    .accessibilityIdentifier("git.diff.cached:\(diff.path)")
                 }
                 .safeAreaInset(edge: .top, spacing: 0) {
                     Label("Offline cached diffs — read only", systemImage: "lock.fill")
@@ -157,14 +159,6 @@ struct WorkspaceGitView: View {
         }
         .refreshable { await load() }
         .task(id: model.network.isConnected) { await load() }
-        .sheet(isPresented: Binding(
-            get: { selectedDiffPath != nil },
-            set: { if !$0 { selectedDiffPath = nil } }
-        )) {
-            if let path = selectedDiffPath {
-                NavigationStack { GitDiffView(workspaceID: workspaceID, path: path) }
-            }
-        }
         .sheet(isPresented: $showsCommit) {
             CommitSheet { request in
                 await run { try await model.api.commit(workspaceID: workspaceID, request: request) }
@@ -240,37 +234,59 @@ struct WorkspaceGitView: View {
         if !changes.isEmpty {
             Section(title) {
                 ForEach(changes) { change in
-                    HStack {
-                        Button {
-                            selectedDiffPath = change.path
-                        } label: {
-                            VStack(alignment: .leading) {
-                                Text(HostileDisplayText.sanitized(change.path)).font(.subheadline.monospaced()).foregroundStyle(.primary)
-                                Text(HostileDisplayText.sanitized(change.status)).font(.caption).foregroundStyle(.secondary)
+                    if dynamicTypeSize.isAccessibilitySize {
+                        VStack(alignment: .leading, spacing: 12) {
+                            diffLink(for: change)
+                            if group != .conflicted {
+                                changeActions(for: change, group: group)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
                             }
                         }
-                        .buttonStyle(.plain)
-                        .accessibilityIdentifier("git.diff.\(HostileDisplayText.sanitized(change.path))")
-                        .accessibilityHint("Opens the read-only diff for this file")
-                        Spacer()
-                        if group != .conflicted {
-                            Button(group == .staged ? "Unstage" : "Stage") {
-                                Task { await stage(change, staged: group != .staged) }
-                            }
-                            .buttonStyle(.bordered)
-                            .controlSize(.small)
-                            .disabled(isWorking || !model.network.isConnected)
-                        }
-                        if group == .staged || group == .unstaged {
-                            Button("Discard…", role: .destructive) {
-                                pendingDiscardPath = change.path
-                            }
-                            .buttonStyle(.bordered)
-                            .controlSize(.small)
-                            .disabled(isWorking || !model.network.isConnected)
+                    } else {
+                        HStack {
+                            diffLink(for: change)
+                            Spacer()
+                            changeActions(for: change, group: group)
                         }
                     }
                 }
+            }
+        }
+    }
+
+    private func diffLink(for change: GitFileChange) -> some View {
+        NavigationLink {
+            GitDiffView(workspaceID: workspaceID, path: change.path)
+        } label: {
+            VStack(alignment: .leading) {
+                Text(HostileDisplayText.sanitized(change.path)).font(.subheadline.monospaced()).foregroundStyle(.primary)
+                Text(HostileDisplayText.sanitized(change.status)).font(.caption).foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("git.diff.\(change.id)")
+        .accessibilityHint("Opens the read-only diff for this file")
+    }
+
+    private func changeActions(for change: GitFileChange, group: GitChangeGroup) -> some View {
+        HStack(spacing: 8) {
+            if group != .conflicted {
+                Button(group == .staged ? "Unstage" : "Stage") {
+                    Task { await stage(change, staged: group != .staged) }
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .disabled(isWorking || !model.network.isConnected)
+            }
+            if group == .staged || group == .unstaged {
+                Button("Discard…", role: .destructive) {
+                    pendingDiscardPath = change.path
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .disabled(isWorking || !model.network.isConnected)
             }
         }
     }
@@ -549,12 +565,22 @@ private struct GitDiffView: View {
     var body: some View {
         Group {
             if let diff, let text = diff.unifiedDiff {
-                ScrollView([.horizontal, .vertical]) {
-                    Text(text)
-                        .font(.caption.monospaced())
-                        .textSelection(.enabled)
-                        .padding()
+                VStack(spacing: 0) {
+                    Text("Read-only diff")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal)
+                        .padding(.vertical, 8)
+                        .accessibilityIdentifier("git.diff.review.loaded")
+                    Divider()
+                    ScrollView([.horizontal, .vertical]) {
+                        Text(text)
+                            .font(.caption.monospaced())
+                            .textSelection(.enabled)
+                            .padding()
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
                 }
                 .safeAreaInset(edge: .top) {
                     if isStale { Text("Offline cached diff").font(.caption).padding(6).frame(maxWidth: .infinity).background(.orange.opacity(0.18)) }
@@ -581,7 +607,13 @@ private struct GitDiffView: View {
         }
         .navigationTitle(HostileDisplayText.sanitized(path))
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Close") { dismiss() } } }
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Close") { dismiss() }
+                    .accessibilityLabel("Close diff review for \(HostileDisplayText.sanitized(path))")
+                    .accessibilityIdentifier("git.diff.review.\(HostileDisplayText.sanitized(path)).close")
+            }
+        }
         .task(id: model.network.isConnected) { await load() }
     }
 

@@ -487,7 +487,7 @@ paths:
       description: Creates a pre-restore checkpoint, then applies the identity-bound v2 checkpoint delta over the current workspace. Paths outside the recorded delta are unchanged.
       requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/CheckpointRestoreWorkspaceRequest'}}}}
       responses:
-        '200': {description: Restore result, updated Git status, and pre-restore recovery identity, content: {application/json: {schema: {$ref: '#/components/schemas/CheckpointRestoreResult'}}}}
+        '200': {description: 'Restore result, updated Git status, and pre-restore recovery identity', content: {application/json: {schema: {$ref: '#/components/schemas/CheckpointRestoreResult'}}}}
         default: {$ref: '#/components/responses/Problem'}
   /v1/workspaces/{workspace_id}/previews:
     parameters: [{$ref: '#/components/parameters/WorkspaceID'}]

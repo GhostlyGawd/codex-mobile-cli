@@ -223,7 +223,7 @@ private extension Data {
         guard offset + MemoryLayout<T>.size <= count else { throw TerminalProtocolError.truncated }
         var value: T = 0
         let range = offset..<(offset + MemoryLayout<T>.size)
-        Swift.withUnsafeMutableBytes(of: &value) { destination in
+        _ = Swift.withUnsafeMutableBytes(of: &value) { destination in
             copyBytes(to: destination, from: range)
         }
         offset += MemoryLayout<T>.size

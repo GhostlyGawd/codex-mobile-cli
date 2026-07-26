@@ -155,15 +155,22 @@ final class JSONCodingContractTests: XCTestCase {
         {
           "id": "Y3JlZGVudGlhbA",
           "device_name": "iPhone",
-          "created_at": "2030-01-01T00:00:00Z",
-          "last_used_at": null
+          "created_at": "2030-01-01T00:00:00Z"
         }
         """#.utf8)
         let metadata = try JSONDecoder.codex.decode(PasskeyMetadata.self, from: metadataJSON)
         XCTAssertEqual(metadata.id, "Y3JlZGVudGlhbA")
         XCTAssertEqual(metadata.deviceName, "iPhone")
         XCTAssertNil(metadata.lastUsedAt)
-        XCTAssertEqual(try keys(metadata), ["created_at", "device_name", "id", "last_used_at"])
+        XCTAssertEqual(try keys(metadata), ["created_at", "device_name", "id"])
+
+        let usedMetadata = PasskeyMetadata(
+            id: metadata.id,
+            deviceName: metadata.deviceName,
+            createdAt: metadata.createdAt,
+            lastUsedAt: metadata.createdAt
+        )
+        XCTAssertEqual(try keys(usedMetadata), ["created_at", "device_name", "id", "last_used_at"])
     }
 
     func testPushEnvironmentUsesContractVocabulary() throws {

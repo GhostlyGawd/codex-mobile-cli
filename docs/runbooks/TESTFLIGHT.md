@@ -23,7 +23,10 @@ external actions; pause for explicit approval at each gate.
    bash ./scripts/generate-ios-project.sh
    xcodebuild -project apps/ios/CodexMobile.xcodeproj \
      -scheme CodexMobile \
-     -destination 'platform=iOS Simulator,name=iPhone 17 Pro' test
+     -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
+     -onlyUsePackageVersionsFromResolvedFile \
+     -skipPackagePluginValidation \
+     CODE_SIGNING_ALLOWED=NO test
    ```
 
 5. On physical iPhone and iPad, execute passkey, reconnect/TUI, approval deep
