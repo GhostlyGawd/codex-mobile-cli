@@ -21,7 +21,9 @@ final class CodexMobileUITests: XCTestCase {
         file: StaticString = #filePath,
         line: UInt = #line
     ) {
+        var firstFiniteFrame: CGRect?
         var lastFiniteFrame: CGRect?
+        var recentFiniteFrames: [CGRect] = []
         var correctionUpward: Bool?
         var previousAttemptHadFiniteFrame = false
 
@@ -32,7 +34,16 @@ final class CodexMobileUITests: XCTestCase {
             let hasFiniteFrame = isFiniteNonempty(frame)
 
             if hasFiniteFrame {
+                if firstFiniteFrame == nil {
+                    firstFiniteFrame = frame
+                }
                 lastFiniteFrame = frame
+                if recentFiniteFrames.last != frame {
+                    recentFiniteFrames.append(frame)
+                    if recentFiniteFrames.count > 4 {
+                        recentFiniteFrames.removeFirst()
+                    }
+                }
                 if element.isHittable {
                     return
                 }
@@ -56,9 +67,24 @@ final class CodexMobileUITests: XCTestCase {
             }
         }
 
+        let gitSurface = app.buttons["workspace.surface.git"]
+        let gitSurfaceFrame = gitSurface.exists ? gitSurface.frame : .null
         let frameDescription = lastFiniteFrame.map { "\($0)" } ?? "none"
+        let firstFrameDescription = firstFiniteFrame.map { "\($0)" } ?? "none"
+        let midpointDelta = if let firstFiniteFrame, let lastFiniteFrame {
+            lastFiniteFrame.midY - firstFiniteFrame.midY
+        } else {
+            0
+        }
         XCTFail(
-            "Could not scroll \(element) into a hittable position after \(maximumSwipes) drags; last finite frame: \(frameDescription)",
+            """
+            Could not scroll \(element) into a hittable position after \(maximumSwipes) gestures; \
+            app frame: \(app.frame); first finite frame: \(firstFrameDescription); \
+            last finite frame: \(frameDescription); midpoint delta: \(midpointDelta); \
+            workspace Git control frame: \(gitSurfaceFrame); \
+            target overlaps Git control: \(lastFiniteFrame?.intersects(gitSurfaceFrame) == true); \
+            recent finite frames: \(recentFiniteFrames)
+            """,
             file: file,
             line: line
         )
@@ -75,10 +101,10 @@ final class CodexMobileUITests: XCTestCase {
 
     private func dragApplication(upward: Bool) {
         let start = app.coordinate(
-            withNormalizedOffset: CGVector(dx: 0.5, dy: upward ? 0.70 : 0.30)
+            withNormalizedOffset: CGVector(dx: 0.5, dy: 0.50)
         )
         let end = app.coordinate(
-            withNormalizedOffset: CGVector(dx: 0.5, dy: upward ? 0.40 : 0.60)
+            withNormalizedOffset: CGVector(dx: 0.5, dy: upward ? 0.35 : 0.65)
         )
         start.press(forDuration: 0.05, thenDragTo: end)
     }
