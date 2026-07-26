@@ -146,10 +146,27 @@ final class CodexMobileUITests: XCTestCase {
         let gitSurface = app.buttons["workspace.surface.git"]
         XCTAssertTrue(gitSurface.exists)
         gitSurface.tap()
+        XCTAssertTrue(gitSurface.isSelected, "The Git surface control did not become selected.")
         let diffIdentifier = "git.diff.staged:Sources/App.swift"
         let diff = app.buttons[diffIdentifier]
         assertReachable(diff)
         XCTAssertEqual(app.buttons.matching(identifier: diffIdentifier).count, 1)
+        for surfaceIdentifier in [
+            "terminal",
+            "files",
+            "git",
+            "preview",
+            "secrets",
+            "details",
+        ] {
+            let control = app.buttons["workspace.surface.\(surfaceIdentifier)"]
+            if control.exists, control.isHittable {
+                XCTAssertFalse(
+                    diff.frame.intersects(control.frame),
+                    "The diff row overlaps the \(surfaceIdentifier) surface control."
+                )
+            }
+        }
         diff.tap()
         let loadedDiff = app.staticTexts["git.diff.review.loaded"]
         XCTAssertTrue(

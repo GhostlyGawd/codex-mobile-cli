@@ -25,6 +25,7 @@ private enum WorkspaceSurface: String, CaseIterable, Identifiable {
 struct WorkspaceScreen: View {
     @Environment(AppModel.self) private var model
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let workspaceID: String
 
     @State private var detail: WorkspaceDetail?
@@ -60,25 +61,55 @@ struct WorkspaceScreen: View {
             }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
+            surfaceNavigation
+        }
+        .task(id: model.network.isConnected) { await load() }
+    }
+
+    @ViewBuilder
+    private var surfaceNavigation: some View {
+        if dynamicTypeSize.isAccessibilitySize {
+            LazyVGrid(
+                columns: Array(
+                    repeating: GridItem(.flexible(minimum: 0), spacing: 6),
+                    count: 3
+                ),
+                spacing: 6
+            ) {
+                ForEach(WorkspaceSurface.allCases) { destination in
+                    surfaceButton(destination)
+                }
+            }
+            .padding(6)
+            .background(.bar)
+        } else {
             HStack {
                 ForEach(WorkspaceSurface.allCases) { destination in
-                    Button {
-                        surface = destination
-                    } label: {
-                        VStack(spacing: 3) {
-                            Image(systemName: destination.symbol)
-                            Text(destination.title).font(.caption2)
-                        }
-                        .frame(maxWidth: .infinity, minHeight: 44)
-                        .foregroundStyle(surface == destination ? Color.accentColor : Color.secondary)
-                    }
-                    .accessibilityIdentifier("workspace.surface.\(destination.rawValue)")
+                    surfaceButton(destination)
                 }
             }
             .padding(.horizontal, 6)
             .background(.bar)
         }
-        .task(id: model.network.isConnected) { await load() }
+    }
+
+    private func surfaceButton(_ destination: WorkspaceSurface) -> some View {
+        Button {
+            surface = destination
+        } label: {
+            VStack(spacing: 3) {
+                Image(systemName: destination.symbol)
+                Text(destination.title)
+                    .font(.caption2)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, minHeight: 44)
+            .contentShape(Rectangle())
+            .foregroundStyle(surface == destination ? Color.accentColor : Color.secondary)
+        }
+        .accessibilityIdentifier("workspace.surface.\(destination.rawValue)")
+        .accessibilityAddTraits(surface == destination ? .isSelected : [])
     }
 
     @ViewBuilder

@@ -188,6 +188,10 @@ grep -Fq 'detail.summary.lifecycle == .suspended' apps/ios/Sources/Features/Work
 grep -Fq 'showsFullAccessConfirmation' apps/ios/Sources/Features/Workspaces/WorkspaceScreen.swift
 grep -Fq 'Button("Use Full Access", role: .destructive)' apps/ios/Sources/Features/Workspaces/WorkspaceScreen.swift
 grep -Fq 'matching network policy and managed Codex configuration' apps/ios/Sources/Features/Workspaces/WorkspaceScreen.swift
+grep -Fq 'dynamicTypeSize.isAccessibilitySize' apps/ios/Sources/Features/Workspaces/WorkspaceScreen.swift
+grep -Fq 'LazyVGrid(' apps/ios/Sources/Features/Workspaces/WorkspaceScreen.swift
+grep -Fq 'count: 3' apps/ios/Sources/Features/Workspaces/WorkspaceScreen.swift
+grep -Fq 'workspace.surface.\(destination.rawValue)' apps/ios/Sources/Features/Workspaces/WorkspaceScreen.swift
 grep -Fq 'update_autonomy' packages/api-contract/openapi.yaml
 grep -Eq 'pendingDeepLinkRoute = route' apps/ios/Sources/App/AppModel.swift
 grep -Fq 'applyPendingDeepLinkIfReady()' apps/ios/Sources/App/AppModel.swift
