@@ -95,8 +95,27 @@ Recorded local evidence on 2026-07-16:
   called/imported-package vulnerabilities plus seven required-module
   vulnerabilities whose affected symbols are not called. `go-licenses` exited
   successfully; unlicensed first-party-package unknown classifications are not
-  errors. Detailed reports were ephemeral outside the repository. Built OCI
-  image scanning remains `GATED` and `NOT EXECUTED`.
+  errors. Detailed reports were ephemeral outside the repository.
+- Also on 2026-07-26, D-backed Ubuntu WSL built and runtime-checked release
+  `sha-88ccb962a2fd7f11c6b86749b1b0c95119ffa4a8`. The exact Podman image IDs
+  were control plane
+  `sha256:f2e275c9be9da96ae7ca8f3182152a44080ca5c519e1a3a2dc203d62327ca3e2`,
+  workspace
+  `sha256:5c69392a575f6737aefde346e413dd3ee44adf2128525120dc23e6339fd8e64d`,
+  and EnvBuilder
+  `sha256:958e6fb68ec8366c092fb93f8695ca08a8d546f404fa8ca2bf00734c9923ed76`.
+  The profile-3/schema-2 audit scanned those exact IDs with one frozen Trivy
+  database and accounted for all 1,300 findings: 66 vulnerabilities plus 1,234
+  license findings, represented by 68 exact expiring dispositions (including
+  the two forbidden-license findings) and one duplicate-sensitive baseline for
+  the 1,232 non-forbidden workspace-license findings. Raw reports remained
+  root-only and outside the repository.
+- That WSL result is developmental evidence for the exact commit-88 candidate
+  images only. The final integrated commit must be rebuilt, runtime-checked,
+  rescanned under profile 3/schema 2, and bound into its release manifest.
+  Production Compose/Coder activation, the dedicated provisioner runtime,
+  XFS/AppArmor enforcement, and host isolation remain `GATED` and `NOT
+  EXECUTED`.
 - These local runs did not contact GitHub/ChatGPT, execute a real Linux Coder
   workspace, or compile Swift with Xcode.
 

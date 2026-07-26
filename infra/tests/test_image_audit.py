@@ -13,6 +13,7 @@ import unittest
 from contextlib import redirect_stderr
 from datetime import datetime, timezone
 from pathlib import Path
+from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -221,6 +222,31 @@ class IdentityAndCommandTests(unittest.TestCase):
             )
         self.assertEqual(result, int(AUDIT.ExitCode.USAGE))
 
+    def test_default_scan_requires_current_schema_before_subprocesses(self) -> None:
+        root = Path(self.enterContext(tempfile.TemporaryDirectory()))
+        (root / "infra").mkdir()
+        (root / AUDIT.POLICY_RELATIVE).write_bytes(canonical(policy_document([])))
+        with (
+            mock.patch.object(AUDIT, "require_root"),
+            mock.patch.object(
+                AUDIT,
+                "verify_toolchain",
+                side_effect=AssertionError("subprocess boundary reached"),
+            ),
+            redirect_stderr(io.StringIO()) as stderr,
+        ):
+            result = AUDIT.main(
+                [
+                    "scan",
+                    "--repo-root",
+                    str(root),
+                    "--release-id",
+                    RELEASE_ID,
+                ]
+            )
+        self.assertEqual(result, int(AUDIT.ExitCode.POLICY))
+        self.assertIn("another evidence schema", stderr.getvalue())
+
     def test_non_finite_json_numbers_fail_closed_at_any_depth(self) -> None:
         with self.assertRaisesRegex(AUDIT.AuditError, "non-finite number"):
             AUDIT.parse_json_bytes(
@@ -260,6 +286,22 @@ class IdentityAndCommandTests(unittest.TestCase):
         self.assertNotIn(".trivyignore.yaml", trivy)
         self.assertIn("--skip-db-update", trivy)
         self.assertIn("--offline-scan", trivy)
+        self.assertEqual(
+            trivy[trivy.index("--pkg-types") + 1],
+            "os,library",
+        )
+        self.assertEqual(
+            trivy,
+            AUDIT.trivy_argv(
+                podman_spec,
+                image_id,
+                Path("/private/cache"),
+                Path("/private/trivy.yaml"),
+                Path("/private/empty.ignore"),
+                "/run/podman/podman.sock",
+                scanner_policy_version=3,
+            ),
+        )
 
     def test_only_podman_bare_image_ids_are_canonicalized(self) -> None:
         bare = "b" * 64
@@ -340,42 +382,88 @@ class IdentityAndCommandTests(unittest.TestCase):
         self.assertEqual(AUDIT.MAX_DATABASE_BYTES, 2 * 1024 * 1024 * 1024)
 
     def test_scanner_profile_registry_retains_immutable_history(self) -> None:
-        self.assertEqual(AUDIT.CURRENT_SCANNER_POLICY_VERSION, 2)
-        self.assertEqual(AUDIT.SCHEMA_VERSION, 1)
-        self.assertEqual(AUDIT.POLICY_SCHEMA_VERSION, 1)
+        self.assertEqual(AUDIT.CURRENT_SCANNER_POLICY_VERSION, 3)
+        self.assertEqual(AUDIT.SCANNER_POLICY_VERSION, 3)
+        self.assertEqual(AUDIT.SCHEMA_VERSION, 2)
+        self.assertEqual(AUDIT.POLICY_SCHEMA_VERSION, 2)
         self.assertEqual(set(AUDIT.SCANNER_PROFILE_REGISTRY), {1, 2, 3})
-        historical = AUDIT.SCANNER_PROFILE_REGISTRY[1]
-        current = AUDIT.SCANNER_PROFILE_REGISTRY[2]
-        future = AUDIT.SCANNER_PROFILE_REGISTRY[3]
+        historical_one = AUDIT.SCANNER_PROFILE_REGISTRY[1]
+        historical_two = AUDIT.SCANNER_PROFILE_REGISTRY[2]
+        current = AUDIT.SCANNER_PROFILE_REGISTRY[3]
+        self.assertEqual(AUDIT.scanner_policy_document(), current.policy_document())
         self.assertEqual(AUDIT.scanner_policy_document(1)["version"], 1)
-        self.assertEqual(historical.tools, current.tools)
-        self.assertEqual(current.tools, future.tools)
-        self.assertIsNot(historical.tools, current.tools)
+        self.assertEqual(historical_one.tools, historical_two.tools)
+        self.assertEqual(historical_two.tools, current.tools)
+        self.assertIsNot(historical_one.tools, historical_two.tools)
         self.assertIsNot(
-            historical.tools["amd64"],
+            historical_one.tools["amd64"],
+            historical_two.tools["amd64"],
+        )
+        self.assertIsNot(
+            historical_two.tools["amd64"],
             current.tools["amd64"],
         )
         self.assertIsNot(
-            historical.tools["amd64"]["trivy"],
+            historical_one.tools["amd64"]["trivy"],
+            historical_two.tools["amd64"]["trivy"],
+        )
+        self.assertIsNot(
+            historical_two.tools["amd64"]["trivy"],
             current.tools["amd64"]["trivy"],
         )
-        self.assertEqual(historical.max_report_bytes, 67_108_864)
+        self.assertEqual(historical_one.max_report_bytes, 67_108_864)
         self.assertEqual(
-            historical.tools["amd64"]["trivy"]["version"],
+            historical_one.tools["amd64"]["trivy"]["version"],
             "0.72.0",
         )
+        historical_policy_sha256 = {
+            version: hashlib.sha256(
+                canonical(AUDIT.scanner_policy_document(version))
+            ).hexdigest()
+            for version in (1, 2)
+        }
+        self.assertEqual(
+            historical_policy_sha256,
+            {
+                1: "85e36dc2a0c3e2832f51ddc5a3704f556249f24d35015d641048cb25b0ccc058",
+                2: "55bb00924c2ad86db632f99662978af7a42ce0d52ad7ee48fee618fff8b37207",
+            },
+        )
+        historical_tool_receipt_sha256 = {
+            architecture: hashlib.sha256(
+                canonical(AUDIT._expected_tool_receipt(architecture, 1))
+            ).hexdigest()
+            for architecture in ("amd64", "arm64")
+        }
+        self.assertEqual(
+            historical_tool_receipt_sha256,
+            {
+                "amd64": (
+                    "cb04e872e38ed36177ea0501c04ba4c4346294ff0d0609f770c3013acc435a51"
+                ),
+                "arm64": (
+                    "01f4c253e2f4b9b0492c6009337f7b3ecc66911f2f84f5d91bb4979c98e7ec84"
+                ),
+            },
+        )
+        for architecture in ("amd64", "arm64"):
+            self.assertEqual(
+                AUDIT._expected_tool_receipt(architecture, 1),
+                AUDIT._expected_tool_receipt(architecture, 2),
+            )
         self.assertEqual(current.evidence_schema_version, AUDIT.SCHEMA_VERSION)
+        self.assertEqual(current.policy_schema_version, AUDIT.POLICY_SCHEMA_VERSION)
         self.assertEqual(current.max_image_size_bytes, AUDIT.MAX_IMAGE_BYTES)
         self.assertEqual(current.max_report_bytes, AUDIT.MAX_REPORT_BYTES)
         self.assertEqual(current.max_database_bytes, AUDIT.MAX_DATABASE_BYTES)
-        self.assertEqual(historical.evidence_schema_version, 1)
-        self.assertEqual(historical.policy_schema_version, 1)
-        self.assertEqual(current.evidence_schema_version, 1)
-        self.assertEqual(current.policy_schema_version, 1)
+        self.assertEqual(historical_one.evidence_schema_version, 1)
+        self.assertEqual(historical_one.policy_schema_version, 1)
+        self.assertEqual(historical_two.evidence_schema_version, 1)
+        self.assertEqual(historical_two.policy_schema_version, 1)
         self.assertNotIn("pkg_types", AUDIT.scanner_policy_document(1))
         self.assertNotIn("pkg_types", AUDIT.scanner_policy_document(2))
-        self.assertEqual(future.evidence_schema_version, 2)
-        self.assertEqual(future.policy_schema_version, 2)
+        self.assertEqual(current.evidence_schema_version, 2)
+        self.assertEqual(current.policy_schema_version, 2)
         self.assertEqual(
             AUDIT.scanner_policy_document(3)["pkg_types"],
             ["os", "library"],
@@ -393,7 +481,7 @@ class IdentityAndCommandTests(unittest.TestCase):
         with self.assertRaises(TypeError):
             current.tools["amd64"]["trivy"]["version"] = "changed"
         self.assertEqual(
-            historical.tools["amd64"]["trivy"]["version"],
+            historical_one.tools["amd64"]["trivy"]["version"],
             "0.72.0",
         )
 
@@ -408,17 +496,26 @@ class IdentityAndCommandTests(unittest.TestCase):
             Path("/private/empty.ignore"),
             "/run/podman/podman.sock",
         )
-        legacy = AUDIT.trivy_argv(*arguments, scanner_policy_version=2)
-        future = AUDIT.trivy_argv(*arguments, scanner_policy_version=3)
-        self.assertNotIn("--pkg-types", legacy)
+        historical = [
+            AUDIT.trivy_argv(*arguments, scanner_policy_version=version)
+            for version in (1, 2)
+        ]
+        current = AUDIT.trivy_argv(*arguments)
         self.assertEqual(
-            future[future.index("--pkg-types") + 1],
+            current,
+            AUDIT.trivy_argv(*arguments, scanner_policy_version=3),
+        )
+        for legacy in historical:
+            self.assertNotIn("--pkg-types", legacy)
+        self.assertEqual(historical[0], historical[1])
+        self.assertEqual(
+            current[current.index("--pkg-types") + 1],
             "os,library",
         )
-        without_pkg_types = list(future)
+        without_pkg_types = list(current)
         index = without_pkg_types.index("--pkg-types")
         del without_pkg_types[index : index + 2]
-        self.assertEqual(without_pkg_types, legacy)
+        self.assertEqual(without_pkg_types, historical[0])
 
 
 class DispositionPolicyTests(unittest.TestCase):
@@ -428,21 +525,97 @@ class DispositionPolicyTests(unittest.TestCase):
         (root / AUDIT.POLICY_RELATIVE).write_bytes(canonical(document))
         return root
 
-    def test_tracked_starter_policy_is_exact_and_loads(self) -> None:
-        policy = AUDIT.load_disposition_policy(ROOT, AS_OF)
+    def test_tracked_schema_two_policy_is_exact_and_loads(self) -> None:
+        policy = AUDIT.load_disposition_policy(
+            ROOT,
+            AS_OF,
+            expected_schema_version=2,
+        )
+        self.assertEqual(policy.schema_version, 2)
         self.assertEqual(policy.policy_id, "codex-mobile-release-image-dispositions")
-        self.assertEqual(len(policy.dispositions), 8)
+        self.assertEqual(
+            policy.sha256,
+            "73fbd0a34f5bc69e220c69441fd3e062cc95d15183cd864d7e9bf3ee723cf570",
+        )
+        self.assertEqual(len(policy.dispositions), 68)
         self.assertEqual(
             {item.disposition_id for item in policy.dispositions},
-            {f"IMG-2026-{index:03d}" for index in range(1, 9)},
+            {f"IMG-2026-{index:03d}" for index in range(1, 69)},
         )
-        license_disposition = next(
-            item for item in policy.dispositions if item.match.kind == "license"
+        self.assertTrue(
+            all(type(item.match) is AUDIT.FindingV2 for item in policy.dispositions)
         )
-        self.assertEqual(license_disposition.match.category, "forbidden")
         self.assertEqual(
-            license_disposition.match.path,
+            {
+                image: sum(item.match.image == image for item in policy.dispositions)
+                for image in ("control_plane", "workspace_base", "envbuilder")
+            },
+            {"control_plane": 8, "workspace_base": 55, "envbuilder": 5},
+        )
+        license_dispositions = {
+            item.disposition_id: item.match
+            for item in policy.dispositions
+            if item.match.kind == "license"
+        }
+        self.assertEqual(
+            set(license_dispositions),
+            {"IMG-2026-008", "IMG-2026-014"},
+        )
+        self.assertEqual(
+            license_dispositions["IMG-2026-008"].finding_id,
+            "AGPL-3.0",
+        )
+        self.assertEqual(
+            license_dispositions["IMG-2026-008"].path,
             "usr/share/licenses/coder/LICENSE",
+        )
+        self.assertEqual(
+            license_dispositions["IMG-2026-014"].finding_id,
+            "WTFPL",
+        )
+        self.assertEqual(
+            license_dispositions["IMG-2026-014"].package,
+            "node-path-is-inside",
+        )
+
+        linux_headers = [
+            item.match
+            for item in policy.dispositions
+            if item.match.package == "linux-libc-dev"
+        ]
+        self.assertEqual(len(linux_headers), 53)
+        self.assertTrue(
+            all(
+                item.image == "workspace_base"
+                and item.version == "6.8.0-136.136"
+                and item.result_class == "os-pkgs"
+                and item.result_type == "ubuntu"
+                and item.status == "affected"
+                and item.fixed_version == ""
+                for item in linux_headers
+            )
+        )
+
+        self.assertEqual(len(policy.license_baselines), 1)
+        baseline = policy.license_baselines[0]
+        self.assertEqual(baseline.baseline_id, "LIC-2026-001")
+        self.assertEqual(baseline.image, "workspace_base")
+        self.assertEqual(
+            baseline.algorithm,
+            AUDIT.LICENSE_BASELINE_ALGORITHM,
+        )
+        self.assertEqual(baseline.finding_count, 1232)
+        self.assertEqual(
+            baseline.canonical_sha256,
+            "2f926ee88f079694bc8ede6b8e1e15a8f19439e378c8e6df4019aab49fc84d7f",
+        )
+        self.assertEqual(
+            baseline.category_counts,
+            (("restricted", 718), ("unknown", 514)),
+        )
+        self.assertEqual(
+            baseline.severity_counts,
+            (("HIGH", 718), ("UNKNOWN", 514)),
         )
 
     def test_duplicate_policy_keys_fail_closed(self) -> None:
@@ -1057,10 +1230,18 @@ class ReportValidationTests(unittest.TestCase):
         )
         self.assertEqual(len(findings), 2)
         vulnerability, license_finding = findings
+        self.assertIs(type(vulnerability), AUDIT.FindingV2)
+        self.assertIs(type(license_finding), AUDIT.FindingV2)
         self.assertEqual(vulnerability.package, "example/module")
         self.assertEqual(vulnerability.version, "v1.2.3")
+        self.assertEqual(vulnerability.result_class, "lang-pkgs")
+        self.assertEqual(vulnerability.result_type, "")
+        self.assertEqual(vulnerability.status, "")
+        self.assertEqual(vulnerability.fixed_version, "")
+        self.assertEqual(vulnerability.package_purl, "")
         self.assertEqual(license_finding.category, "forbidden")
         self.assertEqual(license_finding.path, "usr/share/licenses/coder/LICENSE")
+        self.assertEqual(license_finding.result_class, "license-file")
 
         wrong = self.trivy()
         wrong["Metadata"]["ImageID"] = "sha256:" + "b" * 64
@@ -1083,23 +1264,32 @@ class ReportValidationTests(unittest.TestCase):
             "PURL": "pkg:deb/ubuntu/coder@2.34.6?arch=amd64"
         }
 
-        legacy = AUDIT.validate_trivy_report(
-            report,
-            "control_plane",
-            self.image_id,
-            scanner_policy_version=2,
-        )
-        self.assertTrue(all(type(item) is AUDIT.Finding for item in legacy))
-        self.assertEqual(
-            legacy[0].match_key,
-            AUDIT.trivy_findings(report, "control_plane")[0].match_key,
-        )
+        for version in (1, 2):
+            legacy = AUDIT.validate_trivy_report(
+                report,
+                "control_plane",
+                self.image_id,
+                scanner_policy_version=version,
+            )
+            self.assertTrue(all(type(item) is AUDIT.Finding for item in legacy))
+            self.assertEqual(
+                legacy[0].match_key,
+                AUDIT.trivy_findings(report, "control_plane")[0].match_key,
+            )
 
         findings = AUDIT.validate_trivy_report(
             report,
             "control_plane",
             self.image_id,
-            scanner_policy_version=3,
+        )
+        self.assertEqual(
+            findings,
+            AUDIT.validate_trivy_report(
+                report,
+                "control_plane",
+                self.image_id,
+                scanner_policy_version=3,
+            ),
         )
         self.assertTrue(all(type(item) is AUDIT.FindingV2 for item in findings))
         vulnerability_finding = findings[0]
@@ -1373,7 +1563,7 @@ class EvidenceVerificationTests(unittest.TestCase):
 
     def make_fixture(
         self,
-        scanner_policy_version: int = 2,
+        scanner_policy_version: int = AUDIT.CURRENT_SCANNER_POLICY_VERSION,
     ) -> tuple[Path, dict[str, dict[str, str]]]:
         root = Path(self.enterContext(tempfile.TemporaryDirectory()))
         infra = root / "infra"
@@ -1629,18 +1819,24 @@ class EvidenceVerificationTests(unittest.TestCase):
             AUDIT._verify_database_receipt(oversize, AS_OF)
 
     def test_known_historical_scanner_profile_remains_verifiable(self) -> None:
-        root, _ = self.make_fixture()
-        receipt_path = root / AUDIT.EVIDENCE_RELATIVE / "receipt.json"
-        receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
-        receipt["scanner_policy"] = AUDIT.scanner_policy_document(1)
-        receipt["tools"] = AUDIT._expected_tool_receipt("amd64", 1)
-        receipt_path.write_bytes(canonical(receipt))
-
-        verified = AUDIT.verify_evidence(root, RELEASE_ID)
-        self.assertEqual(verified["scanner_policy"]["version"], 1)
+        for scanner_policy_version in (1, 2):
+            with self.subTest(scanner_policy_version=scanner_policy_version):
+                root, _ = self.make_fixture(
+                    scanner_policy_version=scanner_policy_version
+                )
+                verified = AUDIT.verify_evidence(root, RELEASE_ID)
+                self.assertEqual(verified["schema_version"], 1)
+                self.assertEqual(
+                    verified["scanner_policy"]["version"],
+                    scanner_policy_version,
+                )
+                self.assertEqual(
+                    verified["disposition_policy"]["schema_version"],
+                    1,
+                )
 
     def test_schema_two_receipt_uses_profile_and_policy_dispatch(self) -> None:
-        root, _ = self.make_fixture(scanner_policy_version=3)
+        root, _ = self.make_fixture()
         verified = AUDIT.verify_evidence(root, RELEASE_ID)
         self.assertEqual(verified["schema_version"], 2)
         self.assertEqual(verified["scanner_policy"]["version"], 3)

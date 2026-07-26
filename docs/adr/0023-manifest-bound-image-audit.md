@@ -36,12 +36,22 @@ tool and database hashes, policy hash, report hashes and sizes, and finding
 counts. Raw SBOM and Trivy JSON remain mode-restricted inside the immutable
 release because they can contain package paths or secret-match context.
 
-Findings are not globally ignored. A tracked policy may disposition only an
-exact image, report target, identifier, package/version, severity, and path
-tuple with a unique rationale and expiry. The audit fails if a finding is new
-or changed, a disposition is expired or unused, or any finding remains
-undispositioned. This keeps an upstream issue visible without letting a broad
-ignore conceal a different dependency or file.
+Findings are not globally ignored. Scanner profile 3 and evidence/policy schema
+2 bind each exact disposition to the image, kind, category, report target,
+identifier, package, version, severity, path, result class/type, vulnerability
+status, fixed version, and package PURL. Every record has a unique rationale and
+expiry. Forbidden licenses require individual exact dispositions. The complete
+non-forbidden license inventory is instead reviewed as one expiring,
+per-image, duplicate-sensitive canonical multiset baseline, so neither a
+changed license nor a missing/extra duplicate can disappear into a broad
+allowlist. Profiles 1 and 2 retain their schema-1 interpretation solely as
+immutable historical verification contracts.
+
+The audit fails if an exact finding or license baseline is new or changed, a
+disposition or baseline is expired or unused, or any finding remains
+undispositioned. This keeps upstream issues and the full license inventory
+visible without letting a broad ignore conceal a different dependency, file,
+result classification, fix transition, or duplicate.
 
 Release-manifest schema 2 binds the receipt and exact report tree to the same
 image IDs recorded in the manifest. Every operational verification requires

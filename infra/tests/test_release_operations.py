@@ -64,7 +64,12 @@ class ReleaseManifestTests(unittest.TestCase):
         (template / ".terraform.lock.hcl").write_text("# locked\n", encoding="utf-8")
 
     def make_image_audit(
-        self, root: Path, release_id: str = "sha-0123456789abcdef"
+        self,
+        root: Path,
+        release_id: str = "sha-0123456789abcdef",
+        *,
+        schema_version: object = 2,
+        scanner_policy_version: object = 3,
     ) -> dict[str, object]:
         reports_root = root / MANIFEST.IMAGE_AUDIT_ROOT / "reports"
         reports_root.mkdir(parents=True, exist_ok=True)
@@ -97,12 +102,12 @@ class ReleaseManifestTests(unittest.TestCase):
                 "reports": reports,
             }
         receipt: dict[str, object] = {
-            "schema_version": 1,
+            "schema_version": schema_version,
             "status": "pass",
             "release_id": release_id,
             "source_commit": release_id.removeprefix("sha-"),
             "host": {"architecture": "amd64"},
-            "scanner_policy": {"version": 1},
+            "scanner_policy": {"version": scanner_policy_version},
             "images": receipt_images,
         }
         (root / MANIFEST.IMAGE_AUDIT_RECEIPT).write_text(
@@ -160,12 +165,120 @@ class ReleaseManifestTests(unittest.TestCase):
                 self.assertEqual(actual["images"], expected["images"])
                 self.assertEqual(actual["schema_version"], 2)
                 self.assertEqual(actual["image_audit"]["status"], "pass")
+                self.assertEqual(actual["image_audit"]["policy_version"], 3)
                 self.assertEqual(
                     (root / "infra/release.env").read_text(encoding="ascii"),
                     MANIFEST.release_environment("sha-0123456789abcdef"),
                 )
             finally:
                 self.make_writable(root)
+
+    def test_image_audit_receipt_schema_dispatch_is_explicit(self) -> None:
+        for schema_version, scanner_policy_version in ((1, 1), (1, 2), (2, 3)):
+            with (
+                self.subTest(schema_version=schema_version),
+                tempfile.TemporaryDirectory() as raw,
+            ):
+                root = Path(raw)
+                try:
+                    self.make_release(root)
+                    self.make_image_audit(
+                        root,
+                        schema_version=schema_version,
+                        scanner_policy_version=scanner_policy_version,
+                    )
+                    images = {
+                        name: {
+                            "engine": engine,
+                            "reference": reference,
+                            "id": image_id(engine, reference),
+                        }
+                        for name, (
+                            engine,
+                            reference,
+                        ) in MANIFEST.image_references("sha-0123456789abcdef").items()
+                    }
+                    record = MANIFEST.image_audit_manifest_record(
+                        root,
+                        "sha-0123456789abcdef",
+                        images,
+                        load_test_evidence,
+                        None,
+                        MANIFEST.DEFAULT_PODMAN_URL,
+                    )
+                    self.assertEqual(
+                        record["policy_version"],
+                        scanner_policy_version,
+                    )
+                    if scanner_policy_version == 3:
+                        manifest = MANIFEST.build_manifest(
+                            root,
+                            "sha-0123456789abcdef",
+                            image_id,
+                            lambda _: self.helper_sha256,
+                            load_test_evidence,
+                        )
+                        self.assertEqual(
+                            manifest["image_audit"]["policy_version"],
+                            scanner_policy_version,
+                        )
+                    else:
+                        with self.assertRaisesRegex(
+                            MANIFEST.ManifestError,
+                            "current image-audit scanner profile",
+                        ):
+                            MANIFEST.build_manifest(
+                                root,
+                                "sha-0123456789abcdef",
+                                image_id,
+                                lambda _: self.helper_sha256,
+                                load_test_evidence,
+                            )
+                finally:
+                    self.make_writable(root)
+
+        for invalid_schema, invalid_profile in (
+            (2, 1),
+            (2, 2),
+            (1, 3),
+            (3, 3),
+            (True, 1),
+            (1, True),
+            (True, 3),
+            (2, True),
+            (2, 0),
+            (2, 4),
+            ("2", 3),
+            (2, "3"),
+        ):
+            with (
+                self.subTest(
+                    invalid_schema=invalid_schema,
+                    invalid_profile=invalid_profile,
+                ),
+                tempfile.TemporaryDirectory() as raw,
+            ):
+                root = Path(raw)
+                try:
+                    self.make_release(root)
+                    self.make_image_audit(
+                        root,
+                        schema_version=invalid_schema,
+                        scanner_policy_version=invalid_profile,
+                    )
+                    with self.assertRaisesRegex(
+                        MANIFEST.ManifestError,
+                        "image-audit (receipt schema|policy version) is invalid",
+                    ):
+                        MANIFEST.build_manifest(
+                            root,
+                            "sha-0123456789abcdef",
+                            image_id,
+                            lambda _: self.helper_sha256,
+                            load_test_evidence,
+                        )
+                finally:
+                    self.make_writable(root)
 
     def test_changed_source_fails_closed(self) -> None:
         with tempfile.TemporaryDirectory() as raw:

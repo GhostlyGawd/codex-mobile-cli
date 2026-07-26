@@ -20,7 +20,10 @@ apply.
    scans. Run `python3 -I scripts/verify-envbuilder-source.py` on Linux and
    review its exact archive/patch, full unit/race, integration-compile,
    architecture, module-graph, and two-clean-build evidence. Review every
-   exact, expiring image-audit disposition. Exercise Coder
+   profile-3/schema-2 exact expiring image-audit disposition, each individual
+   forbidden-license record, and every per-image duplicate-sensitive
+   non-forbidden-license baseline; a missing, changed, expired, or unused
+   record is a failed update. Exercise Coder
    template/EnvBuilder/Codex TUI changes on disposable local infrastructure
    before production. The locked deploy must still audit the final host-local
    IDs; a prior scan does not authorize its rebuild.

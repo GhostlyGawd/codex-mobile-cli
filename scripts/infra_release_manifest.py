@@ -31,6 +31,11 @@ from urllib.parse import unquote, urlsplit
 
 SCHEMA_VERSION = 2
 SUPPORTED_SCHEMA_VERSIONS = frozenset((1, SCHEMA_VERSION))
+IMAGE_AUDIT_SCHEMA_BY_SCANNER_PROFILE = MappingProxyType({1: 1, 2: 1, 3: 2})
+CURRENT_IMAGE_AUDIT_SCANNER_PROFILE_VERSION = 3
+SUPPORTED_IMAGE_AUDIT_SCHEMA_VERSIONS = frozenset(
+    IMAGE_AUDIT_SCHEMA_BY_SCANNER_PROFILE.values()
+)
 RELEASE_ID_PATTERN = re.compile(r"sha-[0-9a-f]{7,64}")
 IMAGE_ID_PATTERN = re.compile(r"sha256:[0-9a-f]{64}")
 SHA256_PATTERN = re.compile(r"[0-9a-f]{64}")
@@ -1087,7 +1092,11 @@ def image_audit_manifest_record(
     receipt = evidence_verifier(
         repo_root, release_id, images, image_resolver, podman_url
     )
-    if not isinstance(receipt, dict) or receipt.get("schema_version") != 1:
+    if (
+        not isinstance(receipt, dict)
+        or type(receipt.get("schema_version")) is not int
+        or receipt["schema_version"] not in SUPPORTED_IMAGE_AUDIT_SCHEMA_VERSIONS
+    ):
         raise ManifestError("image-audit receipt schema is invalid")
     if receipt.get("status") != "pass":
         raise ManifestError("image-audit receipt is not a pass")
@@ -1100,7 +1109,12 @@ def image_audit_manifest_record(
         raise ManifestError("image-audit host record is invalid")
     architecture = normalize_architecture(host.get("architecture"))
     policy = receipt.get("scanner_policy")
-    if not isinstance(policy, dict) or not isinstance(policy.get("version"), int):
+    if (
+        not isinstance(policy, dict)
+        or type(policy.get("version")) is not int
+        or IMAGE_AUDIT_SCHEMA_BY_SCANNER_PROFILE.get(policy["version"])
+        != receipt["schema_version"]
+    ):
         raise ManifestError("image-audit policy version is invalid")
     receipt_images = receipt.get("images")
     if not isinstance(receipt_images, dict) or set(receipt_images) != set(images):
@@ -1207,6 +1221,10 @@ def build_manifest(
         None,
         podman_url,
     )
+    if image_audit.get("policy_version") != CURRENT_IMAGE_AUDIT_SCANNER_PROFILE_VERSION:
+        raise ManifestError(
+            "new release requires the current image-audit scanner profile"
+        )
     architecture = normalize_architecture(image_audit.get("architecture"))
     helper_profile_version = CURRENT_WORKSPACE_HELPER_PROFILE_VERSION
     expected_helper_checksum = workspace_helper_profile(helper_profile_version)[

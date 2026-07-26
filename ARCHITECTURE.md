@@ -362,8 +362,12 @@ receipt atomically; no partial or failing evidence becomes a release artifact.
 
 Manifest schema 2 binds the receipt, exact report tree, policy/tool/database
 hashes, and the same three image IDs. Every activation and rollback path requires
-that evidence, while rollback deliberately does not rescan. A tracked
-disposition is an exact, expiring tuple rather than a global ignore. See
+that evidence, while rollback deliberately does not rescan. Scanner profile 3
+uses evidence/policy schema 2: vulnerabilities and forbidden licenses require
+14-field exact expiring dispositions, while each image's non-forbidden license
+inventory uses one expiring duplicate-sensitive canonical multiset baseline.
+New, missing, changed, expired, or unused policy records fail closed rather
+than acting as global ignores. See
 [ADR 0023](docs/adr/0023-manifest-bound-image-audit.md).
 
 The configured EnvBuilder release path does not inherit from an opaque prebuilt

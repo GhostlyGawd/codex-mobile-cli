@@ -133,8 +133,11 @@ exact XFS project-quota mount, and builds each control-plane/workspace image
 once under the commit-derived release tag. It captures and scans those exact
 IDs with checksum-pinned Syft 1.46.0 and Trivy 0.72.0, a single frozen
 vulnerability-database snapshot, explicit Docker/Podman engines, and the
-reviewed expiring disposition policy. New, changed, expired, unused, malformed,
-oversized, or undispositioned evidence fails before promotion. The root-only
+reviewed profile-3/schema-2 policy. Vulnerabilities and forbidden licenses use
+14-field exact expiring dispositions; each image's complete non-forbidden
+license inventory uses one expiring duplicate-sensitive canonical multiset
+baseline. New, missing, changed, expired, unused, malformed, oversized, or
+undispositioned evidence fails before promotion. The root-only
 `infra/image-audit` receipt and report tree are then bound into schema 2 of
 `infra/release-manifest.json` alongside the workspace-helper checksum, Coder
 template tree, Podman configuration, systemd units and privileged wrappers.

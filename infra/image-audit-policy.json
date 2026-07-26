@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "policy_id": "codex-mobile-release-image-dispositions",
   "dispositions": [
     {
@@ -15,7 +15,12 @@
         "package": "github.com/DataDog/dd-trace-go/v2",
         "version": "v2.0.0",
         "severity": "HIGH",
-        "path": ""
+        "path": "",
+        "result_class": "lang-pkgs",
+        "result_type": "gobinary",
+        "status": "fixed",
+        "fixed_version": "2.8.1",
+        "package_purl": "pkg:golang/github.com/datadog/dd-trace-go/v2@v2.0.0"
       }
     },
     {
@@ -31,7 +36,12 @@
         "package": "golang.org/x/crypto",
         "version": "v0.52.0",
         "severity": "UNKNOWN",
-        "path": ""
+        "path": "",
+        "result_class": "lang-pkgs",
+        "result_type": "gobinary",
+        "status": "affected",
+        "fixed_version": "",
+        "package_purl": "pkg:golang/golang.org/x/crypto@v0.52.0"
       }
     },
     {
@@ -47,7 +57,12 @@
         "package": "golang.org/x/net",
         "version": "v0.55.0",
         "severity": "UNKNOWN",
-        "path": ""
+        "path": "",
+        "result_class": "lang-pkgs",
+        "result_type": "gobinary",
+        "status": "fixed",
+        "fixed_version": "0.56.0",
+        "package_purl": "pkg:golang/golang.org/x/net@v0.55.0"
       }
     },
     {
@@ -63,7 +78,12 @@
         "package": "golang.org/x/text",
         "version": "v0.37.0",
         "severity": "UNKNOWN",
-        "path": ""
+        "path": "",
+        "result_class": "lang-pkgs",
+        "result_type": "gobinary",
+        "status": "fixed",
+        "fixed_version": "0.39.0",
+        "package_purl": "pkg:golang/golang.org/x/text@v0.37.0"
       }
     },
     {
@@ -79,7 +99,12 @@
         "package": "google.golang.org/grpc",
         "version": "v1.81.1",
         "severity": "HIGH",
-        "path": ""
+        "path": "",
+        "result_class": "lang-pkgs",
+        "result_type": "gobinary",
+        "status": "fixed",
+        "fixed_version": "1.82.1",
+        "package_purl": "pkg:golang/google.golang.org/grpc@v1.81.1"
       }
     },
     {
@@ -95,7 +120,12 @@
         "package": "stdlib",
         "version": "v1.26.4",
         "severity": "HIGH",
-        "path": ""
+        "path": "",
+        "result_class": "lang-pkgs",
+        "result_type": "gobinary",
+        "status": "fixed",
+        "fixed_version": "1.25.12, 1.26.5, 1.27.0-rc.2",
+        "package_purl": "pkg:golang/stdlib@v1.26.4"
       }
     },
     {
@@ -111,7 +141,12 @@
         "package": "golang.org/x/crypto",
         "version": "v0.53.0",
         "severity": "UNKNOWN",
-        "path": ""
+        "path": "",
+        "result_class": "lang-pkgs",
+        "result_type": "gobinary",
+        "status": "affected",
+        "fixed_version": "",
+        "package_purl": "pkg:golang/golang.org/x/crypto@v0.53.0"
       }
     },
     {
@@ -127,7 +162,1291 @@
         "package": "",
         "version": "",
         "severity": "CRITICAL",
-        "path": "usr/share/licenses/coder/LICENSE"
+        "path": "usr/share/licenses/coder/LICENSE",
+        "result_class": "license-file",
+        "result_type": "",
+        "status": "",
+        "fixed_version": "",
+        "package_purl": ""
+      }
+    },
+    {
+      "id": "IMG-2026-009",
+      "expires_on": "2026-08-26",
+      "statement": "The exact EnvBuilder binary embeds Docker 28.5.2 client modules but contains no Docker daemon or AuthZ execution path affected by this finding. Docker 29.3.1 is the recorded fix, but that major-version path is not compatible with the pinned upstream EnvBuilder release; this exact record is accepted only until the expiry review.",
+      "match": {
+        "image": "envbuilder",
+        "kind": "vulnerability",
+        "category": "",
+        "target": ".envbuilder/bin/envbuilder",
+        "finding_id": "CVE-2026-34040",
+        "package": "github.com/docker/docker",
+        "version": "v28.5.2+incompatible",
+        "severity": "HIGH",
+        "path": "",
+        "result_class": "lang-pkgs",
+        "result_type": "gobinary",
+        "status": "fixed",
+        "fixed_version": "29.3.1",
+        "package_purl": "pkg:golang/github.com/docker/docker@v28.5.2%2Bincompatible"
+      }
+    },
+    {
+      "id": "IMG-2026-010",
+      "expires_on": "2026-08-26",
+      "statement": "The exact EnvBuilder binary contains Docker client-side dependencies but no Docker daemon archive/containerExtractToDir implementation or call path affected by this finding. The frozen database records no fixed version and no compatible remediation exists on the pinned upstream path; this exact record must be reviewed again at expiry.",
+      "match": {
+        "image": "envbuilder",
+        "kind": "vulnerability",
+        "category": "",
+        "target": ".envbuilder/bin/envbuilder",
+        "finding_id": "CVE-2026-41567",
+        "package": "github.com/docker/docker",
+        "version": "v28.5.2+incompatible",
+        "severity": "HIGH",
+        "path": "",
+        "result_class": "lang-pkgs",
+        "result_type": "gobinary",
+        "status": "affected",
+        "fixed_version": "",
+        "package_purl": "pkg:golang/github.com/docker/docker@v28.5.2%2Bincompatible"
+      }
+    },
+    {
+      "id": "IMG-2026-011",
+      "expires_on": "2026-08-26",
+      "statement": "The exact EnvBuilder binary contains Docker client-side dependencies but no Docker daemon docker-cp bind-mount implementation or call path affected by this finding. The frozen database records no fixed version and no compatible remediation exists on the pinned upstream path; this exact record must be reviewed again at expiry.",
+      "match": {
+        "image": "envbuilder",
+        "kind": "vulnerability",
+        "category": "",
+        "target": ".envbuilder/bin/envbuilder",
+        "finding_id": "CVE-2026-42306",
+        "package": "github.com/docker/docker",
+        "version": "v28.5.2+incompatible",
+        "severity": "HIGH",
+        "path": "",
+        "result_class": "lang-pkgs",
+        "result_type": "gobinary",
+        "status": "affected",
+        "fixed_version": "",
+        "package_purl": "pkg:golang/github.com/docker/docker@v28.5.2%2Bincompatible"
+      }
+    },
+    {
+      "id": "IMG-2026-012",
+      "expires_on": "2026-08-26",
+      "statement": "Source analysis of the exact EnvBuilder binary found no golang.org/x/crypto/openpgp import or OpenPGP call path; its Git handling uses the ProtonMail OpenPGP fork instead. Govulncheck therefore reports this as module-only with no called affected package or symbol. The frozen database records no fix, so this exact record must be reviewed again at expiry.",
+      "match": {
+        "image": "envbuilder",
+        "kind": "vulnerability",
+        "category": "",
+        "target": ".envbuilder/bin/envbuilder",
+        "finding_id": "GO-2026-5932",
+        "package": "golang.org/x/crypto",
+        "version": "v0.53.0",
+        "severity": "UNKNOWN",
+        "path": "",
+        "result_class": "lang-pkgs",
+        "result_type": "gobinary",
+        "status": "affected",
+        "fixed_version": "",
+        "package_purl": "pkg:golang/golang.org/x/crypto@v0.53.0"
+      }
+    },
+    {
+      "id": "IMG-2026-013",
+      "expires_on": "2026-08-26",
+      "statement": "The exact helper binary includes x/crypto transitively, but no called application path reaches the affected OpenPGP functionality. The frozen govulncheck result is module-only with no called affected symbol; this exact no-fix record must be reviewed again at expiry.",
+      "match": {
+        "image": "envbuilder",
+        "kind": "vulnerability",
+        "category": "",
+        "target": "opt/codex-mobile-helper/codex-mobile-workspace-helper",
+        "finding_id": "GO-2026-5932",
+        "package": "golang.org/x/crypto",
+        "version": "v0.53.0",
+        "severity": "UNKNOWN",
+        "path": "",
+        "result_class": "lang-pkgs",
+        "result_type": "gobinary",
+        "status": "affected",
+        "fixed_version": "",
+        "package_purl": "pkg:golang/golang.org/x/crypto@v0.53.0"
+      }
+    },
+    {
+      "id": "IMG-2026-014",
+      "expires_on": "2026-08-26",
+      "statement": "The exact transitive npm package node-path-is-inside is permissively licensed under WTFPL. Its retention is accepted for this exact build only under a time-bounded engineering and license review; this is not legal advice and must be reviewed again at expiry.",
+      "match": {
+        "image": "workspace_base",
+        "kind": "license",
+        "category": "forbidden",
+        "target": "OS Packages",
+        "finding_id": "WTFPL",
+        "package": "node-path-is-inside",
+        "version": "",
+        "severity": "CRITICAL",
+        "path": "",
+        "result_class": "license",
+        "result_type": "",
+        "status": "",
+        "fixed_version": "",
+        "package_purl": ""
+      }
+    },
+    {
+      "id": "IMG-2026-015",
+      "expires_on": "2026-08-26",
+      "statement": "The exact workspace helper includes x/crypto transitively, but no called application path reaches the affected OpenPGP functionality. The frozen govulncheck result is module-only with no called affected symbol; this exact no-fix record must be reviewed again at expiry.",
+      "match": {
+        "image": "workspace_base",
+        "kind": "vulnerability",
+        "category": "",
+        "target": "opt/codex-mobile-helper/codex-mobile-workspace-helper",
+        "finding_id": "GO-2026-5932",
+        "package": "golang.org/x/crypto",
+        "version": "v0.53.0",
+        "severity": "UNKNOWN",
+        "path": "",
+        "result_class": "lang-pkgs",
+        "result_type": "gobinary",
+        "status": "affected",
+        "fixed_version": "",
+        "package_purl": "pkg:golang/golang.org/x/crypto@v0.53.0"
+      }
+    },
+    {
+      "id": "IMG-2026-016",
+      "expires_on": "2026-08-26",
+      "statement": "Exact Ubuntu linux-libc-dev 6.8.0-136.136 is the current security package; it supplies development UAPI headers rather than the running host kernel; the image contains no kernel or modules; the frozen database has no fixed package; it is retained for build-essential and must be reviewed at expiry.",
+      "match": {
+        "image": "workspace_base",
+        "kind": "vulnerability",
+        "category": "",
+        "target": "sha256:5c69392a575f6737aefde346e413dd3ee44adf2128525120dc23e6339fd8e64d (ubuntu 24.04)",
+        "finding_id": "CVE-2024-57857",
+        "package": "linux-libc-dev",
+        "version": "6.8.0-136.136",
+        "severity": "HIGH",
+        "path": "",
+        "result_class": "os-pkgs",
+        "result_type": "ubuntu",
+        "status": "affected",
+        "fixed_version": "",
+        "package_purl": "pkg:deb/ubuntu/linux-libc-dev@6.8.0-136.136?arch=amd64&distro=ubuntu-24.04"
+      }
+    },
+    {
+      "id": "IMG-2026-017",
+      "expires_on": "2026-08-26",
+      "statement": "Exact Ubuntu linux-libc-dev 6.8.0-136.136 is the current security package; it supplies development UAPI headers rather than the running host kernel; the image contains no kernel or modules; the frozen database has no fixed package; it is retained for build-essential and must be reviewed at expiry.",
+      "match": {
+        "image": "workspace_base",
+        "kind": "vulnerability",
+        "category": "",
+        "target": "sha256:5c69392a575f6737aefde346e413dd3ee44adf2128525120dc23e6339fd8e64d (ubuntu 24.04)",
+        "finding_id": "CVE-2025-38187",
+        "package": "linux-libc-dev",
+        "version": "6.8.0-136.136",
+        "severity": "HIGH",
+        "path": "",
+        "result_class": "os-pkgs",
+        "result_type": "ubuntu",
+        "status": "affected",
+        "fixed_version": "",
+        "package_purl": "pkg:deb/ubuntu/linux-libc-dev@6.8.0-136.136?arch=amd64&distro=ubuntu-24.04"
+      }
+    },
+    {
+      "id": "IMG-2026-018",
+      "expires_on": "2026-08-26",
+      "statement": "Exact Ubuntu linux-libc-dev 6.8.0-136.136 is the current security package; it supplies development UAPI headers rather than the running host kernel; the image contains no kernel or modules; the frozen database has no fixed package; it is retained for build-essential and must be reviewed at expiry.",
+      "match": {
+        "image": "workspace_base",
+        "kind": "vulnerability",
+        "category": "",
+        "target": "sha256:5c69392a575f6737aefde346e413dd3ee44adf2128525120dc23e6339fd8e64d (ubuntu 24.04)",
+        "finding_id": "CVE-2025-38563",
+        "package": "linux-libc-dev",
+        "version": "6.8.0-136.136",
+        "severity": "HIGH",
+        "path": "",
+        "result_class": "os-pkgs",
+        "result_type": "ubuntu",
+        "status": "affected",
+        "fixed_version": "",
+        "package_purl": "pkg:deb/ubuntu/linux-libc-dev@6.8.0-136.136?arch=amd64&distro=ubuntu-24.04"
+      }
+    },
+    {
+      "id": "IMG-2026-019",
+      "expires_on": "2026-08-26",
+      "statement": "Exact Ubuntu linux-libc-dev 6.8.0-136.136 is the current security package; it supplies development UAPI headers rather than the running host kernel; the image contains no kernel or modules; the frozen database has no fixed package; it is retained for build-essential and must be reviewed at expiry.",
+      "match": {
+        "image": "workspace_base",
+        "kind": "vulnerability",
+        "category": "",
+        "target": "sha256:5c69392a575f6737aefde346e413dd3ee44adf2128525120dc23e6339fd8e64d (ubuntu 24.04)",
+        "finding_id": "CVE-2025-40190",
+        "package": "linux-libc-dev",
+        "version": "6.8.0-136.136",
+        "severity": "HIGH",
+        "path": "",
+        "result_class": "os-pkgs",
+        "result_type": "ubuntu",
+        "status": "affected",
+        "fixed_version": "",
+        "package_purl": "pkg:deb/ubuntu/linux-libc-dev@6.8.0-136.136?arch=amd64&distro=ubuntu-24.04"
+      }
+    },
+    {
+      "id": "IMG-2026-020",
+      "expires_on": "2026-08-26",
+      "statement": "Exact Ubuntu linux-libc-dev 6.8.0-136.136 is the current security package; it supplies development UAPI headers rather than the running host kernel; the image contains no kernel or modules; the frozen database has no fixed package; it is retained for build-essential and must be reviewed at expiry.",
+      "match": {
+        "image": "workspace_base",
+        "kind": "vulnerability",
+        "category": "",
+        "target": "sha256:5c69392a575f6737aefde346e413dd3ee44adf2128525120dc23e6339fd8e64d (ubuntu 24.04)",
+        "finding_id": "CVE-2025-71073",
+        "package": "linux-libc-dev",
+        "version": "6.8.0-136.136",
+        "severity": "HIGH",
+        "path": "",
+        "result_class": "os-pkgs",
+        "result_type": "ubuntu",
+        "status": "affected",
+        "fixed_version": "",
+        "package_purl": "pkg:deb/ubuntu/linux-libc-dev@6.8.0-136.136?arch=amd64&distro=ubuntu-24.04"
+      }
+    },
+    {
+      "id": "IMG-2026-021",
+      "expires_on": "2026-08-26",
+      "statement": "Exact Ubuntu linux-libc-dev 6.8.0-136.136 is the current security package; it supplies development UAPI headers rather than the running host kernel; the image contains no kernel or modules; the frozen database has no fixed package; it is retained for build-essential and must be reviewed at expiry.",
+      "match": {
+        "image": "workspace_base",
+        "kind": "vulnerability",
+        "category": "",
+        "target": "sha256:5c69392a575f6737aefde346e413dd3ee44adf2128525120dc23e6339fd8e64d (ubuntu 24.04)",
+        "finding_id": "CVE-2025-71315",
+        "package": "linux-libc-dev",
+        "version": "6.8.0-136.136",
+        "severity": "HIGH",
+        "path": "",
+        "result_class": "os-pkgs",
+        "result_type": "ubuntu",
+        "status": "affected",
+        "fixed_version": "",
+        "package_purl": "pkg:deb/ubuntu/linux-libc-dev@6.8.0-136.136?arch=amd64&distro=ubuntu-24.04"
+      }
+    },
+    {
+      "id": "IMG-2026-022",
+      "expires_on": "2026-08-26",
+      "statement": "Exact Ubuntu linux-libc-dev 6.8.0-136.136 is the current security package; it supplies development UAPI headers rather than the running host kernel; the image contains no kernel or modules; the frozen database has no fixed package; it is retained for build-essential and must be reviewed at expiry.",
+      "match": {
+        "image": "workspace_base",
+        "kind": "vulnerability",
+        "category": "",
+        "target": "sha256:5c69392a575f6737aefde346e413dd3ee44adf2128525120dc23e6339fd8e64d (ubuntu 24.04)",
+        "finding_id": "CVE-2026-23208",
+        "package": "linux-libc-dev",
+        "version": "6.8.0-136.136",
+        "severity": "HIGH",
+        "path": "",
+        "result_class": "os-pkgs",
+        "result_type": "ubuntu",
+        "status": "affected",
+        "fixed_version": "",
+        "package_purl": "pkg:deb/ubuntu/linux-libc-dev@6.8.0-136.136?arch=amd64&distro=ubuntu-24.04"
+      }
+    },
+    {
+      "id": "IMG-2026-023",
+      "expires_on": "2026-08-26",
+      "statement": "Exact Ubuntu linux-libc-dev 6.8.0-136.136 is the current security package; it supplies development UAPI headers rather than the running host kernel; the image contains no kernel or modules; the frozen database has no fixed package; it is retained for build-essential and must be reviewed at expiry.",
+      "match": {
+        "image": "workspace_base",
+        "kind": "vulnerability",
+        "category": "",
+        "target": "sha256:5c69392a575f6737aefde346e413dd3ee44adf2128525120dc23e6339fd8e64d (ubuntu 24.04)",
+        "finding_id": "CVE-2026-23240",
+        "package": "linux-libc-dev",
+        "version": "6.8.0-136.136",
+        "severity": "HIGH",
+        "path": "",
+        "result_class": "os-pkgs",
+        "result_type": "ubuntu",
+        "status": "affected",
+        "fixed_version": "",
+        "package_purl": "pkg:deb/ubuntu/linux-libc-dev@6.8.0-136.136?arch=amd64&distro=ubuntu-24.04"
+      }
+    },
+    {
+      "id": "IMG-2026-024",
+      "expires_on": "2026-08-26",
+      "statement": "Exact Ubuntu linux-libc-dev 6.8.0-136.136 is the current security package; it supplies development UAPI headers rather than the running host kernel; the image contains no kernel or modules; the frozen database has no fixed package; it is retained for build-essential and must be reviewed at expiry.",
+      "match": {
+        "image": "workspace_base",
+        "kind": "vulnerability",
+        "category": "",
+        "target": "sha256:5c69392a575f6737aefde346e413dd3ee44adf2128525120dc23e6339fd8e64d (ubuntu 24.04)",
+        "finding_id": "CVE-2026-23393",
+        "package": "linux-libc-dev",
+        "version": "6.8.0-136.136",
+        "severity": "HIGH",
+        "path": "",
+        "result_class": "os-pkgs",
+        "result_type": "ubuntu",
+        "status": "affected",
+        "fixed_version": "",
+        "package_purl": "pkg:deb/ubuntu/linux-libc-dev@6.8.0-136.136?arch=amd64&distro=ubuntu-24.04"
+      }
+    },
+    {
+      "id": "IMG-2026-025",
+      "expires_on": "2026-08-26",
+      "statement": "Exact Ubuntu linux-libc-dev 6.8.0-136.136 is the current security package; it supplies development UAPI headers rather than the running host kernel; the image contains no kernel or modules; the frozen database has no fixed package; it is retained for build-essential and must be reviewed at expiry.",
+      "match": {
+        "image": "workspace_base",
+        "kind": "vulnerability",
+        "category": "",
+        "target": "sha256:5c69392a575f6737aefde346e413dd3ee44adf2128525120dc23e6339fd8e64d (ubuntu 24.04)",
+        "finding_id": "CVE-2026-31536",
+        "package": "linux-libc-dev",
+        "version": "6.8.0-136.136",
+        "severity": "HIGH",
+        "path": "",
+        "result_class": "os-pkgs",
+        "result_type": "ubuntu",
+        "status": "affected",
+        "fixed_version": "",
+        "package_purl": "pkg:deb/ubuntu/linux-libc-dev@6.8.0-136.136?arch=amd64&distro=ubuntu-24.04"
+      }
+    },
+    {
+      "id": "IMG-2026-026",
+      "expires_on": "2026-08-26",
+      "statement": "Exact Ubuntu linux-libc-dev 6.8.0-136.136 is the current security package; it supplies development UAPI headers rather than the running host kernel; the image contains no kernel or modules; the frozen database has no fixed package; it is retained for build-essential and must be reviewed at expiry.",
+      "match": {
+        "image": "workspace_base",
+        "kind": "vulnerability",
+        "category": "",
+        "target": "sha256:5c69392a575f6737aefde346e413dd3ee44adf2128525120dc23e6339fd8e64d (ubuntu 24.04)",
+        "finding_id": "CVE-2026-31663",
+        "package": "linux-libc-dev",
+        "version": "6.8.0-136.136",
+        "severity": "HIGH",
+        "path": "",
+        "result_class": "os-pkgs",
+        "result_type": "ubuntu",
+        "status": "affected",
+        "fixed_version": "",
+        "package_purl": "pkg:deb/ubuntu/linux-libc-dev@6.8.0-136.136?arch=amd64&distro=ubuntu-24.04"
+      }
+    },
+    {
+      "id": "IMG-2026-027",
+      "expires_on": "2026-08-26",
+      "statement": "Exact Ubuntu linux-libc-dev 6.8.0-136.136 is the current security package; it supplies development UAPI headers rather than the running host kernel; the image contains no kernel or modules; the frozen database has no fixed package; it is retained for build-essential and must be reviewed at expiry.",
+      "match": {
+        "image": "workspace_base",
+        "kind": "vulnerability",
+        "category": "",
+        "target": "sha256:5c69392a575f6737aefde346e413dd3ee44adf2128525120dc23e6339fd8e64d (ubuntu 24.04)",
+        "finding_id": "CVE-2026-43009",
+        "package": "linux-libc-dev",
+        "version": "6.8.0-136.136",
+        "severity": "HIGH",
+        "path": "",
+        "result_class": "os-pkgs",
+        "result_type": "ubuntu",
+        "status": "affected",
+        "fixed_version": "",
+        "package_purl": "pkg:deb/ubuntu/linux-libc-dev@6.8.0-136.136?arch=amd64&distro=ubuntu-24.04"
+      }
+    },
+    {
+      "id": "IMG-2026-028",
+      "expires_on": "2026-08-26",
+      "statement": "Exact Ubuntu linux-libc-dev 6.8.0-136.136 is the current security package; it supplies development UAPI headers rather than the running host kernel; the image contains no kernel or modules; the frozen database has no fixed package; it is retained for build-essential and must be reviewed at expiry.",
+      "match": {
+        "image": "workspace_base",
+        "kind": "vulnerability",
+        "category": "",
+        "target": "sha256:5c69392a575f6737aefde346e413dd3ee44adf2128525120dc23e6339fd8e64d (ubuntu 24.04)",
+        "finding_id": "CVE-2026-43083",
+        "package": "linux-libc-dev",
+        "version": "6.8.0-136.136",
+        "severity": "HIGH",
+        "path": "",
+        "result_class": "os-pkgs",
+        "result_type": "ubuntu",
+        "status": "affected",
+        "fixed_version": "",
+        "package_purl": "pkg:deb/ubuntu/linux-libc-dev@6.8.0-136.136?arch=amd64&distro=ubuntu-24.04"
+      }
+    },
+    {
+      "id": "IMG-2026-029",
+      "expires_on": "2026-08-26",
+      "statement": "Exact Ubuntu linux-libc-dev 6.8.0-136.136 is the current security package; it supplies development UAPI headers rather than the running host kernel; the image contains no kernel or modules; the frozen database has no fixed package; it is retained for build-essential and must be reviewed at expiry.",
+      "match": {
+        "image": "workspace_base",
+        "kind": "vulnerability",
+        "category": "",
+        "target": "sha256:5c69392a575f6737aefde346e413dd3ee44adf2128525120dc23e6339fd8e64d (ubuntu 24.04)",
+        "finding_id": "CVE-2026-43116",
+        "package": "linux-libc-dev",
+        "version": "6.8.0-136.136",
+        "severity": "HIGH",
+        "path": "",
+        "result_class": "os-pkgs",
+        "result_type": "ubuntu",
+        "status": "affected",
+        "fixed_version": "",
+        "package_purl": "pkg:deb/ubuntu/linux-libc-dev@6.8.0-136.136?arch=amd64&distro=ubuntu-24.04"
+      }
+    },
+    {
+      "id": "IMG-2026-030",
+      "expires_on": "2026-08-26",
+      "statement": "Exact Ubuntu linux-libc-dev 6.8.0-136.136 is the current security package; it supplies development UAPI headers rather than the running host kernel; the image contains no kernel or modules; the frozen database has no fixed package; it is retained for build-essential and must be reviewed at expiry.",
+      "match": {
+        "image": "workspace_base",
+        "kind": "vulnerability",
+        "category": "",
+        "target": "sha256:5c69392a575f6737aefde346e413dd3ee44adf2128525120dc23e6339fd8e64d (ubuntu 24.04)",
+        "finding_id": "CVE-2026-43198",
+        "package": "linux-libc-dev",
+        "version": "6.8.0-136.136",
+        "severity": "HIGH",
+        "path": "",
+        "result_class": "os-pkgs",
+        "result_type": "ubuntu",
+        "status": "affected",
+        "fixed_version": "",
+        "package_purl": "pkg:deb/ubuntu/linux-libc-dev@6.8.0-136.136?arch=amd64&distro=ubuntu-24.04"
+      }
+    },
+    {
+      "id": "IMG-2026-031",
+      "expires_on": "2026-08-26",
+      "statement": "Exact Ubuntu linux-libc-dev 6.8.0-136.136 is the current security package; it supplies development UAPI headers rather than the running host kernel; the image contains no kernel or modules; the frozen database has no fixed package; it is retained for build-essential and must be reviewed at expiry.",
+      "match": {
+        "image": "workspace_base",
+        "kind": "vulnerability",
+        "category": "",
+        "target": "sha256:5c69392a575f6737aefde346e413dd3ee44adf2128525120dc23e6339fd8e64d (ubuntu 24.04)",
+        "finding_id": "CVE-2026-43263",
+        "package": "linux-libc-dev",
+        "version": "6.8.0-136.136",
+        "severity": "HIGH",
+        "path": "",
+        "result_class": "os-pkgs",
+        "result_type": "ubuntu",
+        "status": "affected",
+        "fixed_version": "",
+        "package_purl": "pkg:deb/ubuntu/linux-libc-dev@6.8.0-136.136?arch=amd64&distro=ubuntu-24.04"
+      }
+    },
+    {
+      "id": "IMG-2026-032",
+      "expires_on": "2026-08-26",
+      "statement": "Exact Ubuntu linux-libc-dev 6.8.0-136.136 is the current security package; it supplies development UAPI headers rather than the running host kernel; the image contains no kernel or modules; the frozen database has no fixed package; it is retained for build-essential and must be reviewed at expiry.",
+      "match": {
+        "image": "workspace_base",
+        "kind": "vulnerability",
+        "category": "",
+        "target": "sha256:5c69392a575f6737aefde346e413dd3ee44adf2128525120dc23e6339fd8e64d (ubuntu 24.04)",
+        "finding_id": "CVE-2026-45850",
+        "package": "linux-libc-dev",
+        "version": "6.8.0-136.136",
+        "severity": "HIGH",
+        "path": "",
+        "result_class": "os-pkgs",
+        "result_type": "ubuntu",
+        "status": "affected",
+        "fixed_version": "",
+        "package_purl": "pkg:deb/ubuntu/linux-libc-dev@6.8.0-136.136?arch=amd64&distro=ubuntu-24.04"
+      }
+    },
+    {
+      "id": "IMG-2026-033",
+      "expires_on": "2026-08-26",
+      "statement": "Exact Ubuntu linux-libc-dev 6.8.0-136.136 is the current security package; it supplies development UAPI headers rather than the running host kernel; the image contains no kernel or modules; the frozen database has no fixed package; it is retained for build-essential and must be reviewed at expiry.",
+      "match": {
+        "image": "workspace_base",
+        "kind": "vulnerability",
+        "category": "",
+        "target": "sha256:5c69392a575f6737aefde346e413dd3ee44adf2128525120dc23e6339fd8e64d (ubuntu 24.04)",
+        "finding_id": "CVE-2026-46242",
+        "package": "linux-libc-dev",
+        "version": "6.8.0-136.136",
+        "severity": "HIGH",
+        "path": "",
+        "result_class": "os-pkgs",
+        "result_type": "ubuntu",
+        "status": "affected",
+        "fixed_version": "",
+        "package_purl": "pkg:deb/ubuntu/linux-libc-dev@6.8.0-136.136?arch=amd64&distro=ubuntu-24.04"
+      }
+    },
+    {
+      "id": "IMG-2026-034",
+      "expires_on": "2026-08-26",
+      "statement": "Exact Ubuntu linux-libc-dev 6.8.0-136.136 is the current security package; it supplies development UAPI headers rather than the running host kernel; the image contains no kernel or modules; the frozen database has no fixed package; it is retained for build-essential and must be reviewed at expiry.",
+      "match": {
+        "image": "workspace_base",
+        "kind": "vulnerability",
+        "category": "",
+        "target": "sha256:5c69392a575f6737aefde346e413dd3ee44adf2128525120dc23e6339fd8e64d (ubuntu 24.04)",
+        "finding_id": "CVE-2026-46275",
+        "package": "linux-libc-dev",
+        "version": "6.8.0-136.136",
+        "severity": "HIGH",
+        "path": "",
+        "result_class": "os-pkgs",
+        "result_type": "ubuntu",
+        "status": "affected",
+        "fixed_version": "",
+        "package_purl": "pkg:deb/ubuntu/linux-libc-dev@6.8.0-136.136?arch=amd64&distro=ubuntu-24.04"
+      }
+    },
+    {
+      "id": "IMG-2026-035",
+      "expires_on": "2026-08-26",
+      "statement": "Exact Ubuntu linux-libc-dev 6.8.0-136.136 is the current security package; it supplies development UAPI headers rather than the running host kernel; the image contains no kernel or modules; the frozen database has no fixed package; it is retained for build-essential and must be reviewed at expiry.",
+      "match": {
+        "image": "workspace_base",
+        "kind": "vulnerability",
+        "category": "",
+        "target": "sha256:5c69392a575f6737aefde346e413dd3ee44adf2128525120dc23e6339fd8e64d (ubuntu 24.04)",
+        "finding_id": "CVE-2026-46320",
+        "package": "linux-libc-dev",
+        "version": "6.8.0-136.136",
+        "severity": "HIGH",
+        "path": "",
+        "result_class": "os-pkgs",
+        "result_type": "ubuntu",
+        "status": "affected",
+        "fixed_version": "",
+        "package_purl": "pkg:deb/ubuntu/linux-libc-dev@6.8.0-136.136?arch=amd64&distro=ubuntu-24.04"
+      }
+    },
+    {
+      "id": "IMG-2026-036",
+      "expires_on": "2026-08-26",
+      "statement": "Exact Ubuntu linux-libc-dev 6.8.0-136.136 is the current security package; it supplies development UAPI headers rather than the running host kernel; the image contains no kernel or modules; the frozen database has no fixed package; it is retained for build-essential and must be reviewed at expiry.",
+      "match": {
+        "image": "workspace_base",
+        "kind": "vulnerability",
+        "category": "",
+        "target": "sha256:5c69392a575f6737aefde346e413dd3ee44adf2128525120dc23e6339fd8e64d (ubuntu 24.04)",
+        "finding_id": "CVE-2026-46330",
+        "package": "linux-libc-dev",
+        "version": "6.8.0-136.136",
+        "severity": "HIGH",
+        "path": "",
+        "result_class": "os-pkgs",
+        "result_type": "ubuntu",
+        "status": "affected",
+        "fixed_version": "",
+        "package_purl": "pkg:deb/ubuntu/linux-libc-dev@6.8.0-136.136?arch=amd64&distro=ubuntu-24.04"
+      }
+    },
+    {
+      "id": "IMG-2026-037",
+      "expires_on": "2026-08-26",
+      "statement": "Exact Ubuntu linux-libc-dev 6.8.0-136.136 is the current security package; it supplies development UAPI headers rather than the running host kernel; the image contains no kernel or modules; the frozen database has no fixed package; it is retained for build-essential and must be reviewed at expiry.",
+      "match": {
+        "image": "workspace_base",
+        "kind": "vulnerability",
+        "category": "",
+        "target": "sha256:5c69392a575f6737aefde346e413dd3ee44adf2128525120dc23e6339fd8e64d (ubuntu 24.04)",
+        "finding_id": "CVE-2026-46331",
+        "package": "linux-libc-dev",
+        "version": "6.8.0-136.136",
+        "severity": "HIGH",
+        "path": "",
+        "result_class": "os-pkgs",
+        "result_type": "ubuntu",
+        "status": "affected",
+        "fixed_version": "",
+        "package_purl": "pkg:deb/ubuntu/linux-libc-dev@6.8.0-136.136?arch=amd64&distro=ubuntu-24.04"
+      }
+    },
+    {
+      "id": "IMG-2026-038",
+      "expires_on": "2026-08-26",
+      "statement": "Exact Ubuntu linux-libc-dev 6.8.0-136.136 is the current security package; it supplies development UAPI headers rather than the running host kernel; the image contains no kernel or modules; the frozen database has no fixed package; it is retained for build-essential and must be reviewed at expiry.",
+      "match": {
+        "image": "workspace_base",
+        "kind": "vulnerability",
+        "category": "",
+        "target": "sha256:5c69392a575f6737aefde346e413dd3ee44adf2128525120dc23e6339fd8e64d (ubuntu 24.04)",
+        "finding_id": "CVE-2026-52908",
+        "package": "linux-libc-dev",
+        "version": "6.8.0-136.136",
+        "severity": "HIGH",
+        "path": "",
+        "result_class": "os-pkgs",
+        "result_type": "ubuntu",
+        "status": "affected",
+        "fixed_version": "",
+        "package_purl": "pkg:deb/ubuntu/linux-libc-dev@6.8.0-136.136?arch=amd64&distro=ubuntu-24.04"
+      }
+    },
+    {
+      "id": "IMG-2026-039",
+      "expires_on": "2026-08-26",
+      "statement": "Exact Ubuntu linux-libc-dev 6.8.0-136.136 is the current security package; it supplies development UAPI headers rather than the running host kernel; the image contains no kernel or modules; the frozen database has no fixed package; it is retained for build-essential and must be reviewed at expiry.",
+      "match": {
+        "image": "workspace_base",
+        "kind": "vulnerability",
+        "category": "",
+        "target": "sha256:5c69392a575f6737aefde346e413dd3ee44adf2128525120dc23e6339fd8e64d (ubuntu 24.04)",
+        "finding_id": "CVE-2026-52909",
+        "package": "linux-libc-dev",
+        "version": "6.8.0-136.136",
+        "severity": "HIGH",
+        "path": "",
+        "result_class": "os-pkgs",
+        "result_type": "ubuntu",
+        "status": "affected",
+        "fixed_version": "",
+        "package_purl": "pkg:deb/ubuntu/linux-libc-dev@6.8.0-136.136?arch=amd64&distro=ubuntu-24.04"
+      }
+    },
+    {
+      "id": "IMG-2026-040",
+      "expires_on": "2026-08-26",
+      "statement": "Exact Ubuntu linux-libc-dev 6.8.0-136.136 is the current security package; it supplies development UAPI headers rather than the running host kernel; the image contains no kernel or modules; the frozen database has no fixed package; it is retained for build-essential and must be reviewed at expiry.",
+      "match": {
+        "image": "workspace_base",
+        "kind": "vulnerability",
+        "category": "",
+        "target": "sha256:5c69392a575f6737aefde346e413dd3ee44adf2128525120dc23e6339fd8e64d (ubuntu 24.04)",
+        "finding_id": "CVE-2026-52910",
+        "package": "linux-libc-dev",
+        "version": "6.8.0-136.136",
+        "severity": "HIGH",
+        "path": "",
+        "result_class": "os-pkgs",
+        "result_type": "ubuntu",
+        "status": "affected",
+        "fixed_version": "",
+        "package_purl": "pkg:deb/ubuntu/linux-libc-dev@6.8.0-136.136?arch=amd64&distro=ubuntu-24.04"
+      }
+    },
+    {
+      "id": "IMG-2026-041",
+      "expires_on": "2026-08-26",
+      "statement": "Exact Ubuntu linux-libc-dev 6.8.0-136.136 is the current security package; it supplies development UAPI headers rather than the running host kernel; the image contains no kernel or modules; the frozen database has no fixed package; it is retained for build-essential and must be reviewed at expiry.",
+      "match": {
+        "image": "workspace_base",
+        "kind": "vulnerability",
+        "category": "",
+        "target": "sha256:5c69392a575f6737aefde346e413dd3ee44adf2128525120dc23e6339fd8e64d (ubuntu 24.04)",
+        "finding_id": "CVE-2026-52914",
+        "package": "linux-libc-dev",
+        "version": "6.8.0-136.136",
+        "severity": "HIGH",
+        "path": "",
+        "result_class": "os-pkgs",
+        "result_type": "ubuntu",
+        "status": "affected",
+        "fixed_version": "",
+        "package_purl": "pkg:deb/ubuntu/linux-libc-dev@6.8.0-136.136?arch=amd64&distro=ubuntu-24.04"
+      }
+    },
+    {
+      "id": "IMG-2026-042",
+      "expires_on": "2026-08-26",
+      "statement": "Exact Ubuntu linux-libc-dev 6.8.0-136.136 is the current security package; it supplies development UAPI headers rather than the running host kernel; the image contains no kernel or modules; the frozen database has no fixed package; it is retained for build-essential and must be reviewed at expiry.",
+      "match": {
+        "image": "workspace_base",
+        "kind": "vulnerability",
+        "category": "",
+        "target": "sha256:5c69392a575f6737aefde346e413dd3ee44adf2128525120dc23e6339fd8e64d (ubuntu 24.04)",
+        "finding_id": "CVE-2026-52924",
+        "package": "linux-libc-dev",
+        "version": "6.8.0-136.136",
+        "severity": "HIGH",
+        "path": "",
+        "result_class": "os-pkgs",
+        "result_type": "ubuntu",
+        "status": "affected",
+        "fixed_version": "",
+        "package_purl": "pkg:deb/ubuntu/linux-libc-dev@6.8.0-136.136?arch=amd64&distro=ubuntu-24.04"
+      }
+    },
+    {
+      "id": "IMG-2026-043",
+      "expires_on": "2026-08-26",
+      "statement": "Exact Ubuntu linux-libc-dev 6.8.0-136.136 is the current security package; it supplies development UAPI headers rather than the running host kernel; the image contains no kernel or modules; the frozen database has no fixed package; it is retained for build-essential and must be reviewed at expiry.",
+      "match": {
+        "image": "workspace_base",
+        "kind": "vulnerability",
+        "category": "",
+        "target": "sha256:5c69392a575f6737aefde346e413dd3ee44adf2128525120dc23e6339fd8e64d (ubuntu 24.04)",
+        "finding_id": "CVE-2026-53090",
+        "package": "linux-libc-dev",
+        "version": "6.8.0-136.136",
+        "severity": "HIGH",
+        "path": "",
+        "result_class": "os-pkgs",
+        "result_type": "ubuntu",
+        "status": "affected",
+        "fixed_version": "",
+        "package_purl": "pkg:deb/ubuntu/linux-libc-dev@6.8.0-136.136?arch=amd64&distro=ubuntu-24.04"
+      }
+    },
+    {
+      "id": "IMG-2026-044",
+      "expires_on": "2026-08-26",
+      "statement": "Exact Ubuntu linux-libc-dev 6.8.0-136.136 is the current security package; it supplies development UAPI headers rather than the running host kernel; the image contains no kernel or modules; the frozen database has no fixed package; it is retained for build-essential and must be reviewed at expiry.",
+      "match": {
+        "image": "workspace_base",
+        "kind": "vulnerability",
+        "category": "",
+        "target": "sha256:5c69392a575f6737aefde346e413dd3ee44adf2128525120dc23e6339fd8e64d (ubuntu 24.04)",
+        "finding_id": "CVE-2026-53148",
+        "package": "linux-libc-dev",
+        "version": "6.8.0-136.136",
+        "severity": "HIGH",
+        "path": "",
+        "result_class": "os-pkgs",
+        "result_type": "ubuntu",
+        "status": "affected",
+        "fixed_version": "",
+        "package_purl": "pkg:deb/ubuntu/linux-libc-dev@6.8.0-136.136?arch=amd64&distro=ubuntu-24.04"
+      }
+    },
+    {
+      "id": "IMG-2026-045",
+      "expires_on": "2026-08-26",
+      "statement": "Exact Ubuntu linux-libc-dev 6.8.0-136.136 is the current security package; it supplies development UAPI headers rather than the running host kernel; the image contains no kernel or modules; the frozen database has no fixed package; it is retained for build-essential and must be reviewed at expiry.",
+      "match": {
+        "image": "workspace_base",
+        "kind": "vulnerability",
+        "category": "",
+        "target": "sha256:5c69392a575f6737aefde346e413dd3ee44adf2128525120dc23e6339fd8e64d (ubuntu 24.04)",
+        "finding_id": "CVE-2026-53151",
+        "package": "linux-libc-dev",
+        "version": "6.8.0-136.136",
+        "severity": "HIGH",
+        "path": "",
+        "result_class": "os-pkgs",
+        "result_type": "ubuntu",
+        "status": "affected",
+        "fixed_version": "",
+        "package_purl": "pkg:deb/ubuntu/linux-libc-dev@6.8.0-136.136?arch=amd64&distro=ubuntu-24.04"
+      }
+    },
+    {
+      "id": "IMG-2026-046",
+      "expires_on": "2026-08-26",
+      "statement": "Exact Ubuntu linux-libc-dev 6.8.0-136.136 is the current security package; it supplies development UAPI headers rather than the running host kernel; the image contains no kernel or modules; the frozen database has no fixed package; it is retained for build-essential and must be reviewed at expiry.",
+      "match": {
+        "image": "workspace_base",
+        "kind": "vulnerability",
+        "category": "",
+        "target": "sha256:5c69392a575f6737aefde346e413dd3ee44adf2128525120dc23e6339fd8e64d (ubuntu 24.04)",
+        "finding_id": "CVE-2026-53159",
+        "package": "linux-libc-dev",
+        "version": "6.8.0-136.136",
+        "severity": "HIGH",
+        "path": "",
+        "result_class": "os-pkgs",
+        "result_type": "ubuntu",
+        "status": "affected",
+        "fixed_version": "",
+        "package_purl": "pkg:deb/ubuntu/linux-libc-dev@6.8.0-136.136?arch=amd64&distro=ubuntu-24.04"
+      }
+    },
+    {
+      "id": "IMG-2026-047",
+      "expires_on": "2026-08-26",
+      "statement": "Exact Ubuntu linux-libc-dev 6.8.0-136.136 is the current security package; it supplies development UAPI headers rather than the running host kernel; the image contains no kernel or modules; the frozen database has no fixed package; it is retained for build-essential and must be reviewed at expiry.",
+      "match": {
+        "image": "workspace_base",
+        "kind": "vulnerability",
+        "category": "",
+        "target": "sha256:5c69392a575f6737aefde346e413dd3ee44adf2128525120dc23e6339fd8e64d (ubuntu 24.04)",
+        "finding_id": "CVE-2026-53176",
+        "package": "linux-libc-dev",
+        "version": "6.8.0-136.136",
+        "severity": "HIGH",
+        "path": "",
+        "result_class": "os-pkgs",
+        "result_type": "ubuntu",
+        "status": "affected",
+        "fixed_version": "",
+        "package_purl": "pkg:deb/ubuntu/linux-libc-dev@6.8.0-136.136?arch=amd64&distro=ubuntu-24.04"
+      }
+    },
+    {
+      "id": "IMG-2026-048",
+      "expires_on": "2026-08-26",
+      "statement": "Exact Ubuntu linux-libc-dev 6.8.0-136.136 is the current security package; it supplies development UAPI headers rather than the running host kernel; the image contains no kernel or modules; the frozen database has no fixed package; it is retained for build-essential and must be reviewed at expiry.",
+      "match": {
+        "image": "workspace_base",
+        "kind": "vulnerability",
+        "category": "",
+        "target": "sha256:5c69392a575f6737aefde346e413dd3ee44adf2128525120dc23e6339fd8e64d (ubuntu 24.04)",
+        "finding_id": "CVE-2026-53178",
+        "package": "linux-libc-dev",
+        "version": "6.8.0-136.136",
+        "severity": "HIGH",
+        "path": "",
+        "result_class": "os-pkgs",
+        "result_type": "ubuntu",
+        "status": "affected",
+        "fixed_version": "",
+        "package_purl": "pkg:deb/ubuntu/linux-libc-dev@6.8.0-136.136?arch=amd64&distro=ubuntu-24.04"
+      }
+    },
+    {
+      "id": "IMG-2026-049",
+      "expires_on": "2026-08-26",
+      "statement": "Exact Ubuntu linux-libc-dev 6.8.0-136.136 is the current security package; it supplies development UAPI headers rather than the running host kernel; the image contains no kernel or modules; the frozen database has no fixed package; it is retained for build-essential and must be reviewed at expiry.",
+      "match": {
+        "image": "workspace_base",
+        "kind": "vulnerability",
+        "category": "",
+        "target": "sha256:5c69392a575f6737aefde346e413dd3ee44adf2128525120dc23e6339fd8e64d (ubuntu 24.04)",
+        "finding_id": "CVE-2026-53182",
+        "package": "linux-libc-dev",
+        "version": "6.8.0-136.136",
+        "severity": "HIGH",
+        "path": "",
+        "result_class": "os-pkgs",
+        "result_type": "ubuntu",
+        "status": "affected",
+        "fixed_version": "",
+        "package_purl": "pkg:deb/ubuntu/linux-libc-dev@6.8.0-136.136?arch=amd64&distro=ubuntu-24.04"
+      }
+    },
+    {
+      "id": "IMG-2026-050",
+      "expires_on": "2026-08-26",
+      "statement": "Exact Ubuntu linux-libc-dev 6.8.0-136.136 is the current security package; it supplies development UAPI headers rather than the running host kernel; the image contains no kernel or modules; the frozen database has no fixed package; it is retained for build-essential and must be reviewed at expiry.",
+      "match": {
+        "image": "workspace_base",
+        "kind": "vulnerability",
+        "category": "",
+        "target": "sha256:5c69392a575f6737aefde346e413dd3ee44adf2128525120dc23e6339fd8e64d (ubuntu 24.04)",
+        "finding_id": "CVE-2026-53183",
+        "package": "linux-libc-dev",
+        "version": "6.8.0-136.136",
+        "severity": "HIGH",
+        "path": "",
+        "result_class": "os-pkgs",
+        "result_type": "ubuntu",
+        "status": "affected",
+        "fixed_version": "",
+        "package_purl": "pkg:deb/ubuntu/linux-libc-dev@6.8.0-136.136?arch=amd64&distro=ubuntu-24.04"
+      }
+    },
+    {
+      "id": "IMG-2026-051",
+      "expires_on": "2026-08-26",
+      "statement": "Exact Ubuntu linux-libc-dev 6.8.0-136.136 is the current security package; it supplies development UAPI headers rather than the running host kernel; the image contains no kernel or modules; the frozen database has no fixed package; it is retained for build-essential and must be reviewed at expiry.",
+      "match": {
+        "image": "workspace_base",
+        "kind": "vulnerability",
+        "category": "",
+        "target": "sha256:5c69392a575f6737aefde346e413dd3ee44adf2128525120dc23e6339fd8e64d (ubuntu 24.04)",
+        "finding_id": "CVE-2026-53185",
+        "package": "linux-libc-dev",
+        "version": "6.8.0-136.136",
+        "severity": "HIGH",
+        "path": "",
+        "result_class": "os-pkgs",
+        "result_type": "ubuntu",
+        "status": "affected",
+        "fixed_version": "",
+        "package_purl": "pkg:deb/ubuntu/linux-libc-dev@6.8.0-136.136?arch=amd64&distro=ubuntu-24.04"
+      }
+    },
+    {
+      "id": "IMG-2026-052",
+      "expires_on": "2026-08-26",
+      "statement": "Exact Ubuntu linux-libc-dev 6.8.0-136.136 is the current security package; it supplies development UAPI headers rather than the running host kernel; the image contains no kernel or modules; the frozen database has no fixed package; it is retained for build-essential and must be reviewed at expiry.",
+      "match": {
+        "image": "workspace_base",
+        "kind": "vulnerability",
+        "category": "",
+        "target": "sha256:5c69392a575f6737aefde346e413dd3ee44adf2128525120dc23e6339fd8e64d (ubuntu 24.04)",
+        "finding_id": "CVE-2026-53186",
+        "package": "linux-libc-dev",
+        "version": "6.8.0-136.136",
+        "severity": "HIGH",
+        "path": "",
+        "result_class": "os-pkgs",
+        "result_type": "ubuntu",
+        "status": "affected",
+        "fixed_version": "",
+        "package_purl": "pkg:deb/ubuntu/linux-libc-dev@6.8.0-136.136?arch=amd64&distro=ubuntu-24.04"
+      }
+    },
+    {
+      "id": "IMG-2026-053",
+      "expires_on": "2026-08-26",
+      "statement": "Exact Ubuntu linux-libc-dev 6.8.0-136.136 is the current security package; it supplies development UAPI headers rather than the running host kernel; the image contains no kernel or modules; the frozen database has no fixed package; it is retained for build-essential and must be reviewed at expiry.",
+      "match": {
+        "image": "workspace_base",
+        "kind": "vulnerability",
+        "category": "",
+        "target": "sha256:5c69392a575f6737aefde346e413dd3ee44adf2128525120dc23e6339fd8e64d (ubuntu 24.04)",
+        "finding_id": "CVE-2026-53196",
+        "package": "linux-libc-dev",
+        "version": "6.8.0-136.136",
+        "severity": "HIGH",
+        "path": "",
+        "result_class": "os-pkgs",
+        "result_type": "ubuntu",
+        "status": "affected",
+        "fixed_version": "",
+        "package_purl": "pkg:deb/ubuntu/linux-libc-dev@6.8.0-136.136?arch=amd64&distro=ubuntu-24.04"
+      }
+    },
+    {
+      "id": "IMG-2026-054",
+      "expires_on": "2026-08-26",
+      "statement": "Exact Ubuntu linux-libc-dev 6.8.0-136.136 is the current security package; it supplies development UAPI headers rather than the running host kernel; the image contains no kernel or modules; the frozen database has no fixed package; it is retained for build-essential and must be reviewed at expiry.",
+      "match": {
+        "image": "workspace_base",
+        "kind": "vulnerability",
+        "category": "",
+        "target": "sha256:5c69392a575f6737aefde346e413dd3ee44adf2128525120dc23e6339fd8e64d (ubuntu 24.04)",
+        "finding_id": "CVE-2026-53198",
+        "package": "linux-libc-dev",
+        "version": "6.8.0-136.136",
+        "severity": "HIGH",
+        "path": "",
+        "result_class": "os-pkgs",
+        "result_type": "ubuntu",
+        "status": "affected",
+        "fixed_version": "",
+        "package_purl": "pkg:deb/ubuntu/linux-libc-dev@6.8.0-136.136?arch=amd64&distro=ubuntu-24.04"
+      }
+    },
+    {
+      "id": "IMG-2026-055",
+      "expires_on": "2026-08-26",
+      "statement": "Exact Ubuntu linux-libc-dev 6.8.0-136.136 is the current security package; it supplies development UAPI headers rather than the running host kernel; the image contains no kernel or modules; the frozen database has no fixed package; it is retained for build-essential and must be reviewed at expiry.",
+      "match": {
+        "image": "workspace_base",
+        "kind": "vulnerability",
+        "category": "",
+        "target": "sha256:5c69392a575f6737aefde346e413dd3ee44adf2128525120dc23e6339fd8e64d (ubuntu 24.04)",
+        "finding_id": "CVE-2026-53212",
+        "package": "linux-libc-dev",
+        "version": "6.8.0-136.136",
+        "severity": "HIGH",
+        "path": "",
+        "result_class": "os-pkgs",
+        "result_type": "ubuntu",
+        "status": "affected",
+        "fixed_version": "",
+        "package_purl": "pkg:deb/ubuntu/linux-libc-dev@6.8.0-136.136?arch=amd64&distro=ubuntu-24.04"
+      }
+    },
+    {
+      "id": "IMG-2026-056",
+      "expires_on": "2026-08-26",
+      "statement": "Exact Ubuntu linux-libc-dev 6.8.0-136.136 is the current security package; it supplies development UAPI headers rather than the running host kernel; the image contains no kernel or modules; the frozen database has no fixed package; it is retained for build-essential and must be reviewed at expiry.",
+      "match": {
+        "image": "workspace_base",
+        "kind": "vulnerability",
+        "category": "",
+        "target": "sha256:5c69392a575f6737aefde346e413dd3ee44adf2128525120dc23e6339fd8e64d (ubuntu 24.04)",
+        "finding_id": "CVE-2026-53215",
+        "package": "linux-libc-dev",
+        "version": "6.8.0-136.136",
+        "severity": "CRITICAL",
+        "path": "",
+        "result_class": "os-pkgs",
+        "result_type": "ubuntu",
+        "status": "affected",
+        "fixed_version": "",
+        "package_purl": "pkg:deb/ubuntu/linux-libc-dev@6.8.0-136.136?arch=amd64&distro=ubuntu-24.04"
+      }
+    },
+    {
+      "id": "IMG-2026-057",
+      "expires_on": "2026-08-26",
+      "statement": "Exact Ubuntu linux-libc-dev 6.8.0-136.136 is the current security package; it supplies development UAPI headers rather than the running host kernel; the image contains no kernel or modules; the frozen database has no fixed package; it is retained for build-essential and must be reviewed at expiry.",
+      "match": {
+        "image": "workspace_base",
+        "kind": "vulnerability",
+        "category": "",
+        "target": "sha256:5c69392a575f6737aefde346e413dd3ee44adf2128525120dc23e6339fd8e64d (ubuntu 24.04)",
+        "finding_id": "CVE-2026-53224",
+        "package": "linux-libc-dev",
+        "version": "6.8.0-136.136",
+        "severity": "HIGH",
+        "path": "",
+        "result_class": "os-pkgs",
+        "result_type": "ubuntu",
+        "status": "affected",
+        "fixed_version": "",
+        "package_purl": "pkg:deb/ubuntu/linux-libc-dev@6.8.0-136.136?arch=amd64&distro=ubuntu-24.04"
+      }
+    },
+    {
+      "id": "IMG-2026-058",
+      "expires_on": "2026-08-26",
+      "statement": "Exact Ubuntu linux-libc-dev 6.8.0-136.136 is the current security package; it supplies development UAPI headers rather than the running host kernel; the image contains no kernel or modules; the frozen database has no fixed package; it is retained for build-essential and must be reviewed at expiry.",
+      "match": {
+        "image": "workspace_base",
+        "kind": "vulnerability",
+        "category": "",
+        "target": "sha256:5c69392a575f6737aefde346e413dd3ee44adf2128525120dc23e6339fd8e64d (ubuntu 24.04)",
+        "finding_id": "CVE-2026-53239",
+        "package": "linux-libc-dev",
+        "version": "6.8.0-136.136",
+        "severity": "HIGH",
+        "path": "",
+        "result_class": "os-pkgs",
+        "result_type": "ubuntu",
+        "status": "affected",
+        "fixed_version": "",
+        "package_purl": "pkg:deb/ubuntu/linux-libc-dev@6.8.0-136.136?arch=amd64&distro=ubuntu-24.04"
+      }
+    },
+    {
+      "id": "IMG-2026-059",
+      "expires_on": "2026-08-26",
+      "statement": "Exact Ubuntu linux-libc-dev 6.8.0-136.136 is the current security package; it supplies development UAPI headers rather than the running host kernel; the image contains no kernel or modules; the frozen database has no fixed package; it is retained for build-essential and must be reviewed at expiry.",
+      "match": {
+        "image": "workspace_base",
+        "kind": "vulnerability",
+        "category": "",
+        "target": "sha256:5c69392a575f6737aefde346e413dd3ee44adf2128525120dc23e6339fd8e64d (ubuntu 24.04)",
+        "finding_id": "CVE-2026-53250",
+        "package": "linux-libc-dev",
+        "version": "6.8.0-136.136",
+        "severity": "HIGH",
+        "path": "",
+        "result_class": "os-pkgs",
+        "result_type": "ubuntu",
+        "status": "affected",
+        "fixed_version": "",
+        "package_purl": "pkg:deb/ubuntu/linux-libc-dev@6.8.0-136.136?arch=amd64&distro=ubuntu-24.04"
+      }
+    },
+    {
+      "id": "IMG-2026-060",
+      "expires_on": "2026-08-26",
+      "statement": "Exact Ubuntu linux-libc-dev 6.8.0-136.136 is the current security package; it supplies development UAPI headers rather than the running host kernel; the image contains no kernel or modules; the frozen database has no fixed package; it is retained for build-essential and must be reviewed at expiry.",
+      "match": {
+        "image": "workspace_base",
+        "kind": "vulnerability",
+        "category": "",
+        "target": "sha256:5c69392a575f6737aefde346e413dd3ee44adf2128525120dc23e6339fd8e64d (ubuntu 24.04)",
+        "finding_id": "CVE-2026-53254",
+        "package": "linux-libc-dev",
+        "version": "6.8.0-136.136",
+        "severity": "HIGH",
+        "path": "",
+        "result_class": "os-pkgs",
+        "result_type": "ubuntu",
+        "status": "affected",
+        "fixed_version": "",
+        "package_purl": "pkg:deb/ubuntu/linux-libc-dev@6.8.0-136.136?arch=amd64&distro=ubuntu-24.04"
+      }
+    },
+    {
+      "id": "IMG-2026-061",
+      "expires_on": "2026-08-26",
+      "statement": "Exact Ubuntu linux-libc-dev 6.8.0-136.136 is the current security package; it supplies development UAPI headers rather than the running host kernel; the image contains no kernel or modules; the frozen database has no fixed package; it is retained for build-essential and must be reviewed at expiry.",
+      "match": {
+        "image": "workspace_base",
+        "kind": "vulnerability",
+        "category": "",
+        "target": "sha256:5c69392a575f6737aefde346e413dd3ee44adf2128525120dc23e6339fd8e64d (ubuntu 24.04)",
+        "finding_id": "CVE-2026-53256",
+        "package": "linux-libc-dev",
+        "version": "6.8.0-136.136",
+        "severity": "HIGH",
+        "path": "",
+        "result_class": "os-pkgs",
+        "result_type": "ubuntu",
+        "status": "affected",
+        "fixed_version": "",
+        "package_purl": "pkg:deb/ubuntu/linux-libc-dev@6.8.0-136.136?arch=amd64&distro=ubuntu-24.04"
+      }
+    },
+    {
+      "id": "IMG-2026-062",
+      "expires_on": "2026-08-26",
+      "statement": "Exact Ubuntu linux-libc-dev 6.8.0-136.136 is the current security package; it supplies development UAPI headers rather than the running host kernel; the image contains no kernel or modules; the frozen database has no fixed package; it is retained for build-essential and must be reviewed at expiry.",
+      "match": {
+        "image": "workspace_base",
+        "kind": "vulnerability",
+        "category": "",
+        "target": "sha256:5c69392a575f6737aefde346e413dd3ee44adf2128525120dc23e6339fd8e64d (ubuntu 24.04)",
+        "finding_id": "CVE-2026-53262",
+        "package": "linux-libc-dev",
+        "version": "6.8.0-136.136",
+        "severity": "HIGH",
+        "path": "",
+        "result_class": "os-pkgs",
+        "result_type": "ubuntu",
+        "status": "affected",
+        "fixed_version": "",
+        "package_purl": "pkg:deb/ubuntu/linux-libc-dev@6.8.0-136.136?arch=amd64&distro=ubuntu-24.04"
+      }
+    },
+    {
+      "id": "IMG-2026-063",
+      "expires_on": "2026-08-26",
+      "statement": "Exact Ubuntu linux-libc-dev 6.8.0-136.136 is the current security package; it supplies development UAPI headers rather than the running host kernel; the image contains no kernel or modules; the frozen database has no fixed package; it is retained for build-essential and must be reviewed at expiry.",
+      "match": {
+        "image": "workspace_base",
+        "kind": "vulnerability",
+        "category": "",
+        "target": "sha256:5c69392a575f6737aefde346e413dd3ee44adf2128525120dc23e6339fd8e64d (ubuntu 24.04)",
+        "finding_id": "CVE-2026-53264",
+        "package": "linux-libc-dev",
+        "version": "6.8.0-136.136",
+        "severity": "HIGH",
+        "path": "",
+        "result_class": "os-pkgs",
+        "result_type": "ubuntu",
+        "status": "affected",
+        "fixed_version": "",
+        "package_purl": "pkg:deb/ubuntu/linux-libc-dev@6.8.0-136.136?arch=amd64&distro=ubuntu-24.04"
+      }
+    },
+    {
+      "id": "IMG-2026-064",
+      "expires_on": "2026-08-26",
+      "statement": "Exact Ubuntu linux-libc-dev 6.8.0-136.136 is the current security package; it supplies development UAPI headers rather than the running host kernel; the image contains no kernel or modules; the frozen database has no fixed package; it is retained for build-essential and must be reviewed at expiry.",
+      "match": {
+        "image": "workspace_base",
+        "kind": "vulnerability",
+        "category": "",
+        "target": "sha256:5c69392a575f6737aefde346e413dd3ee44adf2128525120dc23e6339fd8e64d (ubuntu 24.04)",
+        "finding_id": "CVE-2026-53266",
+        "package": "linux-libc-dev",
+        "version": "6.8.0-136.136",
+        "severity": "HIGH",
+        "path": "",
+        "result_class": "os-pkgs",
+        "result_type": "ubuntu",
+        "status": "affected",
+        "fixed_version": "",
+        "package_purl": "pkg:deb/ubuntu/linux-libc-dev@6.8.0-136.136?arch=amd64&distro=ubuntu-24.04"
+      }
+    },
+    {
+      "id": "IMG-2026-065",
+      "expires_on": "2026-08-26",
+      "statement": "Exact Ubuntu linux-libc-dev 6.8.0-136.136 is the current security package; it supplies development UAPI headers rather than the running host kernel; the image contains no kernel or modules; the frozen database has no fixed package; it is retained for build-essential and must be reviewed at expiry.",
+      "match": {
+        "image": "workspace_base",
+        "kind": "vulnerability",
+        "category": "",
+        "target": "sha256:5c69392a575f6737aefde346e413dd3ee44adf2128525120dc23e6339fd8e64d (ubuntu 24.04)",
+        "finding_id": "CVE-2026-53269",
+        "package": "linux-libc-dev",
+        "version": "6.8.0-136.136",
+        "severity": "HIGH",
+        "path": "",
+        "result_class": "os-pkgs",
+        "result_type": "ubuntu",
+        "status": "affected",
+        "fixed_version": "",
+        "package_purl": "pkg:deb/ubuntu/linux-libc-dev@6.8.0-136.136?arch=amd64&distro=ubuntu-24.04"
+      }
+    },
+    {
+      "id": "IMG-2026-066",
+      "expires_on": "2026-08-26",
+      "statement": "Exact Ubuntu linux-libc-dev 6.8.0-136.136 is the current security package; it supplies development UAPI headers rather than the running host kernel; the image contains no kernel or modules; the frozen database has no fixed package; it is retained for build-essential and must be reviewed at expiry.",
+      "match": {
+        "image": "workspace_base",
+        "kind": "vulnerability",
+        "category": "",
+        "target": "sha256:5c69392a575f6737aefde346e413dd3ee44adf2128525120dc23e6339fd8e64d (ubuntu 24.04)",
+        "finding_id": "CVE-2026-53270",
+        "package": "linux-libc-dev",
+        "version": "6.8.0-136.136",
+        "severity": "HIGH",
+        "path": "",
+        "result_class": "os-pkgs",
+        "result_type": "ubuntu",
+        "status": "affected",
+        "fixed_version": "",
+        "package_purl": "pkg:deb/ubuntu/linux-libc-dev@6.8.0-136.136?arch=amd64&distro=ubuntu-24.04"
+      }
+    },
+    {
+      "id": "IMG-2026-067",
+      "expires_on": "2026-08-26",
+      "statement": "Exact Ubuntu linux-libc-dev 6.8.0-136.136 is the current security package; it supplies development UAPI headers rather than the running host kernel; the image contains no kernel or modules; the frozen database has no fixed package; it is retained for build-essential and must be reviewed at expiry.",
+      "match": {
+        "image": "workspace_base",
+        "kind": "vulnerability",
+        "category": "",
+        "target": "sha256:5c69392a575f6737aefde346e413dd3ee44adf2128525120dc23e6339fd8e64d (ubuntu 24.04)",
+        "finding_id": "CVE-2026-53275",
+        "package": "linux-libc-dev",
+        "version": "6.8.0-136.136",
+        "severity": "HIGH",
+        "path": "",
+        "result_class": "os-pkgs",
+        "result_type": "ubuntu",
+        "status": "affected",
+        "fixed_version": "",
+        "package_purl": "pkg:deb/ubuntu/linux-libc-dev@6.8.0-136.136?arch=amd64&distro=ubuntu-24.04"
+      }
+    },
+    {
+      "id": "IMG-2026-068",
+      "expires_on": "2026-08-26",
+      "statement": "Exact Ubuntu linux-libc-dev 6.8.0-136.136 is the current security package; it supplies development UAPI headers rather than the running host kernel; the image contains no kernel or modules; the frozen database has no fixed package; it is retained for build-essential and must be reviewed at expiry.",
+      "match": {
+        "image": "workspace_base",
+        "kind": "vulnerability",
+        "category": "",
+        "target": "sha256:5c69392a575f6737aefde346e413dd3ee44adf2128525120dc23e6339fd8e64d (ubuntu 24.04)",
+        "finding_id": "CVE-2026-53359",
+        "package": "linux-libc-dev",
+        "version": "6.8.0-136.136",
+        "severity": "HIGH",
+        "path": "",
+        "result_class": "os-pkgs",
+        "result_type": "ubuntu",
+        "status": "affected",
+        "fixed_version": "",
+        "package_purl": "pkg:deb/ubuntu/linux-libc-dev@6.8.0-136.136?arch=amd64&distro=ubuntu-24.04"
+      }
+    }
+  ],
+  "license_baselines": [
+    {
+      "id": "LIC-2026-001",
+      "image": "workspace_base",
+      "expires_on": "2026-08-26",
+      "statement": "Reviewed exact duplicate-sensitive multiset for 1,232 non-forbidden workspace licenses. Restricted and unknown findings are retained as packaged build or runtime dependencies and must be reviewed again at expiry.",
+      "algorithm": "sha256-json-sorted-v2-match-key-multiset-v1",
+      "finding_count": 1232,
+      "canonical_sha256": "2f926ee88f079694bc8ede6b8e1e15a8f19439e378c8e6df4019aab49fc84d7f",
+      "category_counts": {
+        "restricted": 718,
+        "unknown": 514
+      },
+      "severity_counts": {
+        "HIGH": 718,
+        "UNKNOWN": 514
       }
     }
   ]

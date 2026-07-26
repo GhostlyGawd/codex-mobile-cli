@@ -79,9 +79,15 @@ rechecks every tag for drift, and atomically publishes root-only CycloneDX 1.6,
 Trivy JSON, and a metadata-only receipt. Manifest schema 2 binds that receipt,
 the exact report tree, policy/tool/database hashes, and the same image IDs.
 
-Tracked dispositions are exact and expiring: image, report target, finding ID,
-package/version, severity, and path must all match. A new/changed finding,
-expired or unused disposition, malformed/oversized report, database/tool drift,
-or any undispositioned result fails closed. Raw reports are never uploaded
-automatically. Rollback verifies the release-time evidence and retained image
-IDs without rebuilding or rescanning.
+Scanner profile 3 uses evidence/policy schema 2. Exact dispositions bind image,
+kind, category, report target, finding ID, package/version, severity, path,
+result class/type, vulnerability status, fixed version, and package PURL.
+Forbidden licenses require those individual exact dispositions. Each image's
+complete non-forbidden license inventory is reviewed as an expiring,
+duplicate-sensitive canonical multiset baseline. A new/changed finding,
+missing/changed/expired/unused baseline, expired or unused disposition,
+malformed/oversized report, database/tool drift, or any undispositioned result
+fails closed. Raw reports are never uploaded automatically. Rollback verifies
+the release-time evidence and retained image IDs without rebuilding or
+rescanning; historical scanner profiles remain version-dispatched and are
+never reinterpreted as profile 3.
