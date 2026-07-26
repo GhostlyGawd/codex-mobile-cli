@@ -521,6 +521,20 @@ class ImageSupplyChainTests(unittest.TestCase):
             envbuilder_dockerfile.index("FROM --platform=$BUILDPLATFORM"),
         )
         self.assertIn(
+            "&& rm -rf \\\n"
+            "      /go/pkg/mod \\\n"
+            "      /root/.cache/go-build \\\n"
+            "      /tmp/go-build-one \\\n"
+            "      /tmp/go-build-two \\\n"
+            "      /tmp/envbuilder.tar.gz \\\n"
+            "      /src/.git",
+            envbuilder_dockerfile,
+        )
+        self.assertLess(
+            envbuilder_dockerfile.index("&& rm -rf"),
+            envbuilder_dockerfile.index("FROM ${WORKSPACE_BASE_IMAGE}"),
+        )
+        self.assertIn(
             "5a1f27db2ed6226ccd401d5bd2a6c617a42ca4fe07071a9021f29af3a2b053a8",
             build,
         )

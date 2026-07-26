@@ -83,7 +83,14 @@ RUN set -eu \
     && grep -F $'\tbuild\tGOARCH='"${TARGETARCH}" /out/envbuilder-go-version.txt \
     && ! grep -E 'github.com/coder/(coder|tailscale)|tailscale.com' /out/envbuilder-go-version.txt \
     && mv /out/envbuilder-one /out/envbuilder \
-    && rm /out/envbuilder-two
+    && rm /out/envbuilder-two \
+    && rm -rf \
+      /go/pkg/mod \
+      /root/.cache/go-build \
+      /tmp/go-build-one \
+      /tmp/go-build-two \
+      /tmp/envbuilder.tar.gz \
+      /src/.git
 
 # The workspace base is built and verified first. The build script resolves
 # this reference to its immutable local image ID before the trusted helper seed
