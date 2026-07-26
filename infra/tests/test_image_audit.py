@@ -202,6 +202,56 @@ class IdentityAndCommandTests(unittest.TestCase):
         self.assertIn("--skip-db-update", trivy)
         self.assertIn("--offline-scan", trivy)
 
+    def test_only_podman_bare_image_ids_are_canonicalized(self) -> None:
+        bare = "b" * 64
+
+        def runner(_argv, **_kwargs):
+            return AUDIT.CommandResult(
+                0,
+                f"{bare}\t1024\tlinux\tamd64\n".encode(),
+                b"",
+                0,
+            )
+
+        snapshot = AUDIT.inspect_image(
+            "podman",
+            "localhost/example:tag",
+            "unix:///run/podman/podman.sock",
+            cwd=ROOT,
+            environment=AUDIT.minimal_environment(ROOT),
+            runner=runner,
+        )
+        self.assertEqual(snapshot.image_id, f"sha256:{bare}")
+        with self.assertRaisesRegex(AUDIT.AuditError, "full sha256"):
+            AUDIT.inspect_image(
+                "docker",
+                "localhost/example:tag",
+                "unix:///run/podman/podman.sock",
+                cwd=ROOT,
+                environment=AUDIT.minimal_environment(ROOT),
+                runner=runner,
+            )
+        for invalid in ("c" * 63, "C" * 64, "c" * 65, "sha512:" + "c" * 64):
+            with self.subTest(invalid=invalid):
+
+                def invalid_runner(_argv, **_kwargs):
+                    return AUDIT.CommandResult(
+                        0,
+                        f"{invalid}\t1024\tlinux\tamd64\n".encode(),
+                        b"",
+                        0,
+                    )
+
+                with self.assertRaisesRegex(AUDIT.AuditError, "full sha256"):
+                    AUDIT.inspect_image(
+                        "podman",
+                        "localhost/example:tag",
+                        "unix:///run/podman/podman.sock",
+                        cwd=ROOT,
+                        environment=AUDIT.minimal_environment(ROOT),
+                        runner=invalid_runner,
+                    )
+
     def test_minimal_environment_does_not_inherit_credentials_or_proxies(self) -> None:
         environment = AUDIT.minimal_environment(Path("/private/audit"))
         for forbidden in (

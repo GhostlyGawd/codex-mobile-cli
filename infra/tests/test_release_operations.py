@@ -782,6 +782,42 @@ class ReleaseSubprocessBoundaryTests(unittest.TestCase):
             self.assertEqual(kwargs["env"]["PATH"], "/usr/bin:/bin")
             self.assertNotIn("C:\\attacker-controlled", kwargs["env"].values())
 
+    def test_only_podman_bare_image_ids_are_canonicalized(self) -> None:
+        bare = "2" * 64
+
+        def runner(_argv, **_kwargs):
+            return MANIFEST.CommandResult(0, (bare + "\n").encode(), b"")
+
+        self.assertEqual(
+            MANIFEST.inspect_image(
+                "podman",
+                "localhost/example:tag",
+                MANIFEST.DEFAULT_PODMAN_URL,
+                runner,
+            ),
+            f"sha256:{bare}",
+        )
+        with self.assertRaisesRegex(MANIFEST.ManifestError, "immutable sha256"):
+            MANIFEST.inspect_image(
+                "docker",
+                "localhost/example:tag",
+                MANIFEST.DEFAULT_PODMAN_URL,
+                runner,
+            )
+        for invalid in ("a" * 63, "A" * 64, "a" * 65, "sha512:" + "a" * 64):
+            with self.subTest(invalid=invalid):
+
+                def invalid_runner(_argv, **_kwargs):
+                    return MANIFEST.CommandResult(0, (invalid + "\n").encode(), b"")
+
+                with self.assertRaisesRegex(MANIFEST.ManifestError, "immutable sha256"):
+                    MANIFEST.inspect_image(
+                        "podman",
+                        "localhost/example:tag",
+                        MANIFEST.DEFAULT_PODMAN_URL,
+                        invalid_runner,
+                    )
+
     def test_helper_is_extracted_from_exact_id_without_starting_image(self) -> None:
         calls: list[tuple[list[str], dict[str, object]]] = []
         image_id_value = "sha256:" + "2" * 64

@@ -400,6 +400,13 @@ def normalize_image_id(value: str, reference: str = "image") -> str:
     return candidate
 
 
+def normalize_inspected_image_id(engine: str, value: str, reference: str) -> str:
+    candidate = value.strip()
+    if engine == "podman" and SHA256_PATTERN.fullmatch(candidate):
+        candidate = f"sha256:{candidate}"
+    return normalize_image_id(candidate, reference)
+
+
 def validate_release_id(release_id: str) -> str:
     if not RELEASE_ID_PATTERN.fullmatch(release_id):
         raise AuditError(
@@ -1750,7 +1757,7 @@ def inspect_image(
         raise AuditError(
             "image inspection output is malformed", ExitCode.IMAGE
         ) from exc
-    image_id = normalize_image_id(image_id, reference)
+    image_id = normalize_inspected_image_id(engine, image_id, reference)
     architecture = normalize_architecture(architecture_raw)
     if size_bytes <= 0 or size_bytes > MAX_IMAGE_BYTES:
         raise AuditError("image exceeds the audit size policy", ExitCode.IMAGE)

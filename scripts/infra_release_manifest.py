@@ -327,6 +327,13 @@ def normalize_image_id(value: str, reference: str) -> str:
     return candidate
 
 
+def normalize_inspected_image_id(engine: str, value: str, reference: str) -> str:
+    candidate = value.strip()
+    if engine == "podman" and SHA256_PATTERN.fullmatch(candidate):
+        candidate = f"sha256:{candidate}"
+    return normalize_image_id(candidate, reference)
+
+
 def validate_podman_url(value: str) -> str:
     if not isinstance(value, str) or len(value) > 4096:
         raise ManifestError(
@@ -578,7 +585,7 @@ def inspect_image(
         stdout = result.stdout.decode("ascii", errors="strict")
     except UnicodeDecodeError as exc:
         raise ManifestError(f"image inspection output is invalid: {reference}") from exc
-    return normalize_image_id(stdout, reference)
+    return normalize_inspected_image_id(engine, stdout, reference)
 
 
 def inspect_podman_image_architecture(
