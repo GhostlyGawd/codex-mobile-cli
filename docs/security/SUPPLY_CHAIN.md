@@ -11,9 +11,10 @@ python scripts/generate-supply-chain.py --check
 
 For a release candidate, install the free tools at the exact versions in
 `.tool-versions`, verify their official release checksums/signatures, then run
-`sh ./scripts/security-audit.sh` or `pwsh ./scripts/security-audit.ps1`. Detailed
-scanner output goes to ignored `artifacts/supply-chain`; it can contain local
-paths and is not uploaded automatically.
+`sh ./scripts/security-audit.sh` or `pwsh ./scripts/security-audit.ps1`. These
+wrappers reject a different Syft or Trivy version. Detailed scanner output goes
+to ignored `artifacts/supply-chain`; it can contain local paths and is not
+uploaded automatically.
 
 ## Executed source audit — 2026-07-16
 
@@ -42,5 +43,20 @@ unreviewed finding, govulncheck reports a reachable vulnerability without a
 documented disposition, a license is `LicenseRef-Needs-Review`, an immutable
 image fails Trivy, or an image digest differs from the deployment source.
 `LicenseRef-Tooling-Not-Distributed` means a local build tool is inventoried but
-not shipped. Ubuntu and Coder image `LicenseRef` entries require the full built
-image package/license inventory; they are not blanket approvals.
+not shipped. Syft and Trivy are Apache-2.0 operational tools installed on the
+host at no additional cost. Ubuntu and Coder image `LicenseRef` entries require
+the full built-image package/license inventory; they are not blanket approvals.
+
+The production deploy builds three commit-tagged local images and runs
+`scripts/infra_image_audit.py` before manifest creation or promotion. The
+auditor scans captured image IDs through explicit Docker/Podman engines,
+rechecks every tag for drift, and atomically publishes root-only CycloneDX 1.6,
+Trivy JSON, and a metadata-only receipt. Manifest schema 2 binds that receipt,
+the exact report tree, policy/tool/database hashes, and the same image IDs.
+
+Tracked dispositions are exact and expiring: image, report target, finding ID,
+package/version, severity, and path must all match. A new/changed finding,
+expired or unused disposition, malformed/oversized report, database/tool drift,
+or any undispositioned result fails closed. Raw reports are never uploaded
+automatically. Rollback verifies the release-time evidence and retained image
+IDs without rebuilding or rescanning.

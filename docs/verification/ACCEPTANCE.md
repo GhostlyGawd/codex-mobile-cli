@@ -164,11 +164,19 @@ their results must not be inferred from static evidence.
   vulnerabilities whose affected symbols are not called. `go-licenses` exited
   successfully; unlicensed first-party-package unknown classifications are not
   errors. Detailed reports were ephemeral outside the repository.
-- Deterministic Linux workspace-helper verification passed with exact hashes
-  amd64 `f6fc430a2200d13ee0ef04dd576875b4f9a7c95a04287cbdec2deec3b495493c`
+- The recorded 2026-07-16 deterministic Linux workspace-helper verification
+  passed with profile-1 hashes amd64
+  `f6fc430a2200d13ee0ef04dd576875b4f9a7c95a04287cbdec2deec3b495493c`
   and arm64
   `c7e4577a465b55721043612f9b6919248806576816388b01898f6c2784dc163e`.
-  The EnvBuilder Dockerfile and image-build verifier carry the same pins.
+- On 2026-07-26, after the current Go security-dependency upgrade, two
+  independent `GOOS=linux CGO_ENABLED=0 go build -trimpath -buildvcs=false
+  -ldflags="-s -w"` cross-builds reproduced profile-2 hashes amd64
+  `11d1fb9c53549e98bb5a976c2958954ff6eb99fd9485dd09beac50f6157df924`
+  and arm64
+  `81a623dae961e640c18ac1df942baf9a797dbeb79b9f90312b62f241d36da1dd`.
+  The current `pwsh ./scripts/verify.ps1` run matched the active profile-2 pins;
+  profile 1 remains accepted only for historical rollback compatibility.
 - The retired private Windows workflow completed a bounded trusted smoke before
   publication. Its exact run, runner identity, path metadata, and logs remain
   only in the private historical archive. That historical evidence is not used

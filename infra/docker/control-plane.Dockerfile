@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.12
 ARG GO_VERSION=1.26.5
 ARG GO_IMAGE_DIGEST=sha256:1ecb7edf62a0408027bd5729dfd6b1b8766e578e8df93995b225dfd0944eb651
-FROM golang:${GO_VERSION}-bookworm@${GO_IMAGE_DIGEST} AS build
+FROM docker.io/library/golang:${GO_VERSION}-bookworm@${GO_IMAGE_DIGEST} AS build
 
 ARG CONTROL_PLANE_PACKAGE=./services/control-plane/cmd/control-plane
 ARG TARGETARCH

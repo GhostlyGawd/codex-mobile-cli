@@ -200,8 +200,8 @@ printf '%s\n' "$rootfs_quota_error" | grep -Eqi 'disk quota exceeded|quota excee
 podman --url "$podman_url" rm --force "$prefix-rootfs-quota" >/dev/null
 
 case "$(podman --url "$podman_url" info --format '{{.Host.Arch}}')" in
-  amd64|x86_64) helper_sha256=f6fc430a2200d13ee0ef04dd576875b4f9a7c95a04287cbdec2deec3b495493c ;;
-  arm64|aarch64) helper_sha256=c7e4577a465b55721043612f9b6919248806576816388b01898f6c2784dc163e ;;
+  amd64|x86_64) helper_sha256=11d1fb9c53549e98bb5a976c2958954ff6eb99fd9485dd09beac50f6157df924 ;;
+  arm64|aarch64) helper_sha256=81a623dae961e640c18ac1df942baf9a797dbeb79b9f90312b62f241d36da1dd ;;
   *) echo "unsupported workspace-helper architecture" >&2; exit 1 ;;
 esac
 

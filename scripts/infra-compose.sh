@@ -1,5 +1,25 @@
 #!/bin/sh
 set -eu
+PATH=/usr/sbin:/usr/bin:/sbin:/bin
+HOME=/root
+export PATH HOME
+unset CDPATH ENV BASH_ENV PYTHONHOME PYTHONPATH PYTHONSTARTUP LD_LIBRARY_PATH LD_PRELOAD
+unset DOCKER_HOST DOCKER_CONTEXT DOCKER_CONFIG DOCKER_CERT_PATH DOCKER_TLS_VERIFY
+unset DOCKER_API_VERSION DOCKER_DEFAULT_PLATFORM COMPOSE_FILE COMPOSE_PATH_SEPARATOR
+unset COMPOSE_PROFILES COMPOSE_PROJECT_NAME CONTAINER_HOST CONTAINER_CONNECTION
+unset CONTAINERS_CONF CONTAINERS_STORAGE_CONF XDG_CONFIG_HOME
+
+docker_host=unix:///var/run/docker.sock
+docker_config=/run/codex-mobile-docker-client
+/usr/bin/install -d -o root -g root -m 0700 "$docker_config"
+[ ! -L "$docker_config" ] \
+  && [ "$(/usr/bin/stat -c '%u:%g:%a' "$docker_config")" = "0:0:700" ] || {
+  echo "trusted Docker client configuration directory is invalid" >&2
+  exit 1
+}
+DOCKER_HOST=$docker_host
+DOCKER_CONFIG=$docker_config
+export DOCKER_HOST DOCKER_CONFIG
 
 repo_root=${REPO_ROOT:-/opt/codex-mobile/current}
 env_file=${ENV_FILE:-/etc/codex-mobile/production.env}
@@ -43,21 +63,21 @@ github_enabled=$(env_value GITHUB_ENABLED)
 apns_enabled=$(env_value APNS_ENABLED)
 case "$github_enabled:$apns_enabled" in
   false:false)
-    exec docker compose --env-file "$env_file" \
+    exec /usr/bin/docker --host "$docker_host" compose --env-file "$env_file" \
       --file "$repo_root/infra/compose.yaml" "$@"
     ;;
   true:false)
-    exec docker compose --env-file "$env_file" \
+    exec /usr/bin/docker --host "$docker_host" compose --env-file "$env_file" \
       --file "$repo_root/infra/compose.yaml" \
       --file "$repo_root/infra/compose.github.yaml" "$@"
     ;;
   false:true)
-    exec docker compose --env-file "$env_file" \
+    exec /usr/bin/docker --host "$docker_host" compose --env-file "$env_file" \
       --file "$repo_root/infra/compose.yaml" \
       --file "$repo_root/infra/compose.apns.yaml" "$@"
     ;;
   true:true)
-    exec docker compose --env-file "$env_file" \
+    exec /usr/bin/docker --host "$docker_host" compose --env-file "$env_file" \
       --file "$repo_root/infra/compose.yaml" \
       --file "$repo_root/infra/compose.github.yaml" \
       --file "$repo_root/infra/compose.apns.yaml" "$@"

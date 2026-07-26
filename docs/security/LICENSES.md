@@ -18,8 +18,6 @@ third-party license.
 | Build tool | `golang` | `1.26.5` | direct | LicenseRef-Tooling-Not-Distributed |
 | Build tool | `govulncheck` | `1.6.0` | direct | LicenseRef-Tooling-Not-Distributed |
 | Build tool | `python` | `3.12.10` | direct | LicenseRef-Tooling-Not-Distributed |
-| Build tool | `syft` | `1.46.0` | direct | LicenseRef-Tooling-Not-Distributed |
-| Build tool | `trivy` | `0.72.0` | direct | LicenseRef-Tooling-Not-Distributed |
 | Build tool | `xcodegen` | `2.45.4` | direct | LicenseRef-Tooling-Not-Distributed |
 | Go module | `cyphar.com/go-pathrs` | `v0.2.1` | transitive | MPL-2.0 |
 | Go module | `dario.cat/mergo` | `v1.0.0` | transitive | BSD-3-Clause |
@@ -75,26 +73,28 @@ third-party license.
 | Go module | `github.com/x448/float16` | `v0.8.4` | transitive | MIT |
 | Go module | `github.com/xanzy/ssh-agent` | `v0.3.3` | transitive | Apache-2.0 |
 | Go module | `go.uber.org/mock` | `v0.6.0` | transitive | Apache-2.0 |
-| Go module | `golang.org/x/crypto` | `v0.52.0` | transitive | BSD-3-Clause |
+| Go module | `golang.org/x/crypto` | `v0.53.0` | transitive | BSD-3-Clause |
 | Go module | `golang.org/x/exp` | `v0.0.0-20260410095643-746e56fc9e2f` | transitive | BSD-3-Clause |
-| Go module | `golang.org/x/mod` | `v0.35.0` | transitive | BSD-3-Clause |
-| Go module | `golang.org/x/net` | `v0.55.0` | transitive | BSD-3-Clause |
-| Go module | `golang.org/x/sync` | `v0.20.0` | transitive | BSD-3-Clause |
+| Go module | `golang.org/x/mod` | `v0.37.0` | transitive | BSD-3-Clause |
+| Go module | `golang.org/x/net` | `v0.56.0` | transitive | BSD-3-Clause |
+| Go module | `golang.org/x/sync` | `v0.21.0` | transitive | BSD-3-Clause |
 | Go module | `golang.org/x/sys` | `v0.47.0` | direct | BSD-3-Clause |
-| Go module | `golang.org/x/term` | `v0.43.0` | transitive | BSD-3-Clause |
-| Go module | `golang.org/x/text` | `v0.37.0` | transitive | BSD-3-Clause |
-| Go module | `golang.org/x/tools` | `v0.44.0` | transitive | BSD-3-Clause |
+| Go module | `golang.org/x/term` | `v0.44.0` | transitive | BSD-3-Clause |
+| Go module | `golang.org/x/text` | `v0.39.0` | transitive | BSD-3-Clause |
+| Go module | `golang.org/x/tools` | `v0.47.0` | transitive | BSD-3-Clause |
 | Go module | `google.golang.org/protobuf` | `v1.33.0` | transitive | BSD-3-Clause |
 | Go module | `gopkg.in/check.v1` | `v1.0.0-20201130134442-10cb98267c6c` | transitive | BSD-2-Clause |
 | Go module | `gopkg.in/warnings.v0` | `v0.1.2` | transitive | BSD-2-Clause |
 | Go module | `gopkg.in/yaml.v2` | `v2.4.0` | transitive | Apache-2.0 AND MIT |
 | Go module | `gopkg.in/yaml.v3` | `v3.0.1` | transitive | Apache-2.0 AND MIT |
 | OCI image | `caddy` | `2.11.4-alpine` | direct | Apache-2.0 |
+| OCI image | `docker.io/library/golang` | `1.26.5-bookworm` | direct | BSD-3-Clause |
+| OCI image | `docker.io/library/ubuntu` | `24.04` | direct | LicenseRef-Ubuntu-Distribution-Mixed |
 | OCI image | `ghcr.io/coder/coder` | `v2.34.6` | direct | AGPL-3.0-only AND LicenseRef-Coder-Enterprise-Components |
-| OCI image | `golang` | `1.26.5-bookworm` | direct | BSD-3-Clause |
 | OCI image | `localhost/codex-mobile/control-plane` | `local-2026-07-15` | direct | LicenseRef-First-Party-No-License |
 | OCI image | `postgres` | `18.4-bookworm` | direct | PostgreSQL |
-| OCI image | `ubuntu` | `24.04` | direct | LicenseRef-Ubuntu-Distribution-Mixed |
+| Operational tool | `syft` | `1.46.0` | direct | Apache-2.0 |
+| Operational tool | `trivy` | `0.72.0` | direct | Apache-2.0 |
 | Swift package | `openapikit` | `3.9.0` | transitive | MIT |
 | Swift package | `runestone` | `0.5.2` | direct | MIT |
 | Swift package | `swift-algorithms` | `1.2.1` | transitive | Apache-2.0 |

@@ -1,0 +1,134 @@
+{
+  "schema_version": 1,
+  "policy_id": "codex-mobile-release-image-dispositions",
+  "dispositions": [
+    {
+      "id": "IMG-2026-001",
+      "expires_on": "2026-08-26",
+      "statement": "Coder 2.34.6 is the current reviewed upstream release. The binary is confined to fixed coder ssh helper and loopback port-forward argv against the trusted private Coder service; the application exposes no arbitrary Coder CLI or remote-command route, and those fixed flows do not select the affected dd-trace-go route. This exact record is accepted only while upstream remediation is monitored.",
+      "match": {
+        "image": "control_plane",
+        "kind": "vulnerability",
+        "category": "",
+        "target": "usr/local/bin/coder",
+        "finding_id": "CVE-2026-50274",
+        "package": "github.com/DataDog/dd-trace-go/v2",
+        "version": "v2.0.0",
+        "severity": "HIGH",
+        "path": ""
+      }
+    },
+    {
+      "id": "IMG-2026-002",
+      "expires_on": "2026-08-26",
+      "statement": "Coder 2.34.6 is the current reviewed upstream release. The binary is confined to fixed coder ssh helper and loopback port-forward argv against the trusted private Coder service; the application exposes no arbitrary Coder CLI or remote-command route, and those fixed flows do not invoke the affected OpenPGP route. This exact record is accepted only pending an upstream dependency update.",
+      "match": {
+        "image": "control_plane",
+        "kind": "vulnerability",
+        "category": "",
+        "target": "usr/local/bin/coder",
+        "finding_id": "GO-2026-5932",
+        "package": "golang.org/x/crypto",
+        "version": "v0.52.0",
+        "severity": "UNKNOWN",
+        "path": ""
+      }
+    },
+    {
+      "id": "IMG-2026-003",
+      "expires_on": "2026-08-26",
+      "statement": "Coder 2.34.6 is the current reviewed upstream release. The binary is confined to fixed coder ssh helper and loopback port-forward argv against the trusted private Coder service; the application exposes no arbitrary Coder CLI or remote-command route, and those fixed flows do not select the affected x/net route. This exact record is accepted only pending an upstream dependency update.",
+      "match": {
+        "image": "control_plane",
+        "kind": "vulnerability",
+        "category": "",
+        "target": "usr/local/bin/coder",
+        "finding_id": "CVE-2026-46600",
+        "package": "golang.org/x/net",
+        "version": "v0.55.0",
+        "severity": "UNKNOWN",
+        "path": ""
+      }
+    },
+    {
+      "id": "IMG-2026-004",
+      "expires_on": "2026-08-26",
+      "statement": "Coder 2.34.6 is the current reviewed upstream release. The binary is confined to fixed coder ssh helper and loopback port-forward argv against the trusted private Coder service; the application exposes no arbitrary Coder CLI or remote-command route, and those fixed flows do not select the affected x/text route. This exact record is accepted only pending an upstream dependency update.",
+      "match": {
+        "image": "control_plane",
+        "kind": "vulnerability",
+        "category": "",
+        "target": "usr/local/bin/coder",
+        "finding_id": "CVE-2026-56852",
+        "package": "golang.org/x/text",
+        "version": "v0.37.0",
+        "severity": "UNKNOWN",
+        "path": ""
+      }
+    },
+    {
+      "id": "IMG-2026-005",
+      "expires_on": "2026-08-26",
+      "statement": "Coder 2.34.6 is the current reviewed upstream release. The binary is confined to fixed coder ssh helper and loopback port-forward argv against the trusted private Coder service; the application exposes no arbitrary Coder CLI or remote-command route, and those fixed flows do not select the affected gRPC route. This exact record is accepted only while upstream remediation is monitored.",
+      "match": {
+        "image": "control_plane",
+        "kind": "vulnerability",
+        "category": "",
+        "target": "usr/local/bin/coder",
+        "finding_id": "GHSA-hrxh-6v49-42gf",
+        "package": "google.golang.org/grpc",
+        "version": "v1.81.1",
+        "severity": "HIGH",
+        "path": ""
+      }
+    },
+    {
+      "id": "IMG-2026-006",
+      "expires_on": "2026-08-26",
+      "statement": "Coder 2.34.6 currently embeds Go 1.26.4. The binary is confined to fixed coder ssh helper and loopback port-forward argv against the trusted private Coder service; the application exposes no arbitrary Coder CLI or remote-command route, and those fixed flows do not select the affected standard-library route. This exact record is accepted only pending an upstream rebuilt release.",
+      "match": {
+        "image": "control_plane",
+        "kind": "vulnerability",
+        "category": "",
+        "target": "usr/local/bin/coder",
+        "finding_id": "CVE-2026-39822",
+        "package": "stdlib",
+        "version": "v1.26.4",
+        "severity": "HIGH",
+        "path": ""
+      }
+    },
+    {
+      "id": "IMG-2026-007",
+      "expires_on": "2026-08-26",
+      "statement": "The control plane includes x/crypto OpenPGP transitively through go-git, but no application path invokes the affected OpenPGP functionality. The post-upgrade govulncheck run reports zero symbol and imported-package vulnerabilities and only this uncalled required-module record. This exact no-fix record requires review again by the expiry date.",
+      "match": {
+        "image": "control_plane",
+        "kind": "vulnerability",
+        "category": "",
+        "target": "usr/local/bin/control-plane",
+        "finding_id": "GO-2026-5932",
+        "package": "golang.org/x/crypto",
+        "version": "v0.53.0",
+        "severity": "UNKNOWN",
+        "path": ""
+      }
+    },
+    {
+      "id": "IMG-2026-008",
+      "expires_on": "2026-08-26",
+      "statement": "The pinned unmodified Coder binary is intentionally distributed under AGPL-3.0 and its exact license file is retained in the scratch image. This is a time-bounded engineering disposition, not legal advice.",
+      "match": {
+        "image": "control_plane",
+        "kind": "license",
+        "category": "forbidden",
+        "target": "Loose File License(s)",
+        "finding_id": "AGPL-3.0",
+        "package": "",
+        "version": "",
+        "severity": "CRITICAL",
+        "path": "usr/share/licenses/coder/LICENSE"
+      }
+    }
+  ]
+}

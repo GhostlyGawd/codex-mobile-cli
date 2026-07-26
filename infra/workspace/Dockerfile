@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.12
 # Go 1.26.5 official-image manifest digest checked 2026-07-15:
 # https://hub.docker.com/_/golang
-FROM golang:1.26.5-bookworm@sha256:1ecb7edf62a0408027bd5729dfd6b1b8766e578e8df93995b225dfd0944eb651 AS workspace-helper-builder
+FROM docker.io/library/golang:1.26.5-bookworm@sha256:1ecb7edf62a0408027bd5729dfd6b1b8766e578e8df93995b225dfd0944eb651 AS workspace-helper-builder
 
 ARG TARGETARCH
 WORKDIR /src/services/control-plane
@@ -25,7 +25,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 
 # Ubuntu 24.04 official-image index digest checked 2026-07-15:
 # https://hub.docker.com/_/ubuntu
-FROM ubuntu:24.04@sha256:4fbb8e6a8395de5a7550b33509421a2bafbc0aab6c06ba2cef9ebffbc7092d90
+FROM docker.io/library/ubuntu:24.04@sha256:4fbb8e6a8395de5a7550b33509421a2bafbc0aab6c06ba2cef9ebffbc7092d90
 
 ARG DEBIAN_FRONTEND=noninteractive
 ARG WORKSPACE_IMAGE_VERSION=2026-07-15

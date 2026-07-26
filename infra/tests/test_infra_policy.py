@@ -343,9 +343,7 @@ class WorkspaceTemplateSecurityTests(unittest.TestCase):
         self.assertIn('name     = "cm-net-${local.workspace_key}"', self.text)
         self.assertIn("internal = true", self.text)
         self.assertIn('name   = "cm-egress-${local.workspace_key}"', self.text)
-        self.assertIn(
-            "data.coder_parameter.allow_egress.value ? 1 : 0", self.text
-        )
+        self.assertIn("data.coder_parameter.allow_egress.value ? 1 : 0", self.text)
         self.assertIn('name = "codex-mobile-control"', self.text)
         self.assertIn('name         = "cm-relay-${local.workspace_key}"', self.text)
         self.assertIn('aliases = ["cm-coder-control"]', self.text)
@@ -415,6 +413,19 @@ class WorkspaceTemplateSecurityTests(unittest.TestCase):
 
 
 class ImageSupplyChainTests(unittest.TestCase):
+    def test_security_audit_requires_exact_image_scanner_versions(self) -> None:
+        shell = (ROOT / "scripts" / "security-audit.sh").read_text(encoding="utf-8")
+        powershell = (ROOT / "scripts" / "security-audit.ps1").read_text(
+            encoding="utf-8"
+        )
+        for text in (shell, powershell):
+            self.assertIn("0.72.0", text)
+            self.assertIn("1.46.0", text)
+            self.assertIn("--format json", text)
+        self.assertIn('get("Version", "")', shell)
+        self.assertIn('get("version", "")', shell)
+        self.assertIn("ConvertFrom-Json", powershell)
+
     def test_workspace_image_installs_checksum_verified_codex_cli(self) -> None:
         dockerfile = (ROOT / "infra" / "workspace" / "Dockerfile").read_text(
             encoding="utf-8"
@@ -447,7 +458,8 @@ class ImageSupplyChainTests(unittest.TestCase):
         checksum_verifier = (
             ROOT / "scripts" / "verify-workspace-helper-checksums.py"
         ).read_text(encoding="utf-8")
-        self.assertIn("golang:1.26.5-bookworm@sha256:", dockerfile)
+        self.assertIn("docker.io/library/golang:1.26.5-bookworm@sha256:", dockerfile)
+        self.assertIn("docker.io/library/ubuntu:24.04@sha256:", dockerfile)
         self.assertIn("./cmd/workspace-helper", dockerfile)
         self.assertIn("-ldflags='-s -w'", dockerfile)
         self.assertIn("--chown=0:0 --chmod=0755", dockerfile)
@@ -460,8 +472,8 @@ class ImageSupplyChainTests(unittest.TestCase):
         self.assertNotIn("ARG WORKSPACE_HELPER_COMMAND", dockerfile)
         self.assertIn("Dockerfile.dockerignore", build)
         for checksum in (
-            "f6fc430a2200d13ee0ef04dd576875b4f9a7c95a04287cbdec2deec3b495493c",
-            "c7e4577a465b55721043612f9b6919248806576816388b01898f6c2784dc163e",
+            "11d1fb9c53549e98bb5a976c2958954ff6eb99fd9485dd09beac50f6157df924",
+            "81a623dae961e640c18ac1df942baf9a797dbeb79b9f90312b62f241d36da1dd",
         ):
             self.assertIn(checksum, envbuilder_dockerfile)
             self.assertIn(checksum, build)
@@ -481,7 +493,10 @@ class ImageSupplyChainTests(unittest.TestCase):
         dockerfile = (ROOT / "infra" / "docker" / "control-plane.Dockerfile").read_text(
             encoding="utf-8"
         )
-        self.assertIn("golang:${GO_VERSION}-bookworm@${GO_IMAGE_DIGEST}", dockerfile)
+        self.assertIn(
+            "docker.io/library/golang:${GO_VERSION}-bookworm@${GO_IMAGE_DIGEST}",
+            dockerfile,
+        )
         self.assertIn(
             "sha256:1ecb7edf62a0408027bd5729dfd6b1b8766e578e8df93995b225dfd0944eb651",
             dockerfile,
@@ -653,7 +668,9 @@ jobs:
             failures: list[str] = []
             RELEASE_VALIDATOR.check_ci(failures, root)
             self.assertTrue(any("self-hosted" in item for item in failures))
-            self.assertTrue(any("not an approved standard" in item for item in failures))
+            self.assertTrue(
+                any("not an approved standard" in item for item in failures)
+            )
 
     def test_public_visibility_gate_is_required_on_every_runner_job(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
@@ -675,7 +692,10 @@ jobs:
             failures: list[str] = []
             RELEASE_VALIDATOR.check_ci(failures, root)
             self.assertTrue(
-                any("public-visibility and PUBLIC_CI_ENABLED" in item for item in failures)
+                any(
+                    "public-visibility and PUBLIC_CI_ENABLED" in item
+                    for item in failures
+                )
             )
 
     def test_ios_toolchain_and_checksum_pins_are_required(self) -> None:
@@ -687,16 +707,23 @@ jobs:
             ios = (ROOT / ".github" / "workflows" / "ios.yml").read_text(
                 encoding="utf-8"
             )
-            ios = ios.replace("Xcode_26.6.app", "Xcode_26.5.app").replace(
-                RELEASE_VALIDATOR.EXPECTED_XCODEGEN_SHA256,
-                "0" * 64,
-            ).replace("-skipPackagePluginValidation", "-packagePluginValidation")
+            ios = (
+                ios.replace("Xcode_26.6.app", "Xcode_26.5.app")
+                .replace(
+                    RELEASE_VALIDATOR.EXPECTED_XCODEGEN_SHA256,
+                    "0" * 64,
+                )
+                .replace("-skipPackagePluginValidation", "-packagePluginValidation")
+            )
             (workflows / "ios.yml").write_text(ios, encoding="utf-8")
             failures: list[str] = []
             RELEASE_VALIDATOR.check_ci(failures, root)
             self.assertTrue(any("Xcode_26.6.app" in item for item in failures))
             self.assertTrue(
-                any(RELEASE_VALIDATOR.EXPECTED_XCODEGEN_SHA256 in item for item in failures)
+                any(
+                    RELEASE_VALIDATOR.EXPECTED_XCODEGEN_SHA256 in item
+                    for item in failures
+                )
             )
             self.assertTrue(
                 any("-skipPackagePluginValidation" in item for item in failures)
@@ -985,6 +1012,127 @@ class HostHardeningStaticTests(unittest.TestCase):
                 self.assertIn(control, security)
             else:
                 self.assertIn(control, text)
+
+    def test_ansible_installs_checksum_pinned_security_tools(self) -> None:
+        path = ROOT / "infra" / "ansible" / "playbook.yml"
+        text = path.read_text(encoding="utf-8")
+        play = yaml.safe_load(text)[0]
+        variables = play["vars"]
+        tasks = {task["name"]: task for task in play["tasks"]}
+
+        self.assertEqual(
+            variables["security_tool_architecture"],
+            {"x86_64": "amd64", "aarch64": "arm64"},
+        )
+        self.assertEqual(variables["trivy_version"], "0.72.0")
+        self.assertEqual(
+            variables["trivy_archive_architecture"],
+            {"amd64": "64bit", "arm64": "ARM64"},
+        )
+        self.assertEqual(
+            variables["trivy_sha256"],
+            {
+                "amd64": "bbb64b9695866ce4a7a8f5c9592002c5961cab378577fa3f8a040df362b9b2ea",
+                "arm64": "2ca2c023109c2db6b2b77366b6717291452d4531167377d95c79547f0c8e3467",
+            },
+        )
+        self.assertEqual(variables["syft_version"], "1.46.0")
+        self.assertEqual(
+            variables["syft_sha256"],
+            {
+                "amd64": "d654f678b709eb53c393d38519d5ed7d2e57205529404018614cfefa0fb2b5ca",
+                "arm64": "9fafef4db4f032ce81008d3a1529985d41ceb6ccdf2b388c9ce2f1ed7d32082e",
+            },
+        )
+
+        cache = tasks["Create root-only security tool cache directories"]
+        self.assertEqual(cache["ansible.builtin.file"]["owner"], "root")
+        self.assertEqual(cache["ansible.builtin.file"]["group"], "root")
+        self.assertEqual(cache["ansible.builtin.file"]["mode"], "0700")
+        self.assertEqual(
+            cache["loop"],
+            [
+                "/var/cache/codex-mobile",
+                "/var/cache/codex-mobile/downloads",
+                "/var/cache/codex-mobile/trivy",
+            ],
+        )
+
+        downloads = {
+            "Download exact Trivy archive": (
+                "https://github.com/aquasecurity/trivy/releases/download/"
+                "v{{ trivy_version }}/trivy_{{ trivy_version }}_Linux-"
+                "{{ trivy_archive_architecture[security_tool_architecture"
+                "[ansible_facts.architecture]] }}.tar.gz",
+                "trivy_sha256",
+            ),
+            "Download exact Syft archive": (
+                "https://github.com/anchore/syft/releases/download/"
+                "v{{ syft_version }}/syft_{{ syft_version }}_linux_"
+                "{{ security_tool_architecture[ansible_facts.architecture] }}"
+                ".tar.gz",
+                "syft_sha256",
+            ),
+        }
+        for name, (expected_url, checksum_variable) in downloads.items():
+            task = tasks[name]
+            get_url = task["ansible.builtin.get_url"]
+            self.assertEqual(get_url["url"], expected_url)
+            self.assertTrue(
+                get_url["dest"].startswith("/var/cache/codex-mobile/downloads/")
+            )
+            self.assertEqual(get_url["owner"], "root")
+            self.assertEqual(get_url["group"], "root")
+            self.assertEqual(get_url["mode"], "0600")
+            self.assertEqual(
+                get_url["checksum"],
+                f"sha256:{{{{ {checksum_variable}"
+                "[security_tool_architecture[ansible_facts.architecture]] }}",
+            )
+            self.assertEqual(task["when"], "not ansible_check_mode")
+
+        for name, binary in (
+            ("Unpack exact Trivy binary", "trivy"),
+            ("Unpack exact Syft binary", "syft"),
+        ):
+            task = tasks[name]
+            unarchive = task["ansible.builtin.unarchive"]
+            self.assertEqual(unarchive["dest"], "/usr/local/bin")
+            self.assertEqual(unarchive["include"], [binary])
+            self.assertEqual(unarchive["owner"], "root")
+            self.assertEqual(unarchive["group"], "root")
+            self.assertEqual(unarchive["mode"], "0755")
+            self.assertEqual(task["when"], "not ansible_check_mode")
+
+        trivy_version = tasks["Read installed Trivy version as JSON"]
+        self.assertEqual(
+            trivy_version["ansible.builtin.command"]["argv"],
+            ["/usr/local/bin/trivy", "--version", "--format", "json"],
+        )
+        syft_version = tasks["Read installed Syft version as JSON"]
+        self.assertEqual(
+            syft_version["ansible.builtin.command"]["argv"],
+            ["/usr/local/bin/syft", "version", "--output", "json"],
+        )
+        for task in (trivy_version, syft_version):
+            self.assertIs(task["changed_when"], False)
+            self.assertEqual(task["when"], "not ansible_check_mode")
+            self.assertNotIn("failed_when", task)
+
+        exact_version_gate = tasks["Require exact installed security tool versions"]
+        checks = exact_version_gate["ansible.builtin.assert"]["that"]
+        self.assertIn(
+            "(codex_trivy_version_output.stdout | from_json).Version == trivy_version",
+            checks,
+        )
+        self.assertIn(
+            "(codex_syft_version_output.stdout | from_json).version == syft_version",
+            checks,
+        )
+        self.assertEqual(exact_version_gate["when"], "not ansible_check_mode")
+        self.assertNotIn("trivy_version not in", text)
+        self.assertNotIn("syft_version not in", text)
+        self.assertNotRegex(text, r"(?m)^\s*(?:curl|wget)\b[^\n]*\|")
 
     def test_systemd_units_do_not_grant_engine_access_to_control_stack(self) -> None:
         control = (ROOT / "infra" / "systemd" / "codex-mobile.service").read_text(

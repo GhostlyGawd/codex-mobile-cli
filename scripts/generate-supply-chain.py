@@ -117,9 +117,14 @@ IMAGE_LICENSES = {
     "postgres": "PostgreSQL",
     "ghcr.io/coder/coder": "AGPL-3.0-only AND LicenseRef-Coder-Enterprise-Components",
     "caddy": "Apache-2.0",
-    "golang": "BSD-3-Clause",
-    "ubuntu": "LicenseRef-Ubuntu-Distribution-Mixed",
+    "docker.io/library/golang": "BSD-3-Clause",
+    "docker.io/library/ubuntu": "LicenseRef-Ubuntu-Distribution-Mixed",
     "ghcr.io/coder/envbuilder": "AGPL-3.0-only",
+}
+
+OPERATIONAL_TOOL_LICENSES = {
+    "syft": "Apache-2.0",
+    "trivy": "Apache-2.0",
 }
 
 
@@ -312,12 +317,15 @@ def tool_components(root: Path) -> list[Component]:
         if not raw.strip() or raw.lstrip().startswith("#"):
             continue
         name, version = raw.split(maxsplit=1)
+        operational_license = OPERATIONAL_TOOL_LICENSES.get(name)
         tools.append(
             Component(
-                ecosystem="Build tool",
+                ecosystem="Operational tool" if operational_license else "Build tool",
                 name=name,
                 version=version,
-                license_expression="LicenseRef-Tooling-Not-Distributed",
+                license_expression=(
+                    operational_license or "LicenseRef-Tooling-Not-Distributed"
+                ),
                 source=".tool-versions",
             )
         )

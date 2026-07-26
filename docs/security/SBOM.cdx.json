@@ -128,56 +128,6 @@
       "version": "3.12.10"
     },
     {
-      "bom-ref": "ca89e57171c1ad8f63cbce20ecbc2165cb5c915642525bbc4b281a0add8fceb7",
-      "licenses": [
-        {
-          "expression": "LicenseRef-Tooling-Not-Distributed"
-        }
-      ],
-      "name": "syft",
-      "properties": [
-        {
-          "name": "codex-mobile:ecosystem",
-          "value": "Build tool"
-        },
-        {
-          "name": "codex-mobile:direct",
-          "value": "true"
-        },
-        {
-          "name": "codex-mobile:source",
-          "value": ".tool-versions"
-        }
-      ],
-      "type": "library",
-      "version": "1.46.0"
-    },
-    {
-      "bom-ref": "1632a53afd132d21dd6ad3fe42d7afb03cfa88ee5848c24ec269f13facd9594e",
-      "licenses": [
-        {
-          "expression": "LicenseRef-Tooling-Not-Distributed"
-        }
-      ],
-      "name": "trivy",
-      "properties": [
-        {
-          "name": "codex-mobile:ecosystem",
-          "value": "Build tool"
-        },
-        {
-          "name": "codex-mobile:direct",
-          "value": "true"
-        },
-        {
-          "name": "codex-mobile:source",
-          "value": ".tool-versions"
-        }
-      ],
-      "type": "library",
-      "version": "0.72.0"
-    },
-    {
       "bom-ref": "3aa7126e0feb692fabd773a3f6a25414694c3ec0f58b335623c29eba7b98873e",
       "licenses": [
         {
@@ -1931,11 +1881,11 @@
       "version": "v0.6.0"
     },
     {
-      "bom-ref": "7d1127d191e188458063b8d556ee29615302ed27bdd3d1ed4ef66e709b0dbfeb",
+      "bom-ref": "777173556799476bc7c76344a3943a68ca4bb2f7e7f2bf46e9352b0b7d689e10",
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "44cb3b7cfdab5dd7a9d027ed4252bc51ffa489b2e6eea90272b69d656633f7cf"
+          "content": "419e0cba8f131d7e828b3376bcf3dde5f0461f2a20add2bd7c6e302cf154b2da"
         }
       ],
       "licenses": [
@@ -1958,9 +1908,9 @@
           "value": "https://golang.org/x/crypto"
         }
       ],
-      "purl": "pkg:golang/golang.org/x/crypto@v0.52.0",
+      "purl": "pkg:golang/golang.org/x/crypto@v0.53.0",
       "type": "library",
-      "version": "v0.52.0"
+      "version": "v0.53.0"
     },
     {
       "bom-ref": "dd92e05092581a496b6074058b048165ee6dd154156882024b4d329e91cde515",
@@ -1995,13 +1945,7 @@
       "version": "v0.0.0-20260410095643-746e56fc9e2f"
     },
     {
-      "bom-ref": "e826e38319295c308f4f7b12e02f2564077fbefb7a07af37d09f9a05caa16f94",
-      "hashes": [
-        {
-          "alg": "SHA-256",
-          "content": "5b0d43eb7edee8f83e65bd8aad67c74149c7d9d4112c143202da6bfe169a25e3"
-        }
-      ],
+      "bom-ref": "97a7b17cdd3e0cf6a77b097111ea14276a89579876f7c52362627e6aa58f662c",
       "licenses": [
         {
           "expression": "BSD-3-Clause"
@@ -2022,16 +1966,16 @@
           "value": "https://golang.org/x/mod"
         }
       ],
-      "purl": "pkg:golang/golang.org/x/mod@v0.35.0",
+      "purl": "pkg:golang/golang.org/x/mod@v0.37.0",
       "type": "library",
-      "version": "v0.35.0"
+      "version": "v0.37.0"
     },
     {
-      "bom-ref": "ec9fa57af116a59a4f6cc9ff225b1be74531bf75e0d923a3bd0eebd9927b117c",
+      "bom-ref": "e7eb241fe68f8f750414922a038ad26ea9947c93beef7fcf30259aba85f843a3",
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "6dcbf16899f77b553a227b055add4952ad5a4a39d1c4bcd3dabb43d8a7e40c5f"
+          "content": "470f23fe11731af2546703415e702d7f9b150d5b7eeb948ad82ec8c42c59b79a"
         }
       ],
       "licenses": [
@@ -2054,16 +1998,16 @@
           "value": "https://golang.org/x/net"
         }
       ],
-      "purl": "pkg:golang/golang.org/x/net@v0.55.0",
+      "purl": "pkg:golang/golang.org/x/net@v0.56.0",
       "type": "library",
-      "version": "v0.55.0"
+      "version": "v0.56.0"
     },
     {
-      "bom-ref": "526a730730a124572fef0fc1d3d9d522e927b7525a8910dd3f561f6dfe65799c",
+      "bom-ref": "e93ea6cd796a98e96a7f403d6000d14a6817bed786e32ef37ea6ecbf535c75ac",
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "7b43d3a5bee98cef0602d4ecd9d43a8d86b905662532e5f4e3b0dca3fa48b4ee"
+          "content": "1cb208e314514ed091931629e0734517426cfce83aab68bef8a5db8348070b03"
         }
       ],
       "licenses": [
@@ -2086,9 +2030,9 @@
           "value": "https://golang.org/x/sync"
         }
       ],
-      "purl": "pkg:golang/golang.org/x/sync@v0.20.0",
+      "purl": "pkg:golang/golang.org/x/sync@v0.21.0",
       "type": "library",
-      "version": "v0.20.0"
+      "version": "v0.21.0"
     },
     {
       "bom-ref": "2936151f799bfd15ff998557339eb437c058cf4cff9980a9c442816729e5ead2",
@@ -2123,11 +2067,11 @@
       "version": "v0.47.0"
     },
     {
-      "bom-ref": "7b9ff8d6226a296095b5a620943db0522526f651f081aa3c638fed63941f5531",
+      "bom-ref": "f2a9d85173d334b3c65bedddca6280c098ecaebe33ce3b88f623cdce232f3e8f",
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "4b844b536b01df53bf34297ecc537d02bbbd03f0aad9aa8aa53649e81f83c13e"
+          "content": "d2b2ef0d10ad363d20664c885e10b239bd8e0331212d5a9ce01fa1aec061ae67"
         }
       ],
       "licenses": [
@@ -2150,16 +2094,16 @@
           "value": "https://golang.org/x/term"
         }
       ],
-      "purl": "pkg:golang/golang.org/x/term@v0.43.0",
+      "purl": "pkg:golang/golang.org/x/term@v0.44.0",
       "type": "library",
-      "version": "v0.43.0"
+      "version": "v0.44.0"
     },
     {
-      "bom-ref": "beea336646f4db17fb703ff13f857cae97571971616ca83e72c7d5f9c59cf62e",
+      "bom-ref": "702713353a99a96f25447e996c4f7a6918a4698cc117d98f4cfb2ddac612ae10",
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "0aa8e2c1df5e4a0f1ed10024c826904cd1c5208cd6b6274f6a115647cdeb4eb7"
+          "content": "51b673e292cebe7eb4d03e8e87a186108e950269ddac404bbfcffa0445f3caeb"
         }
       ],
       "licenses": [
@@ -2182,18 +2126,12 @@
           "value": "https://golang.org/x/text"
         }
       ],
-      "purl": "pkg:golang/golang.org/x/text@v0.37.0",
+      "purl": "pkg:golang/golang.org/x/text@v0.39.0",
       "type": "library",
-      "version": "v0.37.0"
+      "version": "v0.39.0"
     },
     {
-      "bom-ref": "d08842412fd26b1d65ff0ff148b26b25294680044f9c82df1dcdc448e35ed26c",
-      "hashes": [
-        {
-          "alg": "SHA-256",
-          "content": "50fe1a8c73c872e3234f51aacc359195a95412863ebb3a192a784e8db20f0f67"
-        }
-      ],
+      "bom-ref": "e949825d9267c7eb678c01e4febc52053d3c56dbd1fe0850828f6c94e78a44cd",
       "licenses": [
         {
           "expression": "BSD-3-Clause"
@@ -2214,9 +2152,9 @@
           "value": "https://golang.org/x/tools"
         }
       ],
-      "purl": "pkg:golang/golang.org/x/tools@v0.44.0",
+      "purl": "pkg:golang/golang.org/x/tools@v0.47.0",
       "type": "library",
-      "version": "v0.44.0"
+      "version": "v0.47.0"
     },
     {
       "bom-ref": "efc256c5729846364b90d9b94308b596891b90b2c4e9bb0d52592ba16e7ded5a",
@@ -2411,6 +2349,70 @@
       "version": "2.11.4-alpine"
     },
     {
+      "bom-ref": "709e9f9463678321d0012f8bdf4d6c40b67c3cab0864c0e820ad809c9f1439e7",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "1ecb7edf62a0408027bd5729dfd6b1b8766e578e8df93995b225dfd0944eb651"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "BSD-3-Clause"
+        }
+      ],
+      "name": "docker.io/library/golang",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "OCI image"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "true"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "docker.io/library/golang:1.26.5-bookworm@sha256:1ecb7edf62a0408027bd5729dfd6b1b8766e578e8df93995b225dfd0944eb651"
+        }
+      ],
+      "purl": "pkg:oci/docker.io/library/golang@1.26.5-bookworm",
+      "type": "container",
+      "version": "1.26.5-bookworm"
+    },
+    {
+      "bom-ref": "8a3e1b651cca94753f202e0e39c31ecf6f5b436d63ce9ca9a7136e7f8903506e",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "4fbb8e6a8395de5a7550b33509421a2bafbc0aab6c06ba2cef9ebffbc7092d90"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "LicenseRef-Ubuntu-Distribution-Mixed"
+        }
+      ],
+      "name": "docker.io/library/ubuntu",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "OCI image"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "true"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": "docker.io/library/ubuntu:24.04@sha256:4fbb8e6a8395de5a7550b33509421a2bafbc0aab6c06ba2cef9ebffbc7092d90"
+        }
+      ],
+      "purl": "pkg:oci/docker.io/library/ubuntu@24.04",
+      "type": "container",
+      "version": "24.04"
+    },
+    {
       "bom-ref": "f9ebb8d75bc515176ba9bc0eea65465175b545d4e86a573e50b2daf101b341bd",
       "hashes": [
         {
@@ -2441,38 +2443,6 @@
       "purl": "pkg:oci/ghcr.io/coder/coder@v2.34.6",
       "type": "container",
       "version": "v2.34.6"
-    },
-    {
-      "bom-ref": "99ae04335349de79a4efa52c9accedbe4fe8d7575b70397fe7e36374c920827c",
-      "hashes": [
-        {
-          "alg": "SHA-256",
-          "content": "1ecb7edf62a0408027bd5729dfd6b1b8766e578e8df93995b225dfd0944eb651"
-        }
-      ],
-      "licenses": [
-        {
-          "expression": "BSD-3-Clause"
-        }
-      ],
-      "name": "golang",
-      "properties": [
-        {
-          "name": "codex-mobile:ecosystem",
-          "value": "OCI image"
-        },
-        {
-          "name": "codex-mobile:direct",
-          "value": "true"
-        },
-        {
-          "name": "codex-mobile:source",
-          "value": "golang:1.26.5-bookworm@sha256:1ecb7edf62a0408027bd5729dfd6b1b8766e578e8df93995b225dfd0944eb651"
-        }
-      ],
-      "purl": "pkg:oci/golang@1.26.5-bookworm",
-      "type": "container",
-      "version": "1.26.5-bookworm"
     },
     {
       "bom-ref": "d087dc3ad8f70d845639ab77bcf28c842a2f59f3d14b5cedde403ad9a20677d4",
@@ -2533,23 +2503,17 @@
       "version": "18.4-bookworm"
     },
     {
-      "bom-ref": "87f12d1a9218d2a4ce541401cd40fdeef74a1966b87c5d839133a2782d82ad3f",
-      "hashes": [
-        {
-          "alg": "SHA-256",
-          "content": "4fbb8e6a8395de5a7550b33509421a2bafbc0aab6c06ba2cef9ebffbc7092d90"
-        }
-      ],
+      "bom-ref": "7ae7e06a5bb763573d7b0e4d40b1a1dd0c4bfdadb632daffc73902654ae57c0d",
       "licenses": [
         {
-          "expression": "LicenseRef-Ubuntu-Distribution-Mixed"
+          "expression": "Apache-2.0"
         }
       ],
-      "name": "ubuntu",
+      "name": "syft",
       "properties": [
         {
           "name": "codex-mobile:ecosystem",
-          "value": "OCI image"
+          "value": "Operational tool"
         },
         {
           "name": "codex-mobile:direct",
@@ -2557,12 +2521,36 @@
         },
         {
           "name": "codex-mobile:source",
-          "value": "ubuntu:24.04@sha256:4fbb8e6a8395de5a7550b33509421a2bafbc0aab6c06ba2cef9ebffbc7092d90"
+          "value": ".tool-versions"
         }
       ],
-      "purl": "pkg:oci/ubuntu@24.04",
-      "type": "container",
-      "version": "24.04"
+      "type": "library",
+      "version": "1.46.0"
+    },
+    {
+      "bom-ref": "4dae03b715444cb9fea87c6bbe6afbec8dd74654fe9fbc40e893d89ca89810c9",
+      "licenses": [
+        {
+          "expression": "Apache-2.0"
+        }
+      ],
+      "name": "trivy",
+      "properties": [
+        {
+          "name": "codex-mobile:ecosystem",
+          "value": "Operational tool"
+        },
+        {
+          "name": "codex-mobile:direct",
+          "value": "true"
+        },
+        {
+          "name": "codex-mobile:source",
+          "value": ".tool-versions"
+        }
+      ],
+      "type": "library",
+      "version": "0.72.0"
     },
     {
       "bom-ref": "242bb60b4a066668e53de924696b724e57bcdf381eda86b30ba949ca4cf715c6",
@@ -3126,7 +3114,7 @@
       ]
     }
   },
-  "serialNumber": "urn:uuid:7030289c-4b8a-4251-bc07-ce08b546b4c0",
+  "serialNumber": "urn:uuid:984f76e4-0fc9-f14a-c6e8-204bb9d47cc1",
   "specVersion": "1.6",
   "version": 1
 }

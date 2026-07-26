@@ -13,6 +13,17 @@ for tool in syft trivy gitleaks go python3; do
   }
 done
 
+trivy_version=$(trivy --version --format json | python3 -c 'import json, sys; print(json.load(sys.stdin).get("Version", ""))')
+[ "$trivy_version" = 0.72.0 ] || {
+  echo "trivy 0.72.0 is required; found ${trivy_version:-unknown}" >&2
+  exit 1
+}
+syft_version=$(syft version --output json | python3 -c 'import json, sys; print(json.load(sys.stdin).get("version", ""))')
+[ "$syft_version" = 1.46.0 ] || {
+  echo "syft 1.46.0 is required; found ${syft_version:-unknown}" >&2
+  exit 1
+}
+
 python3 scripts/generate-supply-chain.py --check
 gitleaks dir . --no-banner --redact --exit-code 1
 trivy filesystem \

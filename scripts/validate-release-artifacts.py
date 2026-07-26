@@ -28,8 +28,7 @@ EXPECTED_RUNBOOKS = {
     "RELEASE_CHECKLIST.md",
 }
 PUBLIC_CI_GATE = (
-    "github.event.repository.private == false"
-    " && vars.PUBLIC_CI_ENABLED == 'true'"
+    "github.event.repository.private == false && vars.PUBLIC_CI_ENABLED == 'true'"
 )
 STANDARD_HOSTED_RUNNERS = {"ubuntu-24.04", "macos-26"}
 EXPECTED_XCODEGEN_SHA256 = (
@@ -168,7 +167,10 @@ def check_ci(failures: list[str], root: Path = ROOT) -> None:
                     "GitHub-hosted runner"
                 )
 
-        if "runs-on:" in workflow_raw and "permissions:\n  contents: read" not in workflow_raw:
+        if (
+            "runs-on:" in workflow_raw
+            and "permissions:\n  contents: read" not in workflow_raw
+        ):
             failures.append(f"{relative}: workflow permissions must be contents: read")
 
         for forbidden in (
@@ -269,6 +271,51 @@ def main() -> int:
         failures.append(
             "TESTFLIGHT.md must retain the signing and protected-environment gate"
         )
+    image_audit_adr = (ROOT / "docs/adr/0023-manifest-bound-image-audit.md").read_text(
+        encoding="utf-8"
+    )
+    normalized_image_audit_adr = " ".join(image_audit_adr.split())
+    for control in (
+        "scans those captured IDs before manifest creation",
+        "Findings are not globally ignored",
+        "cannot be promoted, activated, or selected for rollback",
+    ):
+        if control not in normalized_image_audit_adr:
+            failures.append(
+                f"ADR 0023 must preserve the image-audit boundary: {control!r}"
+            )
+    deploy = (runbooks / "DEPLOY.md").read_text(encoding="utf-8")
+    rollback = (runbooks / "ROLLBACK.md").read_text(encoding="utf-8")
+    release_checklist = (runbooks / "RELEASE_CHECKLIST.md").read_text(encoding="utf-8")
+    for path, raw, controls in (
+        (
+            "DEPLOY.md",
+            deploy,
+            (
+                "manifest-bound image audit",
+                "pre-generated image-audit evidence",
+                "before promotion",
+            ),
+        ),
+        (
+            "ROLLBACK.md",
+            rollback,
+            ("schema-1 or tampered target is ineligible", "does not", "rescan"),
+        ),
+        (
+            "RELEASE_CHECKLIST.md",
+            release_checklist,
+            (
+                "manifest-bound Syft/Trivy",
+                "zero undispositioned findings",
+                "without rebuilding or rescanning",
+            ),
+        ),
+    ):
+        lowered = raw.lower()
+        for control in controls:
+            if control.lower() not in lowered:
+                failures.append(f"{path}: missing image-audit control {control!r}")
     acceptance = (ROOT / "docs/verification/ACCEPTANCE.md").read_text(encoding="utf-8")
     for gate in ("Docker", "Xcode", "provider", "NOT EXECUTED", "GATED"):
         if gate.upper() not in acceptance.upper():

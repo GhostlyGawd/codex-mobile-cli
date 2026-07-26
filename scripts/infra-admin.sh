@@ -1,5 +1,12 @@
 #!/bin/sh
 set -eu
+PATH=/usr/sbin:/usr/bin:/sbin:/bin
+HOME=/root
+export PATH HOME
+unset CDPATH ENV BASH_ENV PYTHONHOME PYTHONPATH PYTHONSTARTUP LD_LIBRARY_PATH LD_PRELOAD
+unset DOCKER_HOST DOCKER_CONTEXT DOCKER_CONFIG COMPOSE_FILE
+unset CONTAINER_HOST CONTAINER_CONNECTION CONTAINERS_CONF CONTAINERS_STORAGE_CONF
+unset CONTAINERS_REGISTRIES_CONF CONTAINERS_POLICY REGISTRY_AUTH_FILE XDG_CONFIG_HOME
 
 usage() {
   cat >&2 <<'EOF'
@@ -17,6 +24,7 @@ action=$1
 confirmation=$2
 repo_root=${REPO_ROOT:-/opt/codex-mobile/current}
 env_file=${ENV_FILE:-/etc/codex-mobile/production.env}
+podman_url=${PODMAN_URL:-unix:///run/codex-mobile-podman/podman.sock}
 
 case "$action:$confirmation" in
   recover-passkeys:--confirm=REVOKE-ALL-PASSKEYS) ;;
@@ -29,8 +37,9 @@ compose() {
     /bin/sh "$repo_root/scripts/infra-compose.sh" "$@"
 }
 
-python3 "$repo_root/scripts/infra_release_manifest.py" verify \
-  --repo-root "$repo_root" --require-images --verify-installed
+/usr/bin/python3 -I "$repo_root/scripts/infra_release_manifest.py" verify \
+  --repo-root "$repo_root" --require-images --require-image-audit --verify-installed \
+  --podman-url "$podman_url"
 
 running=$(compose ps --status running --services)
 printf '%s\n' "$running" | grep -qx postgres || {
@@ -66,7 +75,7 @@ if [ "$action" = rewrap-master-key ]; then
 # shape, and create a container-readable copy beneath a root-only directory.
 # Key bytes are never placed in an environment variable, command argument, or
 # log record.
-  python3 - "$new_key" "$staged_key" <<'PY'
+  /usr/bin/python3 -I - "$new_key" "$staged_key" <<'PY'
 import base64
 import os
 import pathlib

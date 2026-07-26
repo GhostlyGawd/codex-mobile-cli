@@ -170,6 +170,15 @@ validation, and deterministic Linux workspace-helper verification. The exact
 helper hashes are amd64
 `f6fc430a2200d13ee0ef04dd576875b4f9a7c95a04287cbdec2deec3b495493c` and
 arm64 `c7e4577a465b55721043612f9b6919248806576816388b01898f6c2784dc163e`.
+
+On 2026-07-26, after the current Go security-dependency upgrade, two independent
+`GOOS=linux CGO_ENABLED=0 go build -trimpath -buildvcs=false -ldflags="-s -w"`
+cross-builds reproduced the new helper-profile-2 hashes: amd64
+`11d1fb9c53549e98bb5a976c2958954ff6eb99fd9485dd09beac50f6157df924`
+and arm64
+`81a623dae961e640c18ac1df942baf9a797dbeb79b9f90312b62f241d36da1dd`.
+The current `pwsh ./scripts/verify.ps1` run matched those active pins; profile 1
+remains in the trusted verifier only for historical rollback compatibility.
 Xcode 26.6/XcodeGen 2.45.4 testing was `NOT EXECUTED` on Windows but passed in
 the hosted unsigned simulator run above. Docker/Podman built-image inspection
 and all provider/VPS, physical-device, signing, APNs, domain, and credentialed

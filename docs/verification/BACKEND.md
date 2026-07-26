@@ -75,6 +75,14 @@ Recorded local evidence on 2026-07-16:
   arm64 `c7e4577a465b55721043612f9b6919248806576816388b01898f6c2784dc163e`.
   Infrastructure policy requires the same pins in the EnvBuilder Dockerfile and
   image-build verifier.
+- On 2026-07-26, after the current Go security-dependency upgrade, two
+  independent `GOOS=linux CGO_ENABLED=0 go build -trimpath -buildvcs=false
+  -ldflags="-s -w"` cross-builds reproduced helper profile 2: amd64
+  `11d1fb9c53549e98bb5a976c2958954ff6eb99fd9485dd09beac50f6157df924`
+  and arm64
+  `81a623dae961e640c18ac1df942baf9a797dbeb79b9f90312b62f241d36da1dd`.
+  The current `pwsh ./scripts/verify.ps1` run matched those active pins; profile
+  1 remains in the trusted verifier only for historical rollback compatibility.
 - The recorded 2026-07-16 tree's source-security audit passed with Syft 1.46.0,
   Trivy 0.72.0, Gitleaks 8.30.1, go-licenses 2.0.1, and govulncheck 1.6.0.
   Gitleaks found no leak; Trivy reported zero unsuppressed high/critical

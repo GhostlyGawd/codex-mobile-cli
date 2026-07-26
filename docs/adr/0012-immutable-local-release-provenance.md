@@ -1,5 +1,8 @@
 # ADR 0012: Immutable local release provenance
 
+> Extended by [ADR 0023](0023-manifest-bound-image-audit.md), which requires
+> the exact built image IDs to pass a manifest-bound audit before promotion.
+
 ## Status
 
 Accepted.

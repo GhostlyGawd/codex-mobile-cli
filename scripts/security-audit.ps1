@@ -9,6 +9,17 @@ foreach ($tool in @('syft', 'trivy', 'gitleaks', 'go', 'python')) {
     }
 }
 
+$trivyVersion = (trivy --version --format json | ConvertFrom-Json).Version
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+if ($trivyVersion -ne '0.72.0') {
+    throw "trivy 0.72.0 is required; found $trivyVersion"
+}
+$syftVersion = (syft version --output json | ConvertFrom-Json).version
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+if ($syftVersion -ne '1.46.0') {
+    throw "syft 1.46.0 is required; found $syftVersion"
+}
+
 Push-Location $root
 try {
     python scripts/generate-supply-chain.py --check

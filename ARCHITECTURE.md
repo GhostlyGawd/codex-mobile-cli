@@ -351,6 +351,21 @@ external-writer CAS guarantee in the last check-to-rename interval. Production
 therefore requires the Linux backend and its target-filesystem race tests. See
 [ADR 0011](docs/adr/0011-linux-file-confinement-and-exact-etag-cas.md).
 
+### Manifest-bound image audit
+
+Deployment builds the control-plane, workspace-base, and EnvBuilder images once
+under the commit-derived release tag. Before the release directory can move out
+of staging, a root-only auditor captures their local content IDs, scans those
+IDs with checksum-pinned Syft/Trivy and one frozen database snapshot, then
+re-inspects the tags. It publishes six bounded reports and a metadata-only
+receipt atomically; no partial or failing evidence becomes a release artifact.
+
+Manifest schema 2 binds the receipt, exact report tree, policy/tool/database
+hashes, and the same three image IDs. Every activation and rollback path requires
+that evidence, while rollback deliberately does not rescan. A tracked
+disposition is an exact, expiring tuple rather than a global ignore. See
+[ADR 0023](docs/adr/0023-manifest-bound-image-audit.md).
+
 ### Host storage and workspace disk quotas
 
 Operator-managed encrypted storage is mounted exactly at `/srv/codex-mobile`

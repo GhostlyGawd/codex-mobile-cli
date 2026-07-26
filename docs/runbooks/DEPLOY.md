@@ -17,7 +17,7 @@ UI; automation merely validates its result.
 | GitHub App | Name, callback/webhook URLs, selected repositories and least permissions | None |
 | Apple identifier/APNs key | Team, explicit bundle ID, environments and key custody | None |
 | First host configuration | Existing IP, Ubuntu 24.04, SSH allowlist, encrypted XFS data mount with project quotas | Owner runs Ansible with explicit confirmation |
-| Release activation | Commit, SBOM/scan results, checkpoint, rollback release | Owner runs local deploy script on existing host |
+| Release activation | Commit, source audit, manifest-bound image audit policy, checkpoint, eligible audited rollback release | Owner runs local deploy script on existing host |
 
 ## Prepare and harden the existing host
 
@@ -106,11 +106,13 @@ UI; automation merely validates its result.
 
 ## Activate an immutable release
 
-On a trusted build host, run all commands in `AGENTS.md`, the supply-chain audit,
-and built-image Trivy scans. Stage an owner-reviewed tree named exactly
+On a trusted build host, run all commands in `AGENTS.md` and the source
+supply-chain audit. Stage an owner-reviewed tree named exactly
 `/opt/codex-mobile/staging/sha-<lowercase-commit>`, with matching
 `CONTROL_PLANE_IMAGE_TAG`. Do not stage `.git`, local secrets, reports with local
-paths, or untracked code.
+paths, untracked code, or pre-generated image-audit evidence. The locked deploy
+builds and audits the final host-local image IDs; an earlier WSL or workstation
+scan is useful developmental evidence but cannot authorize a later rebuild.
 
 Immediately before activation, record current health, create a database
 checkpoint, verify the provider's included backup, and ask the owner to approve
@@ -123,11 +125,16 @@ sudo /bin/sh /opt/codex-mobile/staging/sha-<commit>/scripts/infra-deploy.sh \
 
 The script freezes the staged tree, validates billing/preflight including the
 exact XFS project-quota mount, and builds each control-plane/workspace image
-once under the commit-derived release tag. Before activation it records each
-content-addressed local image ID, the workspace-helper checksum, Coder template
-tree, Podman configuration, systemd units and privileged wrappers in
-`infra/release-manifest.json`. `infra/release.env` binds that release to those
-image references. The script verifies both files, checkpoints the current
+once under the commit-derived release tag. It captures and scans those exact
+IDs with checksum-pinned Syft 1.46.0 and Trivy 0.72.0, a single frozen
+vulnerability-database snapshot, explicit Docker/Podman engines, and the
+reviewed expiring disposition policy. New, changed, expired, unused, malformed,
+oversized, or undispositioned evidence fails before promotion. The root-only
+`infra/image-audit` receipt and report tree are then bound into schema 2 of
+`infra/release-manifest.json` alongside the workspace-helper checksum, Coder
+template tree, Podman configuration, systemd units and privileged wrappers.
+`infra/release.env` binds that release to those image references. The script
+verifies all evidence and tag IDs again, checkpoints the current
 database, installs the matching host artifacts, atomically switches the release
 link, restarts the runtime/control/provisioner, activates the exact Coder
 template, and writes a root-only activation receipt beneath
