@@ -183,6 +183,8 @@ envbuilder_id=$(normalize_local_image_id "$envbuilder_raw_id") || {
   --security-opt no-new-privileges \
   --env ENVBUILDER_EXIT_ON_BUILD_FAILURE=true \
   "$envbuilder_id" 2>&1 |
-  /usr/bin/grep -F "envbuilder v1.3.0-codex-mobile.1" >/dev/null
+  /usr/bin/grep -F \
+    "v1.3.0-codex-mobile.1 - Build development environments from repositories in a container" \
+    >/dev/null
 
 echo "workspace images verified: $image and $envbuilder_image"

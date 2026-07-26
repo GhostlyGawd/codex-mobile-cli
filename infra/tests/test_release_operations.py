@@ -1079,6 +1079,11 @@ class ReleaseScriptStaticTests(unittest.TestCase):
         )
         self.assertEqual(builder.count("verify-helper-pin"), 2)
         self.assertIn("XDG_CONFIG_HOME XDG_RUNTIME_DIR", builder)
+        self.assertIn(
+            "v1.3.0-codex-mobile.1 - Build development environments "
+            "from repositories in a container",
+            builder,
+        )
 
     def test_root_engine_scripts_sanitize_client_selector_environment(self) -> None:
         scripts = (
