@@ -8,12 +8,7 @@ WORKDIR /src/services/control-plane
 COPY services/control-plane/go.mod services/control-plane/go.sum ./
 RUN --mount=type=cache,target=/go/pkg/mod \
     go mod download
-COPY services/control-plane/internal/codex ./internal/codex
-COPY services/control-plane/internal/core ./internal/core
-COPY services/control-plane/internal/files ./internal/files
-COPY services/control-plane/internal/githubapp ./internal/githubapp
-COPY services/control-plane/internal/gitops ./internal/gitops
-COPY services/control-plane/internal/workspacehelper ./internal/workspacehelper
+COPY services/control-plane/internal ./internal
 COPY services/control-plane/cmd/workspace-helper ./cmd/workspace-helper
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \

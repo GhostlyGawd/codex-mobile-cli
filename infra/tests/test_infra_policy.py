@@ -460,6 +460,8 @@ class ImageSupplyChainTests(unittest.TestCase):
         ).read_text(encoding="utf-8")
         self.assertIn("docker.io/library/golang:1.26.5-bookworm@sha256:", dockerfile)
         self.assertIn("docker.io/library/ubuntu:24.04@sha256:", dockerfile)
+        self.assertIn("COPY services/control-plane/internal ./internal", dockerfile)
+        self.assertNotRegex(dockerfile, r"COPY services/control-plane/internal/[^\s]+")
         self.assertIn("./cmd/workspace-helper", dockerfile)
         self.assertIn("-ldflags='-s -w'", dockerfile)
         self.assertIn("--chown=0:0 --chmod=0755", dockerfile)
