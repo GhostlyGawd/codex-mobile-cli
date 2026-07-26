@@ -60,7 +60,8 @@ for unit in \
   }
 done
 
-/usr/local/libexec/codex-mobile/verify-workspace-storage
+DEPLOYMENT_PROFILE=$(env_value DEPLOYMENT_PROFILE) \
+  /usr/local/libexec/codex-mobile/verify-workspace-storage
 /usr/local/libexec/codex-mobile/ensure-workspace-control-network --check
 socket=/run/codex-mobile-podman/podman.sock
 [ -S "$socket" ] || { echo "private workspace runtime socket is missing" >&2; exit 1; }

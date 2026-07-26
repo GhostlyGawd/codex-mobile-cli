@@ -28,8 +28,12 @@ env_value() {
   awk -F= -v key="$1" '$1 == key {sub(/^[^=]*=/, ""); print; found=1} END {if (!found) exit 1}' "$env_file"
 }
 
+[ "$(env_value DEPLOYMENT_PROFILE)" = fixed_price_vps ] || {
+  echo "this XFS/AppArmor spike is only for the deferred fixed_price_vps profile; the owner_pc_beta profile requires its separate fail-closed host spike" >&2
+  exit 1
+}
 [ "$(uname -s)" = Linux ] || { echo "SKIP: Linux host required"; exit 77; }
-[ "$(id -u)" -eq 0 ] || { echo "run as root on the configured VPS" >&2; exit 1; }
+[ "$(id -u)" -eq 0 ] || { echo "run as root on the configured fixed_price_vps host" >&2; exit 1; }
 [ -r "$containers_conf" ] || { echo "dedicated workspace containers.conf is missing" >&2; exit 1; }
 CONTAINERS_CONF=$containers_conf
 export CONTAINERS_CONF
@@ -50,6 +54,7 @@ workspace_read_bps=67108864
 workspace_write_bps=33554432
 workspace_read_iops=2000
 workspace_write_iops=1000
+DEPLOYMENT_PROFILE=$(env_value DEPLOYMENT_PROFILE) \
 WORKSPACE_IO_DEVICE=$workspace_io_device \
 WORKSPACE_STORAGE_ROOT=${WORKSPACE_STORAGE_ROOT:-/srv/codex-mobile/workspaces} \
   WORKSPACE_STORAGE_MOUNT=${WORKSPACE_STORAGE_MOUNT:-/srv/codex-mobile} \

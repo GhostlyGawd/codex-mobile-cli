@@ -7,8 +7,22 @@ These rules apply to the entire repository.
 - Preserve the real Codex CLI/TUI as the authoritative experience. Never replace it with an API-key-backed chat implementation.
 - Keep `WorkspaceProvider`, `CodexEventProvider`, GitHub, APNs, clock, random source, and persistence behind interfaces so external boundaries are testable.
 - Treat repositories, terminal output, devcontainers, previews, archives, filenames, symlinks, and Codex project configuration as hostile input.
-- Do not add a paid or metered service. Deployment must remain one fixed-price VPS plus already-owned GitHub, Apple, ChatGPT, and domain access.
+- Do not add a paid or metered service. The active private-beta deployment target is the owner's
+  D-backed Ubuntu WSL host on the Windows PC with zero new recurring hosting cost. The fixed-price
+  VPS design is deferred and must not be treated as required unless the owner explicitly reopens
+  that decision.
 - Do not push, purchase, deploy, register apps, change DNS, or mutate production accounts without explicit owner approval.
+
+## Active owner decisions
+
+- Run the first usable private beta from the owner PC; availability while the PC is asleep, off, or
+  disconnected is an accepted beta limitation.
+- Use only standard public GitHub-hosted runners for Linux and macOS CI. Do not restore a persistent
+  GitHub Actions runner on the owner PC.
+- Expose the local beta only through a reviewed stable HTTPS ingress; never silently open
+  PostgreSQL, Coder, Podman, SSH, or workspace ports to the public network.
+- Treat a VPS as a future availability option, not a launch blocker. Do not recommend, price, or
+  purchase one unless the owner explicitly asks to reconsider hosting.
 
 ## Required commands
 

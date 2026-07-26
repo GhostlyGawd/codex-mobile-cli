@@ -3,6 +3,11 @@
 - Status: accepted
 - Date: 2026-07-16
 
+[ADR 0025](0025-owner-pc-private-beta-hosting.md) changes the active capacity
+target, not the durable provider-state machine. The owner-PC beta must use a
+measured conservative local cap; the historical ten-workspace target is
+deferred with the VPS profile.
+
 ## Context
 
 An equal-share quota changes whenever a workspace begins or stops consuming
@@ -68,7 +73,7 @@ ambiguity is resolved and a scan succeeds.
 
 Provider operations and long-running readiness polls are serialized globally,
 so a slow provider can increase start and rebalance latency. This is an accepted
-tradeoff for a maximum of ten workspaces on one fixed-price VPS. The gates are
+tradeoff for the deferred maximum of ten workspaces on one fixed-price VPS. The gates are
 process-local and preserve the single-process deployment invariant from ADR
 0005; a multi-replica control plane would require PostgreSQL-backed admission
 and provider-mutation locks before it could be supported.

@@ -5,6 +5,12 @@ storage_root=${WORKSPACE_STORAGE_ROOT:-/srv/codex-mobile/workspaces}
 expected_mount=${WORKSPACE_STORAGE_MOUNT:-/srv/codex-mobile}
 containers_conf=${CONTAINERS_CONF:-/etc/codex-mobile/containers.conf}
 storage_conf=${CONTAINERS_STORAGE_CONF:-/etc/codex-mobile/containers-storage.conf}
+deployment_profile=${DEPLOYMENT_PROFILE:-}
+
+[ "$deployment_profile" = fixed_price_vps ] || {
+  echo "this XFS storage verifier is only for the deferred fixed_price_vps profile; owner_pc_beta requires its separate fail-closed storage verifier" >&2
+  exit 1
+}
 
 [ "$(id -u)" -eq 0 ] || {
   echo "workspace storage verification must run as root" >&2

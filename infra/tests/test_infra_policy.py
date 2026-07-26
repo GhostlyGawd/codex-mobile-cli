@@ -45,6 +45,7 @@ RELEASE_VALIDATOR = load_script("validate-release-artifacts.py")
 
 def production_values() -> dict[str, str]:
     return {
+        "DEPLOYMENT_PROFILE": "owner_pc_beta",
         "APP_ENV": "production",
         "DATA_ROOT": "/srv/codex-mobile",
         "SECRETS_DIR": "/etc/codex-mobile/secrets",
@@ -78,14 +79,11 @@ def production_values() -> dict[str, str]:
         "CODER_DB_NAME": "coder",
         "CONTROL_PLANE_IMAGE_TAG": "sha-0123456789abcdef",
         "CONTROL_PLANE_PACKAGE": "./services/control-plane/cmd/control-plane",
-        "VPS_PROVIDER": "fixed-price-provider",
-        "VPS_PLAN": "fixed-32gb",
-        "VPS_REGION": "owner-approved-region",
-        "VPS_MONTHLY_PRICE_USD": "50.00",
-        "VPS_FIXED_PRICE_CONFIRMED": "true",
-        "VPS_INCLUDED_BACKUP_CONFIRMED": "true",
-        "VPS_NO_AUTOMATIC_OVERAGE_CONFIRMED": "true",
     }
+
+
+def owner_pc_beta_values() -> dict[str, str]:
+    return production_values()
 
 
 class ComposeSecurityTests(unittest.TestCase):
@@ -608,6 +606,68 @@ class PolicyCheckerTests(unittest.TestCase):
     def test_current_repository_passes(self) -> None:
         self.assertEqual(BILLING.validate_policy(ROOT), [])
 
+    def test_billing_policy_authorizes_zero_active_recurring_bills(self) -> None:
+        policy = yaml.safe_load(
+            (ROOT / "infra" / "policy" / "billing-policy.yml").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual(policy["active_deployment"]["profile"], "owner_pc_beta")
+        self.assertEqual(
+            policy["active_deployment"]["new_recurring_bills"]["maximum"], 0
+        )
+        self.assertEqual(
+            policy["deferred_deployment"]["profile"], "fixed_price_vps"
+        )
+        self.assertIs(policy["deferred_deployment"]["authorized"], False)
+        self.assertEqual(BILLING.validate_policy(ROOT, "owner_pc_beta"), [])
+        self.assertTrue(
+            any(
+                "remains deferred and unauthorized" in item
+                for item in BILLING.validate_policy(ROOT, "fixed_price_vps")
+            )
+        )
+        checker = (ROOT / "scripts" / "check-billing-policy.py").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn(
+            'parser.add_argument("--deployment-profile", required=True)', checker
+        )
+        deferred_runbook = (ROOT / "docs" / "runbooks" / "DEPLOY.md").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("--deployment-profile fixed_price_vps", deferred_runbook)
+        self.assertIn("both commands must reject this deferred profile", deferred_runbook)
+
+    def test_billing_policy_rejects_unreviewed_keys_and_boolean_limits(self) -> None:
+        mutations = (
+            ("floating schema version", ("schema_version",), 2.0),
+            ("extra deployment", ("paid_deployment",), {"authorized": True}),
+            (
+                "false active maximum",
+                ("active_deployment", "new_recurring_bills", "maximum"),
+                False,
+            ),
+            (
+                "true deferred maximum",
+                ("deferred_deployment", "new_recurring_bills", "maximum"),
+                True,
+            ),
+        )
+        for name, path, value in mutations:
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as raw:
+                root = Path(raw)
+                self.copy_policy_tree(root)
+                policy_path = root / "infra" / "policy" / "billing-policy.yml"
+                policy = yaml.safe_load(policy_path.read_text(encoding="utf-8"))
+                target = policy
+                for key in path[:-1]:
+                    target = target[key]
+                target[path[-1]] = value
+                policy_path.write_text(yaml.safe_dump(policy), encoding="utf-8")
+                with self.assertRaises(BILLING.PolicyError):
+                    BILLING.validate_policy(root)
+
     def copy_policy_tree(self, destination: Path) -> None:
         shutil.copytree(
             ROOT / "infra",
@@ -844,6 +904,40 @@ class ProductionPreflightTests(unittest.TestCase):
             [],
         )
 
+    def test_owner_pc_beta_configuration_omits_vps_checkout(self) -> None:
+        values = owner_pc_beta_values()
+        self.assertEqual(
+            PREFLIGHT.validate(values, Path("/etc/codex-mobile/production.env"), True),
+            [],
+        )
+        preflight_source = (ROOT / "scripts" / "infra-preflight.py").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn(
+            "owner_pc_beta host storage/runtime preflight is not implemented yet",
+            preflight_source,
+        )
+
+    def test_owner_pc_beta_rejects_vps_checkout_metadata(self) -> None:
+        values = owner_pc_beta_values()
+        values["VPS_PROVIDER"] = "fictitious"
+        failures = PREFLIGHT.validate(
+            values, Path("/etc/codex-mobile/production.env"), True
+        )
+        self.assertTrue(
+            any("must omit deferred VPS checkout variables" in item for item in failures)
+        )
+
+    def test_unknown_deployment_profile_is_rejected(self) -> None:
+        values = owner_pc_beta_values()
+        values["DEPLOYMENT_PROFILE"] = "automatic"
+        failures = PREFLIGHT.validate(
+            values, Path("/etc/codex-mobile/production.env"), True
+        )
+        self.assertTrue(
+            any("DEPLOYMENT_PROFILE must be" in item for item in failures)
+        )
+
     def test_workspace_storage_requires_exact_xfs_project_quota_mount(self) -> None:
         class Result:
             returncode = 0
@@ -954,19 +1048,23 @@ class ProductionPreflightTests(unittest.TestCase):
             any("PUBLIC_ORIGIN must be a valid URL" in item for item in failures)
         )
 
-    def test_unconfirmed_or_out_of_range_vps_is_rejected(self) -> None:
+    def test_fixed_price_vps_is_rejected_before_checkout_validation(self) -> None:
         values = production_values()
-        values["VPS_MONTHLY_PRICE_USD"] = "100"
-        values["VPS_NO_AUTOMATIC_OVERAGE_CONFIRMED"] = "false"
+        values["DEPLOYMENT_PROFILE"] = "fixed_price_vps"
         failures = PREFLIGHT.validate(
             values, Path("/etc/codex-mobile/production.env"), True
         )
-        self.assertTrue(any("between 25 and 75" in item for item in failures))
-        self.assertTrue(any("NO_AUTOMATIC_OVERAGE" in item for item in failures))
+        self.assertEqual(
+            failures,
+            [
+                "fixed_price_vps remains deferred and unauthorized; "
+                "do not supply VPS checkout metadata unless the owner explicitly reopens hosting"
+            ],
+        )
 
     def test_placeholder_is_rejected(self) -> None:
         values = production_values()
-        values["VPS_PLAN"] = "REPLACE_ME"
+        values["API_HOST"] = "REPLACE_ME"
         failures = PREFLIGHT.validate(
             values, Path("/etc/codex-mobile/production.env"), True
         )
@@ -1095,6 +1193,7 @@ class HostHardeningStaticTests(unittest.TestCase):
     def test_ansible_requires_explicit_existing_host_confirmation(self) -> None:
         text = (ROOT / "infra" / "ansible" / "playbook.yml").read_text(encoding="utf-8")
         for control in (
+            "codex_deployment_profile | default('') == 'fixed_price_vps'",
             "CONFIGURE_EXISTING_UBUNTU_24_04",
             "codex_require_encrypted_data_mount",
             "PasswordAuthentication no",
@@ -1281,6 +1380,7 @@ class HostHardeningStaticTests(unittest.TestCase):
             ROOT / "infra" / "systemd" / "verify-workspace-storage.sh"
         ).read_text(encoding="utf-8")
         for control in (
+            "deferred fixed_price_vps profile",
             "/srv/codex-mobile/workspaces",
             "/srv/codex-mobile",
             "findmnt",
@@ -1304,6 +1404,7 @@ class HostHardeningStaticTests(unittest.TestCase):
             encoding="utf-8"
         )
         self.assertIn("--opt o=size=8M,inodes=1024", spike)
+        self.assertIn("deferred fixed_price_vps profile", spike)
         self.assertIn("--storage-opt size=8M", spike)
         self.assertIn("--storage-opt inodes=1024", spike)
         self.assertIn("disk quota exceeded|quota exceeded", spike)
@@ -1312,6 +1413,15 @@ class HostHardeningStaticTests(unittest.TestCase):
         self.assertIn("/pids.max", spike)
         self.assertIn("/io.max", spike)
         self.assertNotIn('name "$prefix-limits"', spike)
+        for relative in (
+            "scripts/infra-linux-runtime-spike.sh",
+            "scripts/infra-import-coder-template.sh",
+            "scripts/infra-health.sh",
+        ):
+            caller = (ROOT / relative).read_text(encoding="utf-8")
+            self.assertIn(
+                "DEPLOYMENT_PROFILE=$(env_value DEPLOYMENT_PROFILE)", caller
+            )
 
         defaults = (ROOT / "infra" / "containers.conf").read_text(encoding="utf-8")
         self.assertIn("pids_limit = 512", defaults)

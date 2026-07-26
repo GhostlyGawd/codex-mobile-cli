@@ -1,11 +1,12 @@
 # Local checkpoint and restore
 
-Local checkpoints live on the same VPS storage. They help with file mistakes,
-destructive Git actions, suspension and maintenance; they do **not** protect
-against whole-server/storage loss. Verify free space before every checkpoint
-and preserve dirty/unpushed work. The current script retains database dumps for
-14 days and workspace archives for 30 days; production scheduling and a hard
-disk-quota guard must be proven on the VPS before relying on those periods.
+Local checkpoints live on the same owner-PC/WSL storage as the active beta.
+They help with file mistakes, destructive Git actions, suspension and
+maintenance; they do **not** protect against loss of that storage. Verify free
+space before every checkpoint and preserve dirty/unpushed work. The current
+script retains database dumps for 14 days and workspace archives for 30 days;
+local scheduling and a fail-closed storage-capacity guard must be proven on the
+active host before relying on those periods.
 
 The infrastructure script refuses to start unless the filesystem can preserve
 the 40 GiB host reserve plus the configured maximum archive size (4 GiB for a
@@ -90,7 +91,7 @@ checkpoint API. Manual archive extraction remains a drill for a
 security-reviewed operator; the shipped safe helper described above operates
 only on bounded app-created local checkpoint archives.
 
-## Restore an entire stopped workspace volume
+## Restore an entire stopped workspace volume with the XFS quota profile
 
 This is destructive and requires explicit approval. Capture `podman volume
 inspect` metadata and the exact template release first. Create a scratch volume
@@ -122,5 +123,7 @@ target-Podman drill before this procedure is marked executable.
    passkey, sessions, repository/workspace ownership and audit continuity.
 
 Database restore and whole-volume restore have not been executed on this
-Windows host. Record them as `GATED`, not passing, until a target-VPS drill
-captures exact redacted commands and evidence.
+Windows/WSL host. Record active-beta restore as `GATED`, not passing, until a
+local live drill captures exact redacted commands and evidence. The XFS quota
+volume procedure remains deferred if the active local profile does not use that
+filesystem contract.

@@ -17,7 +17,7 @@ Environment=HOME=/run/codex-mobile-compose
 RuntimeDirectory=codex-mobile-compose
 RuntimeDirectoryMode=0700
 UMask=0077
-ExecStartPre=/usr/bin/python3 /opt/codex-mobile/current/scripts/check-billing-policy.py --repo-root /opt/codex-mobile/current
+ExecStartPre=/usr/bin/python3 /opt/codex-mobile/current/scripts/check-billing-policy.py --repo-root /opt/codex-mobile/current --deployment-profile ${DEPLOYMENT_PROFILE}
 ExecStartPre=/usr/bin/python3 /opt/codex-mobile/current/scripts/infra-preflight.py --env-file /etc/codex-mobile/production.env --repo-root /opt/codex-mobile/current
 ExecStartPre=/bin/sh /opt/codex-mobile/current/scripts/infra-compose.sh config --quiet
 ExecStart=/bin/sh /opt/codex-mobile/current/scripts/infra-compose.sh up --detach --no-build --remove-orphans --wait --wait-timeout 180

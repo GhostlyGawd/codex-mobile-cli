@@ -1,7 +1,13 @@
 # ADR 0010: XFS workspace quotas and a private Podman runtime
 
-- Status: accepted; target-host proof required before release
+- Status: accepted for the deferred VPS/XFS profile; not an active
+  private-beta host requirement under
+  [ADR 0025](0025-owner-pc-private-beta-hosting.md)
 - Date: 2026-07-16
+
+The private-Podman isolation principles remain design input for the owner-PC
+beta, but that beta needs its own fail-closed WSL storage/isolation profile and
+cannot claim XFS, AppArmor, or VPS evidence from this record.
 
 ## Context
 
@@ -73,7 +79,7 @@ device mounts and cannot relax that parent restriction.
 
 ## Consequences
 
-- The selected VPS needs an operator-provisioned encrypted XFS data mount with
+- The deferred VPS profile needs an operator-provisioned encrypted XFS data mount with
   project quotas before automation can run.
 - Compromise of the provisioner or an approved malicious template can control
   the dedicated root-owned engine. Template import, provisioner credentials,

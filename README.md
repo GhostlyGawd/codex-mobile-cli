@@ -17,7 +17,8 @@ The repository contains:
 - `apps/ios`: SwiftUI client and generated API client
 - `services/control-plane`: Go API, policy engine, terminal gateway, and provider adapters
 - `packages/api-contract`: versioned OpenAPI and terminal wire contracts
-- `infra`: hardened single-VPS deployment, Coder template, Caddy, and PostgreSQL
+- `infra`: owner-PC private-beta hosting, deferred single-VPS deployment,
+  Coder template, Caddy, and PostgreSQL
 - `docs`: architecture decisions, runbooks, research evidence, and verification reports
 - `scripts`: local development, policy, generation, and verification entry points
 
@@ -30,9 +31,10 @@ static contracts, supply-chain reproducibility, and release-artifact
 validation. Public GitHub Actions provide the authoritative Linux and Xcode
 26.6 simulator gates without requiring the owner to operate a Mac.
 
-Credentialed scenarios that need the owner's domain, GitHub App, Apple
-account/device, ChatGPT login, or an approved target VPS remain explicitly
-gated. See
+Credentialed scenarios that need the owner's stable HTTPS origin/domain,
+GitHub App, Apple account/device, or ChatGPT login remain explicitly gated.
+The active private-beta host is the owner's D-backed Ubuntu WSL environment;
+no VPS is required or authorized. See
 [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) for milestone status and
 [docs/verification/ACCEPTANCE.md](docs/verification/ACCEPTANCE.md) for the exact
 evidence boundary.
@@ -87,8 +89,11 @@ in ignored `.codex-mobile-development.env`, `.data`, and `.secrets` paths.
 Run `sh ./scripts/verify.sh` or `pwsh ./scripts/verify.ps1` for all portable checks.
 See [operations runbooks](docs/runbooks/README.md) and the tracked
 [supply-chain reports](docs/security/SUPPLY_CHAIN.md). The Compose environment
-is intentionally local-only. Production provisioning is a separate,
-confirmation-gated workflow and never creates a server automatically.
+is the basis of the active owner-PC private beta. A fail-closed beta service and
+ingress profile still has to be completed before the signed app can use it.
+The PC, WSL distribution, services, and reviewed ingress must remain running.
+The historical VPS workflow is deferred and never creates a server
+automatically.
 
 ## CI from a PC
 
@@ -105,8 +110,9 @@ Neither workflow receives repository secrets or write permission. See
   The dedicated root-owned workspace-engine socket is private, restricted to
   the unprivileged provisioner, and treated as root-equivalent authority.
 - One user-namespaced, non-privileged workspace per session and one unique task
-  branch/worktree. Persistent volumes have immutable 8–16 GiB XFS project
-  quotas in production.
+  branch/worktree. The active local profile must enforce measured fail-closed
+  storage bounds; immutable 8–16 GiB XFS project quotas belong to the deferred
+  VPS profile.
 - Workspace shells, Codex, and helper Git subprocesses inherit only explicit
   environment allowlists plus owner-configured values and active grants.
 - No billable resource creation, DNS changes, GitHub App registration, APNs mutation, TestFlight upload, or remote push without explicit owner approval.

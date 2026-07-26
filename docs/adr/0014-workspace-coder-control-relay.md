@@ -1,7 +1,11 @@
 # ADR 0014: Per-workspace relay for Coder control connectivity
 
-- Status: accepted; target-host verification required
+- Status: accepted; active-host verification required
 - Date: 2026-07-16
+
+Under [ADR 0025](0025-owner-pc-private-beta-hosting.md), private-beta
+target-host verification means the actual D-backed Ubuntu WSL and Windows
+networking boundary. Historical VPS evidence cannot satisfy it.
 
 ## Context
 
@@ -12,9 +16,9 @@ stack network would expose Coder and any accidentally adjacent service. Giving
 Safe Mode a general outbound bridge, host networking, an engine socket or a
 host-side tunnel would defeat the isolation boundary.
 
-The single VPS uses a rootful Podman engine for quota enforcement. Its actual
+The selected host uses a rootful Podman engine for quota enforcement. Its actual
 bridge, firewall and host-listener behavior cannot be inferred completely from
-Terraform or labels and must be proven on the selected Ubuntu kernel/runtime.
+Terraform or labels and must be proven on the active Linux kernel/runtime.
 
 ## Decision
 

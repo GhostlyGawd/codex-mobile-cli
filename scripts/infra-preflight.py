@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate production infrastructure configuration and local secret files."""
+"""Validate profile-scoped infrastructure configuration and local secret files."""
 
 from __future__ import annotations
 
@@ -12,13 +12,13 @@ import re
 import stat
 import subprocess
 import sys
-from decimal import Decimal, InvalidOperation
 from pathlib import Path, PurePosixPath
 from urllib.parse import unquote, urlsplit
 
 
 PLACEHOLDERS = ("REPLACE_ME", "REPLACE_WITH", "example.com", ".example")
-REQUIRED = {
+COMMON_REQUIRED = {
+    "DEPLOYMENT_PROFILE",
     "APP_ENV",
     "DATA_ROOT",
     "SECRETS_DIR",
@@ -52,6 +52,8 @@ REQUIRED = {
     "CODER_DB_NAME",
     "CONTROL_PLANE_IMAGE_TAG",
     "CONTROL_PLANE_PACKAGE",
+}
+VPS_REQUIRED = {
     "VPS_PROVIDER",
     "VPS_PLAN",
     "VPS_REGION",
@@ -582,9 +584,27 @@ def validate(
     coder_bootstrap: bool = False,
 ) -> list[str]:
     failures: list[str] = []
-    missing = sorted(REQUIRED - values.keys())
+    profile = values.get("DEPLOYMENT_PROFILE", "")
+    if profile == "fixed_price_vps":
+        return [
+            "fixed_price_vps remains deferred and unauthorized; "
+            "do not supply VPS checkout metadata unless the owner explicitly reopens hosting"
+        ]
+    required = COMMON_REQUIRED
+    missing = sorted(required - values.keys())
     if missing:
         failures.append(f"missing required variables: {', '.join(missing)}")
+    if profile not in {"owner_pc_beta", "fixed_price_vps"}:
+        failures.append(
+            "DEPLOYMENT_PROFILE must be owner_pc_beta or fixed_price_vps; no profile is inferred"
+        )
+    if profile == "owner_pc_beta":
+        unexpected_vps = sorted(VPS_REQUIRED & values.keys())
+        if unexpected_vps:
+            failures.append(
+                "owner_pc_beta must omit deferred VPS checkout variables: "
+                + ", ".join(unexpected_vps)
+            )
     for key, value in values.items():
         if not value:
             failures.append(f"{key} cannot be empty")
@@ -596,7 +616,7 @@ def validate(
             marker.lower() in value.lower() for marker in PLACEHOLDERS
         ):
             failures.append(f"{key} still contains a placeholder/example value")
-    if missing:
+    if missing or profile not in {"owner_pc_beta", "fixed_price_vps"}:
         return failures
 
     if values["APP_ENV"] != "production":
@@ -667,22 +687,6 @@ def validate(
         failures.append(
             "CONTROL_PLANE_PACKAGE is not the reviewed production entrypoint"
         )
-
-    try:
-        price = Decimal(values["VPS_MONTHLY_PRICE_USD"])
-        if not Decimal("25") <= price <= Decimal("75"):
-            failures.append(
-                "VPS_MONTHLY_PRICE_USD must be between 25 and 75 before tax"
-            )
-    except InvalidOperation:
-        failures.append("VPS_MONTHLY_PRICE_USD must be a decimal number")
-    for name in (
-        "VPS_FIXED_PRICE_CONFIRMED",
-        "VPS_INCLUDED_BACKUP_CONFIRMED",
-        "VPS_NO_AUTOMATIC_OVERAGE_CONFIRMED",
-    ):
-        if values[name].lower() != "true":
-            failures.append(f"{name} must be true after manual checkout verification")
 
     if not skip_secrets:
         validate_secret_files(values, failures)
@@ -765,6 +769,11 @@ def main() -> int:
     failures.extend(
         validate(values, args.env_file, args.skip_secret_files, args.coder_bootstrap)
     )
+    if not failures and values["DEPLOYMENT_PROFILE"] == "owner_pc_beta":
+        failures.append(
+            "owner_pc_beta host storage/runtime preflight is not implemented yet; "
+            "keep workspace admission disabled and do not substitute fixed_price_vps"
+        )
     if not failures:
         failures.extend(
             validate_workspace_storage(
@@ -778,6 +787,8 @@ def main() -> int:
                 str(args.repo_root / "scripts" / "check-billing-policy.py"),
                 "--repo-root",
                 str(args.repo_root),
+                "--deployment-profile",
+                values["DEPLOYMENT_PROFILE"],
             ],
             check=False,
             capture_output=True,

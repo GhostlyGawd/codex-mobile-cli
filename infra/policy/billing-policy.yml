@@ -1,14 +1,22 @@
-schema_version: 1
+schema_version: 2
 
-new_recurring_bills:
-  maximum: 1
-  only_allowed_kind: fixed_price_monthly_vps
-  minimum_monthly_price_usd: 25
-  maximum_monthly_price_usd: 75
-  required_confirmations:
-    - VPS_FIXED_PRICE_CONFIRMED
-    - VPS_INCLUDED_BACKUP_CONFIRMED
-    - VPS_NO_AUTOMATIC_OVERAGE_CONFIRMED
+active_deployment:
+  profile: owner_pc_beta
+  new_recurring_bills:
+    maximum: 0
+
+deferred_deployment:
+  profile: fixed_price_vps
+  authorized: false
+  new_recurring_bills:
+    maximum: 1
+    only_allowed_kind: fixed_price_monthly_vps
+    minimum_monthly_price_usd: 25
+    maximum_monthly_price_usd: 75
+    required_confirmations:
+      - VPS_FIXED_PRICE_CONFIRMED
+      - VPS_INCLUDED_BACKUP_CONFIRMED
+      - VPS_NO_AUTOMATIC_OVERAGE_CONFIRMED
 
 allowed_runtime_services:
   - caddy

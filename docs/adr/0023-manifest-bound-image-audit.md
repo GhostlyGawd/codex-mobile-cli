@@ -4,6 +4,10 @@
 
 Accepted.
 
+[ADR 0025](0025-owner-pc-private-beta-hosting.md) changes the deployment host,
+not this manifest-bound audit requirement. Exact beta candidate images still
+require audit before promotion.
+
 ## Context
 
 ADR 0012 binds a release to the exact local IDs of the three images built from
@@ -85,5 +89,6 @@ release rather than modifying its immutable directory or weakening the gate.
 
 Portable tests can prove parser, tamper, resource-bound, ordering, and
 fail-closed behavior. Only an executed Linux Docker/Podman build and scan proves
-the exact candidate images; XFS quotas, AppArmor, service activation, and other
-production-host controls remain separate target-VPS gates.
+the exact candidate images. Owner-PC/WSL service, storage, isolation, and
+ingress evidence remains separate local-beta evidence; XFS, AppArmor, and other
+VPS-profile controls are deferred under ADR 0025.

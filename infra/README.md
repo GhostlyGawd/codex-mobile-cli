@@ -7,6 +7,12 @@ Production scripts invoke `scripts/infra-compose.sh`, which adds the reviewed
 GitHub and APNs override files only when the corresponding flag is exactly
 `true`.
 
+The active beta host is the owner PC and D-backed Ubuntu WSL. Its fail-closed
+deployment/storage profile is the next implementation step: the current XFS,
+AppArmor, SSH/UFW, Ansible, systemd, and ten-session path is retained only for
+the deferred VPS profile. Do not use that path or fictitious VPS metadata to
+bypass the missing local storage boundary.
+
 ## Owner-provided integrations
 
 Copy `infra/env/production.env.example` to
@@ -29,7 +35,12 @@ root-only directory, and each service receives only its declared mounts.
 Coder bootstrap must run with both integrations disabled. Enable them only
 after the scoped Coder token and external-provisioner key have been installed.
 
-## Workspace storage and engine boundary
+## Deferred VPS/XFS workspace storage and engine boundary
+
+The XFS capacity profile in this section is not an active private-beta launch
+gate. The local WSL profile must provide an equally hard, measured storage and
+inode boundary for hostile workspaces before admission is enabled; simply
+skipping these checks is forbidden.
 
 Before running Ansible, mount the operator-managed encrypted data device at
 `/srv/codex-mobile` as XFS with `pquota` or `prjquota`. The playbook never
@@ -99,8 +110,9 @@ as hidden from hostile code. The privileged control-plane Coder token,
 provisioner key and root-equivalent Podman socket never enter a workspace or
 relay.
 
-Keep `CODER_WORKSPACE_CONNECTIVITY_CONFIRMED=false` through bootstrap. On the
-selected Ubuntu host, create a template workspace and prove its Coder agent
+Keep `CODER_WORKSPACE_CONNECTIVITY_CONFIRMED=false` through bootstrap. For the
+deferred VPS profile, create a template workspace on its selected Ubuntu host
+and prove its Coder agent
 registers and a real PTY works through the relay while the workspace cannot
 reach Coder directly, any other host/control port, another workspace, the engine
 socket or the general network. Inspect the relay/network attachments and prove
@@ -113,16 +125,18 @@ labels or container startup are not substitutes. See
 
 ## Wildcard preview DNS and certificate gate
 
-Production needs DNS records for the API host and wildcard preview hosts. Point
-`API_HOST` and `*.PREVIEW_DOMAIN` at the selected VPS, while keeping
-`PREVIEW_DOMAIN` itself non-wildcard (for example,
+The signed private beta needs a stable HTTPS origin for the API through a
+reviewed ingress serving the owner-PC/WSL host. Do not expose PostgreSQL, Coder,
+Podman, SSH, runtime sockets, or workspace ports. If wildcard previews are
+enabled for the beta, point only the approved public API and preview names at
+that ingress while keeping `PREVIEW_DOMAIN` itself non-wildcard (for example,
 `preview.codex.owner.example`). The Caddy site address is the corresponding
 wildcard, such as `*.preview.codex.owner.example`.
 
 The pinned stock Caddy image can validate and route this configuration, but it
 cannot obtain a public wildcard certificate with HTTP-01 or TLS-ALPN-01.
-Wildcard issuance requires DNS-01. Before production deployment, the owner must
-choose and approve one of these reviewed approaches:
+Wildcard issuance requires DNS-01. Before enabling wildcard previews, the
+owner must choose and approve one of these reviewed approaches:
 
 - build and digest-pin a Caddy image containing the DNS module for the owner's
   DNS provider, then supply a least-privilege DNS credential through a file
@@ -131,7 +145,7 @@ choose and approve one of these reviewed approaches:
   read-only certificate mounts and an explicit `tls` configuration.
 
 Do not enable unrestricted on-demand TLS for attacker-selected preview hosts.
-The production gate is complete only after authoritative DNS resolves, the
+The preview gate is complete only after authoritative DNS resolves, the
 running Caddy build/config proves DNS-01 or externally managed renewal, the
 served certificate covers `*.PREVIEW_DOMAIN`, and an HTTPS preview route passes
 the live authorization test.
@@ -144,7 +158,8 @@ contracts, host-hardening files, billing policy, manifest-bound image-audit
 ordering/tamper policy, and checkpoint/rollback scripts. A Linux build-and-scan
 run is still required to prove the exact candidate IDs. Private Podman workspace
 isolation, live relay/Coder-agent/Safe Mode
-route enforcement, volume/rootfs XFS quota and cgroup I/O/PID enforcement on a
-template-created workspace, ten-session capacity, reboot/update rollback, database restore,
-provider backup restore, DNS, and public TLS must still be exercised on the
-selected Ubuntu 24.04 VPS.
+route enforcement, active-host restart/recovery, database restore, reviewed
+public ingress, DNS, and TLS must still be exercised on the D-backed Ubuntu WSL
+beta host. VPS-specific XFS/AppArmor hardening, provider-backup restore,
+ten-session capacity, and target-host reboot/update evidence are deferred unless
+the owner explicitly reopens the always-on VPS design.

@@ -2,6 +2,10 @@
 
 > Extended by [ADR 0023](0023-manifest-bound-image-audit.md), which requires
 > the exact built image IDs to pass a manifest-bound audit before promotion.
+> [ADR 0025](0025-owner-pc-private-beta-hosting.md) changes the deployment host,
+> not the immutable build/manifest/promotion contract. Fixed-VPS, XFS, and
+> systemd health details below apply to the deferred VPS profile; the local
+> beta requires its own fail-closed health profile.
 
 ## Status
 
@@ -9,7 +13,8 @@ Accepted.
 
 ## Context
 
-The service runs from one fixed-price VPS and must support an owner-approved
+At the time of this decision, the service was designed for one fixed-price VPS
+and needed to support an owner-approved
 rollback without a registry or another paid service. Previously, activation and
 rollback asked Compose to build. Because site configuration held only the newest
 image tag, rolling back could rebuild old source under that new tag. Coder
@@ -41,7 +46,7 @@ which selects the runtime architecture and hashes the helper inside the built
 base image before it can seed the EnvBuilder derivative. A label or filename is
 not accepted as helper identity.
 
-Production health verifies installed hashes, unit state, the exact running
+The deferred VPS production-health profile verifies installed hashes, unit state, the exact running
 control-plane image ID, all Compose services, XFS storage policy, private Podman
 socket ownership/API, provisioner metrics and a recent Coder registration with
 the required tag. An owner-approved activation also runs one bounded,

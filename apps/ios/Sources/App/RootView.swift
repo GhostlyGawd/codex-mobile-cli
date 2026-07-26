@@ -243,4 +243,4 @@ private struct AdaptiveApplicationView: View {
     }
 }
 
-private let serverLossRecoveryMessage = "If the VPS or its storage was lost, use the server-loss runbook to restore the provider backup and matching offline master key. This app cannot recreate the server."
+private let serverLossRecoveryMessage = "The server may be offline because the owner PC, WSL, local services, network, or secure ingress is unavailable. If storage was lost, follow the host-loss runbook with verified owner-controlled recovery material. This app cannot recreate the server."

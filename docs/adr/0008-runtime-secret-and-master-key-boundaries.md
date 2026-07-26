@@ -4,6 +4,11 @@
 
 Accepted.
 
+[ADR 0025](0025-owner-pc-private-beta-hosting.md) changes the active host and
+backup assumption, not the runtime-secret or key-rotation boundaries. The
+owner-PC beta assumes no provider backup; VPS/provider wording below describes
+the deferred future profile only.
+
 ## Context
 
 Owner vault values need an explicit workspace runtime boundary without becoming

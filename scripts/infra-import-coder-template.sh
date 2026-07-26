@@ -85,6 +85,7 @@ case "$workspace_io_device" in
   /dev/*) ;;
   *) echo "WORKSPACE_IO_DEVICE must be the explicit /dev source backing DATA_ROOT" >&2; exit 1 ;;
 esac
+DEPLOYMENT_PROFILE=$(env_value DEPLOYMENT_PROFILE) \
 WORKSPACE_IO_DEVICE=$workspace_io_device \
   WORKSPACE_STORAGE_ROOT=${WORKSPACE_STORAGE_ROOT:-/srv/codex-mobile/workspaces} \
   WORKSPACE_STORAGE_MOUNT=${WORKSPACE_STORAGE_MOUNT:-/srv/codex-mobile} \
