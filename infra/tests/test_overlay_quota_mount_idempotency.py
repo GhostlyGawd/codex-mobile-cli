@@ -19,7 +19,7 @@ class OverlayQuotaMountIdempotencyTests(unittest.TestCase):
         )[1]
 
     def test_existing_top_mount_is_inspected_before_any_mount_mutation(self) -> None:
-        inspect_index = self.loop.index("if quota_records=$(findmnt")
+        inspect_index = self.loop.index("quota_records=$(findmnt")
         bind_index = self.loop.index('mount --bind "$quota_root" "$quota_root"')
         remount_index = self.loop.index(
             'mount -o remount,bind,rw,dev,nosuid "$quota_root"'
@@ -27,16 +27,17 @@ class OverlayQuotaMountIdempotencyTests(unittest.TestCase):
 
         self.assertLess(inspect_index, bind_index)
         self.assertLess(bind_index, remount_index)
+        self.assertGreaterEqual(self.loop.count('--mountpoint "$quota_root"'), 2)
         self.assertIn(
-            'quota_record=$(printf \'%s\\n\' "$quota_records" | tail -n 1)',
-            self.loop,
+            "--output ID,PARENT,TARGET,FSTYPE,OPTIONS,FSROOT,MAJ:MIN", self.loop
         )
+        self.assertIn('-v expected_parent="$mount_id"', self.loop)
+        self.assertIn("$2 == expected_parent", self.loop)
+        self.assertIn("older exact bind can remain listed but be hidden", self.loop)
         self.assertNotIn("INVOCATION_ID", self.loop)
 
     def test_valid_existing_bind_is_reused_without_stacking_or_remounting(self) -> None:
-        self.assertEqual(
-            self.loop.count('mount --bind "$quota_root" "$quota_root"'), 1
-        )
+        self.assertEqual(self.loop.count('mount --bind "$quota_root" "$quota_root"'), 1)
         self.assertIn(
             """  else
     mount --bind "$quota_root" "$quota_root"
@@ -61,6 +62,8 @@ class OverlayQuotaMountIdempotencyTests(unittest.TestCase):
             '[ "$quota_filesystem" = xfs ]',
             '[ "$quota_fsroot" = "$expected_fsroot" ]',
             '[ "$quota_device" = "$parent_device" ]',
+            '[ "$active_parent" = "$mount_id" ]',
+            '[ "$active_target" = "$quota_root" ]',
             "*,nodev,*)",
             "*,nosuid,*)",
         ):
@@ -70,6 +73,7 @@ class OverlayQuotaMountIdempotencyTests(unittest.TestCase):
             "workspace quota exception is not the exact reviewed self-bind",
             pre_bind,
         )
+        self.assertIn("workspace quota path has multiple active exact binds", pre_bind)
         self.assertIn("must permit its private backing device", pre_bind)
         self.assertIn("must remain nosuid", pre_bind)
 

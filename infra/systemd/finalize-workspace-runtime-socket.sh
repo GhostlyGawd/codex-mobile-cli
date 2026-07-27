@@ -9,8 +9,8 @@ socket=/run/codex-mobile-podman/podman.sock
 attempt=0
 while [ ! -S "$socket" ]; do
   attempt=$((attempt + 1))
-  [ "$attempt" -le 100 ] || {
-    echo "workspace runtime socket did not appear within 10 seconds" >&2
+  [ "$attempt" -le 500 ] || {
+    echo "workspace runtime socket did not appear within 50 seconds" >&2
     exit 1
   }
   sleep 0.1

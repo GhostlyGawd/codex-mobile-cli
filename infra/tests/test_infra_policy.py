@@ -1523,8 +1523,7 @@ class HostHardeningStaticTests(unittest.TestCase):
             setup.index('if [ -z "$container_records" ]'),
         )
         self.assertIn(
-            "containers must use group containers, /nonexistent, and "
-            "/usr/sbin/nologin",
+            "containers must use group containers, /nonexistent, and /usr/sbin/nologin",
             setup,
         )
         self.assertIn(
@@ -1646,6 +1645,9 @@ class HostHardeningStaticTests(unittest.TestCase):
         self.assertIn("ensure-workspace-control-network", fixed_start)
         self.assertNotIn("prepare-workspace-overlay-quota", fixed_start)
         self.assertIn("chmod 0660", socket_finalize)
+        self.assertIn('[ "$attempt" -le 500 ]', socket_finalize)
+        self.assertIn("within 50 seconds", socket_finalize)
+        self.assertIn("TimeoutStartSec=60s", runtime)
         self.assertIn(
             "--network-config-dir=/srv/codex-mobile/workspaces/.networks",
             runtime_start,
