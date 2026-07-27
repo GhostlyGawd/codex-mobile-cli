@@ -1,9 +1,9 @@
 [Unit]
 Description=Codex Mobile local control stack
 Documentation=https://github.com/GhostlyGawd/codex-mobile-cli
-Wants=network-online.target docker.service codex-mobile-docker-firewall.service
-After=network-online.target docker.service codex-mobile-docker-firewall.service
-Requires=docker.service codex-mobile-docker-firewall.service
+Wants=network-online.target docker.service codex-mobile-owner-pc-runtime.service codex-mobile-docker-firewall.service
+After=network-online.target docker.service codex-mobile-owner-pc-runtime.service codex-mobile-docker-firewall.service
+Requires=docker.service codex-mobile-owner-pc-runtime.service codex-mobile-docker-firewall.service
 ConditionPathExists=/opt/codex-mobile/current/infra/compose.yaml
 ConditionPathExists=/etc/codex-mobile/production.env
 

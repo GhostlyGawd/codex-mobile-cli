@@ -90,5 +90,6 @@ release rather than modifying its immutable directory or weakening the gate.
 Portable tests can prove parser, tamper, resource-bound, ordering, and
 fail-closed behavior. Only an executed Linux Docker/Podman build and scan proves
 the exact candidate images. Owner-PC/WSL service, storage, isolation, and
-ingress evidence remains separate local-beta evidence; XFS, AppArmor, and other
-VPS-profile controls are deferred under ADR 0025.
+ingress evidence remains separate local-beta evidence. ADR 0026 defines the
+active loop-backed XFS quota profile; AppArmor, provider backup, ten-session
+capacity, and other VPS-only controls remain deferred.

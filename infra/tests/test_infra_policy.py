@@ -8,6 +8,7 @@ import stat
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 
 import yaml
 
@@ -49,7 +50,10 @@ def production_values() -> dict[str, str]:
         "APP_ENV": "production",
         "DATA_ROOT": "/srv/codex-mobile",
         "SECRETS_DIR": "/etc/codex-mobile/secrets",
-        "WORKSPACE_IO_DEVICE": "/dev/mapper/codex-mobile-data",
+        "OWNER_PC_STORAGE_IMAGE": "/var/lib/codex-mobile-owner-pc/workspace-storage.xfs",
+        "OWNER_PC_STORAGE_GIB": "64",
+        "WORKSPACE_IO_DEVICE": "/dev/disk/by-uuid/01234567-89ab-cdef-0123-456789abcdef",
+        "MAX_RUNNING_WORKSPACES": "1",
         "WORKSPACE_CONTROL_SUBNET": "10.87.0.0/24",
         "PUBLIC_BIND_ADDRESS": "0.0.0.0",
         "PUBLIC_HTTP_PORT": "80",
@@ -65,9 +69,9 @@ def production_values() -> dict[str, str]:
         "PUBLIC_HEALTH_URL": "https://api.codex.owner.test/healthz",
         "GITHUB_ENABLED": "false",
         "APNS_ENABLED": "false",
-        "CODER_BIND_ADDRESS": "10.0.0.8",
+        "CODER_BIND_ADDRESS": "10.86.0.1",
         "CODER_BIND_PORT": "7080",
-        "CODER_ACCESS_URL": "http://10.0.0.8:7080",
+        "CODER_ACCESS_URL": "http://10.86.0.1:7080",
         "CODER_WORKSPACE_CONNECTIVITY_CONFIRMED": "true",
         "CODER_ORGANIZATION_ID": "123e4567-e89b-42d3-a456-426614174000",
         "CODER_TEMPLATE_ID": "123e4567-e89b-42d3-a456-426614174001",
@@ -137,6 +141,20 @@ class ComposeSecurityTests(unittest.TestCase):
                 self.assertNotIn("pid", service)
                 self.assertNotIn("ipc", service)
                 self.assertNotIn("devices", service)
+
+    def test_owner_pc_control_services_have_hard_runtime_ceilings(self) -> None:
+        expected = {
+            "postgres": ("512m", "1.0", 256),
+            "coder": ("768m", "1.0", 512),
+            "control-plane": ("512m", "1.0", 256),
+            "caddy": ("128m", "0.25", 128),
+        }
+        for name, (memory, cpus, pids) in expected.items():
+            service = self.services[name]
+            self.assertEqual(service["mem_limit"], memory)
+            self.assertEqual(service["memswap_limit"], memory)
+            self.assertEqual(str(service["cpus"]), cpus)
+            self.assertEqual(service["pids_limit"], pids)
 
     def test_no_container_engine_socket_or_cross_workspace_mount(self) -> None:
         text = COMPOSE.read_text(encoding="utf-8").lower()
@@ -214,6 +232,7 @@ class ComposeSecurityTests(unittest.TestCase):
             "IOS_BUNDLE_ID",
             "WORKSPACE_DISK_PROBE_PATH",
             "MAX_RUNNING_WORKSPACES",
+            "DEPLOYMENT_PROFILE",
         ):
             self.assertIn(name, environment)
         for name in (
@@ -229,7 +248,13 @@ class ComposeSecurityTests(unittest.TestCase):
         self.assertEqual(
             environment["WORKSPACE_DISK_PROBE_PATH"], "/workspace-disk-probe"
         )
-        self.assertEqual(environment["MAX_RUNNING_WORKSPACES"], "10")
+        self.assertEqual(
+            environment["MAX_RUNNING_WORKSPACES"],
+            "${MAX_RUNNING_WORKSPACES:-10}",
+        )
+        self.assertEqual(
+            environment["DEPLOYMENT_PROFILE"], "${DEPLOYMENT_PROFILE:-development}"
+        )
         probe = next(
             volume
             for volume in self.services["control-plane"]["volumes"]
@@ -314,7 +339,8 @@ class WorkspaceTemplateSecurityTests(unittest.TestCase):
         for control in (
             'drop = ["ALL"]',
             '"no-new-privileges:true"',
-            'userns_mode  = "private"',
+            'workspace_userns_mode = var.deployment_profile == "owner_pc_beta" ? "auto:size=65536" : "private"',
+            "userns_mode  = local.workspace_userns_mode",
             "read_only    = true",
             "memory_swap  = data.coder_parameter.memory_mb.value",
             '"com.codex-mobile.pids-limit"',
@@ -337,6 +363,12 @@ class WorkspaceTemplateSecurityTests(unittest.TestCase):
         self.assertIn('size   = "4G"', self.text)
         self.assertIn('inodes = "262144"', self.text)
         self.assertIn('variable "workspace_io_device"', self.text)
+        envbuilder = self.text.split('resource "docker_container" "envbuilder"', 1)[
+            1
+        ].split('resource "coder_metadata" "workspace"', 1)[0]
+        self.assertEqual(envbuilder.count("lifecycle {"), 1)
+        self.assertIn("owner_pc_beta requires exactly 2000m CPU", envbuilder)
+        self.assertIn("EnvBuilder mode requires a valid", envbuilder)
 
     def test_workspace_volume_network_and_identity_are_per_workspace(self) -> None:
         self.assertIn('name = "cm-workspace-v2-${local.workspace_key}"', self.text)
@@ -379,10 +411,15 @@ class WorkspaceTemplateSecurityTests(unittest.TestCase):
             "mutable      = false",
             "min   = 8",
             "max   = 16",
-            'o = "size=${data.coder_parameter.disk_gib.value}G,inodes=${local.workspace_inode_limit}"',
-            "workspace_inode_limit = data.coder_parameter.disk_gib.value * 65536",
+            "workspace_disk_bytes  = data.coder_parameter.disk_gib.value * 1073741824",
+            "workspace_inode_limit = 1048576",
+            'o = "size=${local.workspace_disk_bytes}"',
             '"com.codex-mobile.disk-budget"',
             "tostring(local.workspace_disk_bytes)",
+            'resource "terraform_data" "owner_pc_volume_lease"',
+            "owner-pc-workspace-volume-gate claim",
+            "owner-pc-workspace-volume-gate release",
+            "depends_on = [terraform_data.owner_pc_volume_lease]",
             "ignore_changes = all",
         ):
             self.assertIn(control, self.text)
@@ -402,7 +439,9 @@ class WorkspaceTemplateSecurityTests(unittest.TestCase):
         )
         self.assertIn("label=com.codex-mobile.volume-role=workspace-data", checkpoint)
         for control in (
-            "CHECKPOINT_RESERVE_BYTES:-42949672960",
+            "owner_pc_beta) default_checkpoint_reserve_bytes=25769803776",
+            "fixed_price_vps) default_checkpoint_reserve_bytes=42949672960",
+            "CHECKPOINT_RESERVE_BYTES:-$default_checkpoint_reserve_bytes",
             "CHECKPOINT_DATABASE_MAX_BYTES:-4294967296",
             "CHECKPOINT_WORKSPACE_MAX_BYTES:-17179869184",
             "flock -x 9",
@@ -616,9 +655,7 @@ class PolicyCheckerTests(unittest.TestCase):
         self.assertEqual(
             policy["active_deployment"]["new_recurring_bills"]["maximum"], 0
         )
-        self.assertEqual(
-            policy["deferred_deployment"]["profile"], "fixed_price_vps"
-        )
+        self.assertEqual(policy["deferred_deployment"]["profile"], "fixed_price_vps")
         self.assertIs(policy["deferred_deployment"]["authorized"], False)
         self.assertEqual(BILLING.validate_policy(ROOT, "owner_pc_beta"), [])
         self.assertTrue(
@@ -637,7 +674,9 @@ class PolicyCheckerTests(unittest.TestCase):
             encoding="utf-8"
         )
         self.assertIn("--deployment-profile fixed_price_vps", deferred_runbook)
-        self.assertIn("both commands must reject this deferred profile", deferred_runbook)
+        self.assertIn(
+            "both commands must reject this deferred profile", deferred_runbook
+        )
 
     def test_billing_policy_rejects_unreviewed_keys_and_boolean_limits(self) -> None:
         mutations = (
@@ -698,12 +737,17 @@ class PolicyCheckerTests(unittest.TestCase):
             root = Path(raw)
             self.copy_policy_tree(root)
             (root / "infra" / "bad.tf").write_text(
-                'provider "aws" {}\nresource "aws_instance" "metered" {}\n',
+                'provider "aws" {}\n'
+                'resource "aws_instance" "metered" {}\n'
+                'resource "terraform_unreviewed" "local" {}\n',
                 encoding="utf-8",
             )
             failures = BILLING.validate_policy(root)
             self.assertTrue(any("provider 'aws'" in item for item in failures))
             self.assertTrue(any("resource 'aws_instance'" in item for item in failures))
+            self.assertTrue(
+                any("resource 'terraform_unreviewed'" in item for item in failures)
+            )
 
     def test_paid_runtime_key_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
@@ -910,13 +954,8 @@ class ProductionPreflightTests(unittest.TestCase):
             PREFLIGHT.validate(values, Path("/etc/codex-mobile/production.env"), True),
             [],
         )
-        preflight_source = (ROOT / "scripts" / "infra-preflight.py").read_text(
-            encoding="utf-8"
-        )
-        self.assertIn(
-            "owner_pc_beta host storage/runtime preflight is not implemented yet",
-            preflight_source,
-        )
+        self.assertEqual(values["MAX_RUNNING_WORKSPACES"], "1")
+        self.assertEqual(values["OWNER_PC_STORAGE_GIB"], "64")
 
     def test_owner_pc_beta_rejects_vps_checkout_metadata(self) -> None:
         values = owner_pc_beta_values()
@@ -925,7 +964,9 @@ class ProductionPreflightTests(unittest.TestCase):
             values, Path("/etc/codex-mobile/production.env"), True
         )
         self.assertTrue(
-            any("must omit deferred VPS checkout variables" in item for item in failures)
+            any(
+                "must omit deferred VPS checkout variables" in item for item in failures
+            )
         )
 
     def test_unknown_deployment_profile_is_rejected(self) -> None:
@@ -934,9 +975,7 @@ class ProductionPreflightTests(unittest.TestCase):
         failures = PREFLIGHT.validate(
             values, Path("/etc/codex-mobile/production.env"), True
         )
-        self.assertTrue(
-            any("DEPLOYMENT_PROFILE must be" in item for item in failures)
-        )
+        self.assertTrue(any("DEPLOYMENT_PROFILE must be" in item for item in failures))
 
     def test_workspace_storage_requires_exact_xfs_project_quota_mount(self) -> None:
         class Result:
@@ -972,6 +1011,113 @@ class ProductionPreflightTests(unittest.TestCase):
         self.assertTrue(any("pquota or prjquota" in failure for failure in failures))
         self.assertTrue(any("exactly match" in failure for failure in failures))
 
+    def test_owner_pc_storage_requires_exact_allocated_loop_image_and_backing_device(
+        self,
+    ) -> None:
+        image = "/var/lib/codex-mobile-owner-pc/workspace-storage.xfs"
+
+        def run(argv, **_kwargs):
+            effective = (
+                argv[5:]
+                if argv[:6] == ["nsenter", "--target", "1", "--mount", "--", "findmnt"]
+                else argv
+            )
+            if (
+                effective[:2] == ["findmnt", "--noheadings"]
+                and effective[3] == "TARGET,FSTYPE,OPTIONS,SOURCE"
+            ):
+                return SimpleNamespace(
+                    returncode=0,
+                    stdout="/srv/codex-mobile xfs rw,nodev,nosuid,prjquota /dev/loop7\n",
+                    stderr="",
+                )
+            if argv[:6] == ["nsenter", "--target", "1", "--mount", "--", "xfs_quota"]:
+                return SimpleNamespace(
+                    returncode=0,
+                    stdout="#0 0 1048576 1048576 00 [--------]\n",
+                    stderr="",
+                )
+            if argv[0] == "losetup":
+                return SimpleNamespace(returncode=0, stdout=image + "\n", stderr="")
+            if argv[0] == "findmnt":
+                return SimpleNamespace(returncode=0, stdout="/dev/sdd\n", stderr="")
+            raise AssertionError(argv)
+
+        def stat_path(path):
+            if str(path) in {
+                "/dev/loop7",
+                "/dev/sdd",
+                "/dev/disk/by-uuid/01234567-89ab-cdef-0123-456789abcdef",
+            }:
+                return SimpleNamespace(st_mode=stat.S_IFBLK, st_rdev=123)
+            raise FileNotFoundError(path)
+
+        image_info = SimpleNamespace(
+            st_mode=stat.S_IFREG | 0o600,
+            st_uid=0,
+            st_gid=0,
+            st_nlink=1,
+            st_size=64 * 1024**3,
+            st_blocks=(64 * 1024**3) // 512,
+        )
+        failures = PREFLIGHT.validate_workspace_storage(
+            "/srv/codex-mobile",
+            "/dev/disk/by-uuid/01234567-89ab-cdef-0123-456789abcdef",
+            run,
+            stat_path,
+            profile="owner_pc_beta",
+            owner_storage_image=image,
+            owner_storage_gib=64,
+            lstat_path=lambda _path: image_info,
+        )
+        self.assertEqual(failures, [])
+
+        sparse = SimpleNamespace(**vars(image_info))
+        sparse.st_blocks = 1
+        failures = PREFLIGHT.validate_workspace_storage(
+            "/srv/codex-mobile",
+            "/dev/disk/by-uuid/01234567-89ab-cdef-0123-456789abcdef",
+            run,
+            stat_path,
+            profile="owner_pc_beta",
+            owner_storage_image=image,
+            owner_storage_gib=64,
+            lstat_path=lambda _path: sparse,
+        )
+        self.assertTrue(any("fully allocated" in item for item in failures))
+
+    def test_owner_pc_host_envelope_requires_wsl_resources_and_cgroup_v2(
+        self,
+    ) -> None:
+        content = {
+            "/proc/sys/kernel/osrelease": "6.18.0-microsoft-standard-WSL2\n",
+            "/etc/os-release": 'ID=ubuntu\nVERSION_ID="24.04"\n',
+            "/proc/meminfo": "MemTotal:       6045308 kB\n",
+            "/proc/self/mountinfo": "1 2 0:1 / /sys/fs/cgroup rw - cgroup2 cgroup2 rw\n",
+            "/sys/fs/cgroup/cgroup.controllers": "cpuset cpu io memory pids\n",
+            "/etc/subuid": "containers:1000000:1048576\n",
+            "/etc/subgid": "containers:1000000:1048576\n",
+        }
+        disk = SimpleNamespace(f_bavail=200, f_frsize=1024**3)
+        self.assertEqual(
+            PREFLIGHT.validate_owner_pc_host(
+                owner_pc_beta_values(),
+                read_text=lambda path: content[path],
+                cpu_count=lambda: 8,
+                statvfs=lambda _path: disk,
+            ),
+            [],
+        )
+        content["/proc/meminfo"] = "MemTotal:       4194304 kB\n"
+        failures = PREFLIGHT.validate_owner_pc_host(
+            owner_pc_beta_values(),
+            read_text=lambda path: content[path],
+            cpu_count=lambda: 4,
+            statvfs=lambda _path: disk,
+        )
+        self.assertTrue(any("WSL CPUs" in item for item in failures))
+        self.assertTrue(any("WSL memory" in item for item in failures))
+
     def test_workspace_io_device_must_be_explicit(self) -> None:
         values = production_values()
         values["WORKSPACE_IO_DEVICE"] = "auto"
@@ -981,7 +1127,7 @@ class ProductionPreflightTests(unittest.TestCase):
         self.assertTrue(any("WORKSPACE_IO_DEVICE" in item for item in failures))
 
     def test_workspace_control_subnet_must_be_narrow_rfc1918_and_disjoint(self) -> None:
-        for subnet in ("8.8.8.0/24", "10.0.0.0/8", "10.0.0.0/24"):
+        for subnet in ("8.8.8.0/24", "10.0.0.0/8", "10.86.0.0/24"):
             values = production_values()
             values["WORKSPACE_CONTROL_SUBNET"] = subnet
             failures = PREFLIGHT.validate(
@@ -1339,28 +1485,170 @@ class HostHardeningStaticTests(unittest.TestCase):
         self.assertNotIn("syft_version not in", text)
         self.assertNotRegex(text, r"(?m)^\s*(?:curl|wget)\b[^\n]*\|")
 
+    def test_owner_pc_setup_bootstraps_first_release_without_manifest_cycle(
+        self,
+    ) -> None:
+        setup = (ROOT / "scripts" / "infra-setup-owner-pc-wsl.sh").read_text(
+            encoding="utf-8"
+        )
+        package_block = setup[
+            setup.index("apt-get install") : setup.index("getent group containers")
+        ]
+        for package in (
+            "ca-certificates",
+            "curl",
+            "docker.io",
+            "docker-compose-v2",
+            "git",
+            "gzip",
+            "iproute2",
+            "iptables",
+            "jq",
+            "openssl",
+            "podman",
+            "python3-yaml",
+            "tar",
+            "uidmap",
+            "util-linux",
+            "xfsprogs",
+        ):
+            self.assertIn(package, package_block)
+        self.assertIn('podman --version)" = "podman version 4.9.3"', setup)
+        self.assertIn("/usr/bin/git --version", setup)
+        self.assertIn("/usr/bin/docker compose version", setup)
+        self.assertIn("systemctl enable --now docker.service", setup)
+        self.assertIn('$1 != "containers"', setup)
+        self.assertLess(
+            setup.index('$1 != "containers"'),
+            setup.index('if [ -z "$container_records" ]'),
+        )
+        self.assertIn(
+            "containers must use group containers, /nonexistent, and "
+            "/usr/sbin/nologin",
+            setup,
+        )
+        self.assertIn(
+            "coder-provisioner must use its isolated group, home, and nologin shell",
+            setup,
+        )
+
+        for pin in (
+            "2.34.6",
+            "091acfd4356ab2f02bcaf561928841e9aecc630a28bc9678658d4ae47632df09",
+            "d16b0f9393404e1d85669ec620aa90d2a0c10b1977c11c95e11b2d6b9bb0917d",
+            "0.72.0",
+            "bbb64b9695866ce4a7a8f5c9592002c5961cab378577fa3f8a040df362b9b2ea",
+            "2ca2c023109c2db6b2b77366b6717291452d4531167377d95c79547f0c8e3467",
+            "0e69edd134a3c338baa1a6806920773615d682b18cbc6a0cba2a3b658ef9b63e",
+            "829aca12d32bc3cee0b01cbb76197e9377790c6b78eb67a703d8033bcf7b3c3d",
+            "1.46.0",
+            "d654f678b709eb53c393d38519d5ed7d2e57205529404018614cfefa0fb2b5ca",
+            "9fafef4db4f032ce81008d3a1529985d41ceb6ccdf2b388c9ce2f1ed7d32082e",
+            "574df1a0862ff88ad933be214e81069e35b17618a13e019f8f1c84fe063222a2",
+            "9640d29da74a63de41d2cc2373ac2092462165ee99709f7d8dc3dea57a748b06",
+            "b15c5dbfe2bb21c9d73002c1056a829c8c411c75",
+        ):
+            self.assertIn(pin, setup)
+
+        for contract in (
+            "codex-deploy",
+            "/var/lib/codex-mobile-deploy",
+            "/opt/codex-mobile/releases",
+            "/opt/codex-mobile/staging",
+            "/opt/codex-mobile/activations",
+            "/etc/codex-mobile/secrets",
+            "/var/cache/codex-mobile/downloads",
+            "/var/cache/codex-mobile/trivy",
+            "apply-docker-firewall.sh",
+            "ensure-workspace-control-network.py",
+            "finalize-workspace-runtime-socket.sh",
+            "owner-pc-workspace-volume-gate.py",
+            "prepare-owner-pc-runtime.sh",
+            "prepare-workspace-overlay-quota.sh",
+            "start-provisioner.sh",
+            "start-workspace-runtime.sh",
+            "verify-workspace-storage.sh",
+            "codex-mobile-docker-firewall.service",
+            "codex-mobile-owner-pc-runtime.service",
+            "codex-mobile-provisioner.service",
+            "codex-mobile-workspace-runtime.service",
+            "codex-mobile.service",
+        ):
+            self.assertIn(contract, setup)
+        self.assertIn(
+            "owner-PC source bootstrap is forbidden after a release activation",
+            setup,
+        )
+        self.assertLess(
+            setup.index("owner-PC source bootstrap is forbidden"),
+            setup.index("apt-get update"),
+        )
+        self.assertIn("nsenter --target 1 --mount", setup)
+        self.assertNotIn("systemctl enable --now \\\n  codex-mobile", setup)
+
     def test_systemd_units_do_not_grant_engine_access_to_control_stack(self) -> None:
         control = (ROOT / "infra" / "systemd" / "codex-mobile.service").read_text(
             encoding="utf-8"
         )
+        firewall_unit = (
+            ROOT / "infra" / "systemd" / "codex-mobile-docker-firewall.service"
+        ).read_text(encoding="utf-8")
+        owner_runtime = (
+            ROOT / "infra" / "systemd" / "codex-mobile-owner-pc-runtime.service"
+        ).read_text(encoding="utf-8")
         runtime = (
             ROOT / "infra" / "systemd" / "codex-mobile-workspace-runtime.service"
         ).read_text(encoding="utf-8")
         provisioner = (
             ROOT / "infra" / "systemd" / "codex-mobile-provisioner.service"
         ).read_text(encoding="utf-8")
+        runtime_start = (
+            ROOT / "infra" / "systemd" / "start-workspace-runtime.sh"
+        ).read_text(encoding="utf-8")
+        socket_finalize = (
+            ROOT / "infra" / "systemd" / "finalize-workspace-runtime-socket.sh"
+        ).read_text(encoding="utf-8")
         self.assertNotIn("coder.service.wants", control)
+        self.assertIn(
+            "Requires=docker.service codex-mobile-owner-pc-runtime.service "
+            "codex-mobile-docker-firewall.service",
+            control,
+        )
+        self.assertIn(
+            "Requires=docker.service codex-mobile-owner-pc-runtime.service",
+            firewall_unit,
+        )
+        self.assertIn("Requires=codex-mobile-owner-pc-runtime.service", runtime)
+        self.assertIn("ConditionPathExists=/etc/codex-mobile/production.env", runtime)
+        self.assertIn(
+            "ConditionPathExists=/etc/codex-mobile/owner-pc-host.env",
+            owner_runtime,
+        )
         self.assertIn("User=root", runtime)
         self.assertIn("Group=coder-provisioner", runtime)
-        self.assertIn("verify-workspace-storage", runtime)
-        self.assertIn("ensure-workspace-control-network", runtime)
+        self.assertIn(
+            "ExecStart=/usr/local/libexec/codex-mobile/start-workspace-runtime", runtime
+        )
+        self.assertIn("RuntimeDirectoryPreserve=yes", runtime)
+        self.assertIn("KillMode=process", runtime)
+        self.assertIn("DeviceAllow=block-loop rwm", runtime)
         self.assertIn("CONTAINERS_CONF=/etc/codex-mobile/containers.conf", runtime)
         self.assertIn("EnvironmentFile=/etc/codex-mobile/production.env", runtime)
         self.assertIn("PrivateDevices=no", runtime)
         self.assertIn("DevicePolicy=closed", runtime)
-        self.assertIn("chmod 0660", runtime)
+        self.assertIn("verify-workspace-storage", runtime_start)
+        self.assertIn("ensure-workspace-control-network", runtime_start)
+        self.assertIn("owner-pc-workspace-volume-gate init", runtime_start)
+        fixed_start = runtime_start.split("fixed_price_vps)", maxsplit=1)[1].split(
+            ";;", maxsplit=1
+        )[0]
+        self.assertIn("verify-workspace-storage", fixed_start)
+        self.assertIn("ensure-workspace-control-network", fixed_start)
+        self.assertNotIn("prepare-workspace-overlay-quota", fixed_start)
+        self.assertIn("chmod 0660", socket_finalize)
         self.assertIn(
-            "--network-config-dir=/srv/codex-mobile/workspaces/.networks", runtime
+            "--network-config-dir=/srv/codex-mobile/workspaces/.networks",
+            runtime_start,
         )
         self.assertIn("User=coder-provisioner", provisioner)
         self.assertIn("LoadCredential=coder_provisioner_key", provisioner)
@@ -1374,13 +1662,23 @@ class HostHardeningStaticTests(unittest.TestCase):
         self.assertIn("WORKSPACE_CONTROL_SUBNET", firewall)
         self.assertIn("CODEX-MOBILE-INPUT", firewall)
         self.assertNotIn("--dport 443", firewall)
+        playbook = (ROOT / "infra" / "ansible" / "playbook.yml").read_text(
+            encoding="utf-8"
+        )
+        for shared_artifact in (
+            "start-workspace-runtime.sh",
+            "finalize-workspace-runtime-socket.sh",
+            "prepare-owner-pc-runtime.sh",
+            "codex-mobile-owner-pc-runtime.service",
+        ):
+            self.assertIn(shared_artifact, playbook)
 
     def test_workspace_runtime_fails_closed_without_xfs_project_quotas(self) -> None:
         verifier = (
             ROOT / "infra" / "systemd" / "verify-workspace-storage.sh"
         ).read_text(encoding="utf-8")
         for control in (
-            "deferred fixed_price_vps profile",
+            "owner_pc_beta|fixed_price_vps",
             "/srv/codex-mobile/workspaces",
             "/srv/codex-mobile",
             "findmnt",
@@ -1394,24 +1692,34 @@ class HostHardeningStaticTests(unittest.TestCase):
             "0:0:600",
             "262144",
             "com.codex-mobile.managed=true",
+            "owner_pc_beta permits at most one",
+            "com.codex-mobile.cpu-millis",
+            "com.codex-mobile.memory-mib",
+            "com.codex-mobile.container-role=workspace-relay",
+            "owner-pc-workspace-volume-gate",
+            "distinct subordinate-ID mappings",
             "violates the current runtime admission policy",
         ):
             self.assertIn(control, verifier)
-        for destructive in ("mkfs", "mount -o", "losetup", "parted"):
+        for destructive in ("mkfs", "mount -o", "losetup --detach", "parted"):
             self.assertNotIn(destructive, verifier)
 
         spike = (ROOT / "scripts" / "infra-linux-runtime-spike.sh").read_text(
             encoding="utf-8"
         )
-        self.assertIn("--opt o=size=8M,inodes=1024", spike)
-        self.assertIn("deferred fixed_price_vps profile", spike)
+        self.assertIn("--opt o=size=8388608", spike)
+        self.assertIn("fixed_price_vps)", spike)
         self.assertIn("--storage-opt size=8M", spike)
         self.assertIn("--storage-opt inodes=1024", spike)
         self.assertIn("disk quota exceeded|quota exceeded", spike)
+        self.assertIn("--userns auto:size=65536", spike)
         self.assertIn("--userns private", spike)
         self.assertIn("com.codex-mobile.managed=true", spike)
         self.assertIn("/pids.max", spike)
         self.assertIn("/io.max", spike)
+        self.assertIn("/memory.max", spike)
+        self.assertIn("/cpu.max", spike)
+        self.assertIn('--arg device "$workspace_io_device_inspect"', spike)
         self.assertNotIn('name "$prefix-limits"', spike)
         for relative in (
             "scripts/infra-linux-runtime-spike.sh",
@@ -1419,15 +1727,17 @@ class HostHardeningStaticTests(unittest.TestCase):
             "scripts/infra-health.sh",
         ):
             caller = (ROOT / relative).read_text(encoding="utf-8")
-            self.assertIn(
-                "DEPLOYMENT_PROFILE=$(env_value DEPLOYMENT_PROFILE)", caller
-            )
+            self.assertIn("DEPLOYMENT_PROFILE=$(env_value DEPLOYMENT_PROFILE)", caller)
 
         defaults = (ROOT / "infra" / "containers.conf").read_text(encoding="utf-8")
         self.assertIn("pids_limit = 512", defaults)
+        self.assertIn('tmp_dir = "/run/codex-mobile-podman/libpod"', defaults)
         storage = (ROOT / "infra" / "containers-storage.conf").read_text(
             encoding="utf-8"
         )
+        self.assertIn('root-auto-userns-user = "containers"', storage)
+        self.assertIn("auto-userns-min-size = 1024", storage)
+        self.assertIn("auto-userns-max-size = 65536", storage)
         self.assertIn('size = "4G"', storage)
         self.assertIn('inodes = "262144"', storage)
 

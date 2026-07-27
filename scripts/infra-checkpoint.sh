@@ -5,7 +5,18 @@ repo_root=${REPO_ROOT:-/opt/codex-mobile/current}
 env_file=${ENV_FILE:-/etc/codex-mobile/production.env}
 checkpoint_root=${CHECKPOINT_ROOT:-/srv/codex-mobile/checkpoints}
 mode=${1:---database}
-checkpoint_reserve_bytes=${CHECKPOINT_RESERVE_BYTES:-42949672960}
+
+env_value() {
+  awk -F= -v key="$1" '$1 == key {sub(/^[^=]*=/, ""); print; found=1} END {if (!found) exit 1}' "$env_file"
+}
+
+deployment_profile=$(env_value DEPLOYMENT_PROFILE)
+case "$deployment_profile" in
+  owner_pc_beta) default_checkpoint_reserve_bytes=25769803776 ;;
+  fixed_price_vps) default_checkpoint_reserve_bytes=42949672960 ;;
+  *) echo "checkpoint requires an explicit supported deployment profile" >&2; exit 1 ;;
+esac
+checkpoint_reserve_bytes=${CHECKPOINT_RESERVE_BYTES:-$default_checkpoint_reserve_bytes}
 database_max_bytes=${CHECKPOINT_DATABASE_MAX_BYTES:-4294967296}
 workspace_max_bytes=${CHECKPOINT_WORKSPACE_MAX_BYTES:-17179869184}
 
@@ -17,10 +28,6 @@ for setting in "$checkpoint_reserve_bytes" "$database_max_bytes" "$workspace_max
 done
 [ "$database_max_bytes" -ge 512 ] || { echo "database checkpoint cap must be at least 512 bytes" >&2; exit 1; }
 [ "$workspace_max_bytes" -ge 512 ] || { echo "workspace checkpoint cap must be at least 512 bytes" >&2; exit 1; }
-
-env_value() {
-  awk -F= -v key="$1" '$1 == key {sub(/^[^=]*=/, ""); print; found=1} END {if (!found) exit 1}' "$env_file"
-}
 
 compose() {
   REPO_ROOT="$repo_root" ENV_FILE="$env_file" \

@@ -76,6 +76,7 @@ coder_control_address=$(env_value CODER_BIND_ADDRESS)
 coder_control_port=$(env_value CODER_BIND_PORT)
 organization_id=$(env_value CODER_ORGANIZATION_ID)
 workspace_io_device=$(env_value WORKSPACE_IO_DEVICE)
+deployment_profile=$(env_value DEPLOYMENT_PROFILE)
 token_file="$secrets_dir/coder_api_token"
 [ -s "$token_file" ] || { echo "missing scoped Coder API token: $token_file" >&2; exit 1; }
 printf '%s\n' "$organization_id" \
@@ -106,6 +107,7 @@ systemctl start codex-mobile-provisioner.service
   --org "$organization_id" \
   --directory "$template_dir" \
   --provisioner-tag runtime=private-podman \
+  --variable "deployment_profile=$deployment_profile" \
   --variable "workspace_io_device=$workspace_io_device" \
   --variable "coder_control_address=$coder_control_address" \
   --variable "coder_control_port=$coder_control_port" \

@@ -18,6 +18,7 @@ type ReadFile func(string) ([]byte, error)
 
 type Config struct {
 	Environment              string
+	DeploymentProfile        string
 	HTTPAddr                 string
 	PublicOrigin             string
 	PasskeyRPID              string
@@ -85,6 +86,7 @@ func load(lookup Lookup, readFile ReadFile) (Config, error) {
 	}
 	cfg := Config{
 		Environment:             env,
+		DeploymentProfile:       value(lookup, "DEPLOYMENT_PROFILE", "development"),
 		HTTPAddr:                value(lookup, "HTTP_ADDR", ":8080"),
 		PublicOrigin:            value(lookup, "PUBLIC_ORIGIN", "http://localhost:8080"),
 		PasskeyRPID:             value(lookup, "PASSKEY_RP_ID", "localhost"),
@@ -273,6 +275,18 @@ func load(lookup Lookup, readFile ReadFile) (Config, error) {
 func (c Config) Validate() error {
 	if c.HTTPAddr == "" || c.MaxRunning < 1 || c.MaxRunning > 10 || strings.TrimSpace(c.WorkspaceDiskProbePath) == "" {
 		return fmt.Errorf("invalid listener or workspace maximum")
+	}
+	switch c.DeploymentProfile {
+	case "development":
+		if c.Environment == "production" {
+			return fmt.Errorf("production DEPLOYMENT_PROFILE must be owner_pc_beta")
+		}
+	case "owner_pc_beta":
+		if c.MaxRunning != 1 {
+			return fmt.Errorf("owner_pc_beta requires MAX_RUNNING_WORKSPACES=1")
+		}
+	default:
+		return fmt.Errorf("DEPLOYMENT_PROFILE %q is not supported", c.DeploymentProfile)
 	}
 	if c.AccessTTL <= 0 || c.AccessTTL > time.Hour || c.RefreshTTL <= c.AccessTTL || c.BootstrapTTL <= 0 || c.BootstrapTTL > time.Hour {
 		return fmt.Errorf("invalid session lifetimes")

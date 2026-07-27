@@ -45,16 +45,25 @@ branch. Secrets and GitHub tokens are never template parameters.
 The external provisioner must use a scoped provisioner key tagged
 `runtime=private-podman`. It remains an unprivileged account and inherits
 `DOCKER_HOST` from its host systemd unit. The dedicated root-owned engine is
-needed because Podman's local-volume `size` and `inodes` options apply XFS
-project quotas only in rootful mode. Its Unix socket is restricted to the
-provisioner group and is not mounted into Coder or either workspace mode.
+needed because Podman's local-volume byte-quota option applies XFS project
+quotas only in rootful mode. Its Unix socket is restricted to the provisioner
+group and is not mounted into Coder or either workspace mode.
 
-Every workspace volume is created once with an immutable 8–16 GiB quota (12
-GiB by default) and 65,536 inodes per GiB. The host must provide XFS mounted
-with `pquota` or `prjquota`; both Ansible and the runtime startup check fail
-closed otherwise. A volume's quota is never resized during equal-share
-rebalancing, avoiding replacement or data loss. The selected Ubuntu host must
-still prove the quota by filling a disposable volume during the Linux spike.
+Every workspace volume is created once with an immutable exact-byte 8–16 GiB
+quota (12 GiB default) and is never resized during equal-share rebalancing. The
+host must provide XFS mounted with `pquota` or `prjquota`. Podman 4.9.3
+misclassifies its named-volume `inodes` value as a mount option, so the
+root-owned runtime establishes a fixed XFS default project hard and soft limit
+of 1,048,576 inodes before volume creation; the template intentionally passes
+only `o=size=<bytes>`.
+
+For `owner_pc_beta`, the host admits one managed workload and one persistent
+quota-bearing named volume total, including stopped or orphaned volumes.
+Podman 4.9.3 can reuse one XFS project ID across multiple quota volumes and let
+a later volume mutate the first limit, so creation is serialized behind the
+host's singleton lease and physical volume scan. A Linux spike must prove the
+existing quota and rejected second-volume path without creating an
+uncontrolled second quota volume.
 
 The pinned Docker provider exposes memory/CPU, block-device I/O, and rootfs
 storage options, but it does not expose `HostConfig.PidsLimit`. The dedicated
@@ -72,6 +81,11 @@ is guessed. Both modes receive fixed maxima of 64 MiB/s read, 32 MiB/s write,
 has a 4 GiB / 262,144-inode writable-overlay quota; plain mode's root
 filesystem is read-only.
 Oversized Dev Container builds fail closed and must use the plain fallback.
+
+The active owner profile fixes the workload at 2 CPU, 2 GiB memory with no
+additional swap, and 512 processes. Its relay and workload each request
+`auto:size=65536`, receiving non-overlapping mappings from the dedicated
+`containers:1000000:1048576` subordinate UID and GID pools.
 
 Every running workspace has an internal per-workspace bridge. Its Coder agent
 reaches the private listener only through a non-root, read-only `socat` relay
@@ -106,9 +120,12 @@ unsupported here. Detection marks these configurations unsupported; an owner
 may explicitly approve the safe plain fallback, but that decision never issues
 an EnvBuilder receipt or relaxes the boundary.
 
-The exact runtime behavior of `userns_mode`, AppArmor, cgroup limits, I/O
-throttling, rootfs quota enforcement, internal relay networking to the Coder
-agent endpoint, optional egress attachment, and EnvBuilder's minimal build-time
-capabilities is deliberately gated on the Ubuntu 24.04 Linux-host spike. Any
-need for privileged mode, a host engine socket mount, `seccomp=unconfined`, or
-global AppArmor relaxation is a hard failure.
+The exact runtime behavior of `userns_mode`, cgroup limits, I/O throttling,
+rootfs quota enforcement, internal relay networking to the Coder agent
+endpoint, optional egress attachment, and EnvBuilder's minimal build-time
+capabilities is deliberately gated on the Ubuntu 24.04 Linux-host spike. The
+selected WSL host does not provide AppArmor, so `owner_pc_beta` omits that one
+security option and must record it as unavailable while retaining seccomp and
+the other controls. A future fixed-price VPS profile still requires its managed
+AppArmor profile. Any need for privileged mode, a host engine socket mount, or
+`seccomp=unconfined` is a hard failure.

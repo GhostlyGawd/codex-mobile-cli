@@ -1,6 +1,6 @@
 # Implementation plan
 
-Last updated: 2026-07-26 (America/New_York)
+Last updated: 2026-07-27 (America/New_York)
 
 Status values: `not started`, `in progress`, `locally verified`, `owner-gated`, `blocked`.
 
@@ -11,8 +11,8 @@ Status values: `not started`, `in progress`, `locally verified`, `owner-gated`, 
 | GitHub repository | The clean-history cutover is complete: `GhostlyGawd/codex-mobile-cli` is public from a distinct clean root, while the original history remains private at `GhostlyGawd/codex-mobile-cli-private-archive` | Develop and verify the active product at the public URL without exposing the private repository's historical metadata |
 | Go | 1.26.5 installed and verified | Backend build/test available |
 | Windows self-hosted runner | Historical trusted smoke validation passed; this repository's listener, registration, root, and launcher were removed before publication, and the public repository has no self-hosted runners | Use only the public standard-runner workflows; unrelated owner-PC runners remain outside this repository's scope |
-| Active beta host | The owner selected the D-backed Ubuntu WSL environment on the Windows PC for the first private beta with zero new recurring hosting cost. `owner_pc_beta` is now the explicit active configuration profile, rejects VPS checkout metadata, and intentionally refuses runtime activation until hard local storage containment exists | Implement the separate fail-closed local-beta storage/runtime profile; do not bypass the XFS check or substitute the deferred VPS profile. The app is unavailable while the PC, WSL, services, or reviewed HTTPS ingress is offline |
-| Docker/Compose | A D-backed Ubuntu WSL environment provides Docker 29.1.3 and Podman 4.9.3; checksum-verified Compose 5.3.1 schema validation passed, and the exact commit-tagged candidate-image build/runtime/profile-3 audit/manifest gate is executable there | Reuse the verified local engines without claiming VPS-only XFS, AppArmor, provider-backup, reboot, or load evidence |
+| Active beta host | The owner selected the D-backed Ubuntu WSL environment on the Windows PC for the first private beta with zero new recurring hosting cost. `owner_pc_beta` is the explicit active configuration profile, rejects VPS checkout metadata, and implements a separate fail-closed 64 GiB XFS guest-storage/runtime boundary | Complete and record the exact live host/runtime/restart evidence; do not bypass a failed owner-profile check or substitute the deferred VPS profile. The app is unavailable while the PC, WSL, services, or reviewed HTTPS ingress is offline, and the host foundation alone is not TestFlight go-live |
+| Docker/Compose | A D-backed Ubuntu WSL environment provides Docker 29.1.3 and Podman 4.9.3; checksum-verified Compose 5.3.1 schema validation passed, and the exact commit-tagged candidate-image build/runtime/profile-3 audit/manifest gate is executable there | Reuse the verified local engines. The owner profile must separately prove its loop-backed XFS quota, singleton persistent volume, cgroups, user namespaces, and restart behavior; do not claim the unavailable WSL AppArmor control or any VPS backup/reboot/load evidence |
 | Swift/Xcode | Local Xcode is unavailable on Windows; a historical public `macos-26` run passed project generation, compilation, unit tests, and UI tests with Xcode 26.6, checksum-verified XcodeGen 2.45.4, and the iPhone 17 Pro simulator on revision `c2aef5d3640f9f4660a550e1c0d3df6aacf26cf1`; the current-tree rerun is pending | Unsigned simulator evidence is automated, but revision-specific; signing, physical devices, manual accessibility, APNs, and TestFlight remain owner-gated |
 | Codex CLI shell binary | Packaged app binary is not directly executable from this shell | Version-pinned Linux CLI validation uses disposable Linux infrastructure later |
 | External credentials | GitHub App, APNs, stable HTTPS origin/domain, and Apple signing values are not stored in the repository | Real-account E2E remains owner-gated; a VPS is explicitly not an active dependency |
@@ -24,12 +24,12 @@ Status values: `not started`, `in progress`, `locally verified`, `owner-gated`, 
 | 0. Feasibility and contracts | locally verified | Official docs and provider terms | Architecture/security/cost/capability docs, ADRs, OpenAPI and terminal contracts |
 | 1. Reproducible skeleton | locally verified | Milestone 0 boundaries | Full Go vet/race/coverage, migrations, deterministic Linux cross-builds, Compose/static infrastructure validation, and iOS static contract policy have recorded local evidence. Public hosted Linux and unsigned Xcode checks passed only on historical revision `c2aef5d3640f9f4660a550e1c0d3df6aacf26cf1`; current-tree hosted reruns are pending |
 | 2. Identity and GitHub | owner-gated | Stable RP ID and owner-created GitHub App for live E2E | Passkey/session contracts include bounded partitioned ceremony admission. Owner-scoped GitHub status and shared/exclusive lease wiring pass unit tests; disposable PostgreSQL race runs passed the cross-pool drain, final-write, reconnect-availability, and `MaxConns=1` regressions. Real associated-domain, external App install/uninstall and GitHub flows remain gated |
-| 3. Workspace | owner-gated | Local Coder endpoint/template and D-backed WSL container host for live E2E | Lifecycle, retention, queue, fail-closed private-input persistence, continuous admission-to-runtime reservation, durable provider ambiguity recovery, exact-running Coder build barriers, conservative quota high-water/level-triggered reconciliation, durable setup-review reconciliation, confirmed suspension/deletion authority drains, branch/worktree isolation, immutable disk allocation, per-workspace Coder relay/control-uplink policy, and adapter contracts are implemented. Exact developmental workspace/EnvBuilder image build and runtime checks passed in WSL; live local Coder agent/PTY relay and Safe Mode routing remain gated, while VPS-specific XFS/AppArmor claims are deferred |
+| 3. Workspace | owner-gated | Local Coder endpoint/template and D-backed WSL container host for live E2E | Lifecycle, retention, queue, fail-closed private-input persistence, continuous admission-to-runtime reservation, durable provider ambiguity recovery, exact-running Coder build barriers, conservative quota high-water/level-triggered reconciliation, durable setup-review reconciliation, confirmed suspension/deletion authority drains, branch/worktree isolation, immutable disk allocation, per-workspace Coder relay/control-uplink policy, and adapter contracts are implemented. The owner profile fixes one workload at 2 CPU / 2 GiB / 512 processes with one immutable 8–16 GiB persistent volume; live template-created Coder agent/PTY relay and Safe Mode routing remain gated. WSL AppArmor is unavailable, and VPS-only AppArmor/backup/reboot/load claims remain deferred |
 | 4. Persistent terminal | owner-gated | Linux PTY/tmux and Mac/device for live E2E | Portable protocol/replay/gap/lease, targeted input-receipt, mandatory output-redaction, stale-token recovery, persistent-tab, native controls, bounded global/owner/workspace/tab/device state, and revocation writer-drain checks pass. Swift compilation and the automated simulator suite passed on the historical hosted baseline; the current-tree hosted rerun, real tmux survival, SwiftTerm fidelity, and device behavior remain gated |
 | 5. Genuine Codex | owner-gated | ChatGPT device login and Linux runtime access by owner | Portable wrapper/config/auth security tests, per-workspace status/confirmed disconnect that stops only app-owned Codex tmux and removes runtime/encrypted auth, deterministic Linux cross-builds, and a bounded attachment-staging boundary for the authoritative TUI pass; live Linux TUI/device-login/reauth/resume/attachment evidence remains owner-gated |
 | 6. Files/Git/review | owner-gated | Production Linux workspace filesystem | Linux fd-relative no-follow file/search/save, exact displaced-content ETag CAS, bounded Git, and recoverable checkpoint/discard contracts pass locally; hosted native compilation and simulator Git-review reachability passed on the historical hosted baseline, while the current-tree hosted rerun, live contention, and target-filesystem proof remain gated |
 | 7. Previews/secrets/offline | owner-gated | Domain/TLS for live preview E2E and Mac/device for native runtime tests | Preview revocation, live grant/revoke tmpfs sync, pre-replay terminal redaction, encrypted read-only cache/drafts/history, and attachment cache exclusion pass portable/static tests; hosted native unit/UI tests passed on the historical hosted baseline, while the current-tree hosted rerun, domain/TLS, live workspace integration, device file protection, and physical-device behavior remain gated |
-| 8. Operations/hardening | in progress | Local-beta service lifecycle and reviewed stable HTTPS ingress | Supply-chain reproducibility, recorded frozen-tree source-security scanning, release-artifact validation, private runtime policy, and runbooks are locally exercised. The exact merged-main OCI candidate passed build/runtime checks, the profile-3/schema-2 image audit, and manifest-schema-2 binding in D-backed WSL. The active profile now rejects VPS metadata and fails closed before runtime; hard bounded WSL workspace storage, service lifecycle, restart behavior, ingress, and truthful offline-state evidence remain |
+| 8. Operations/hardening | in progress | Local-beta service lifecycle and reviewed stable HTTPS ingress | Supply-chain reproducibility, recorded frozen-tree source-security scanning, release-artifact validation, private runtime policy, and runbooks are locally exercised. The exact merged-main OCI candidate passed build/runtime checks, the profile-3/schema-2 image audit, and manifest-schema-2 binding in D-backed WSL. The active profile rejects VPS metadata and implements the 64 GiB loop-backed XFS boundary, one-volume safety gate, fixed inode ceiling, user-namespace pool, and hard compute/I/O limits. Final dated runtime/quota/restart evidence, production Coder activation, ingress, and truthful offline-state evidence remain |
 | 9. Product polish/release | owner-gated | Apple team, APNs key, physical devices, TestFlight authorization | Xcode unit/UI simulator tests passed on the historical hosted baseline; the current-tree hosted rerun, manual VoiceOver/Dynamic Type device evidence, a signed archive, APNs, TestFlight, and the release checklist remain owner-gated |
 
 ## Milestone execution rules
@@ -81,7 +81,7 @@ Status values: `not started`, `in progress`, `locally verified`, `owner-gated`, 
 - [x] Implement reliable targeted terminal input receipts, full retained replay after a gap, stale reconnect-token recovery, and mandatory active-grant output redaction before replay/cache.
 - [x] Implement production-Linux fd-relative no-follow file access and exact displaced-content ETag compare-and-swap, with an honest portable-platform limitation and fresh-read reconciliation rule for uncertain save errors.
 - [x] Implement serialized live grant/revoke synchronization to the helper's authoritative tmpfs state and mandatory synchronization before a new terminal process launches.
-- [x] Implement immutable 8–16 GiB XFS project-quota volumes through the private root-owned workspace runtime, plus the 40 GiB host reserve and worst-case start-admission guard, for the deferred VPS/XFS profile.
+- [x] Implement immutable 8–16 GiB XFS project-quota volumes through the private root-owned workspace runtime, plus the historical 40 GiB host reserve and worst-case start-admission guard, for the deferred VPS/XFS profile.
 - [x] Linearize each admitted workspace start from its durable capacity
   reservation through the provider-runtime gate; distinguish a proven no-call
   reservation from provision/start ambiguity, recover by deterministic lookup
@@ -95,7 +95,19 @@ Status values: `not started`, `in progress`, `locally verified`, `owner-gated`, 
   values are being encrypted; clear it after all values commit, and quarantine
   any crash, partial, or legacy ambiguous outcome as
   `private_inputs_recreate_required` before provider work.
-- [x] Bound the deferred XFS-profile workspace runtimes at creation: fixed CPU/memory/swap, a dedicated-engine 512-process cgroup default, explicit verified-device BPS/IOPS limits, and a 4 GiB EnvBuilder writable-rootfs quota. The active owner-PC profile still needs an equally hard storage/runtime boundary and live local spike; do not infer it from VPS evidence.
+- [x] Bound the deferred XFS-profile workspace runtimes at creation: fixed CPU/memory/swap, a dedicated-engine 512-process cgroup default, explicit verified-device BPS/IOPS limits, and a 4 GiB EnvBuilder writable-rootfs quota.
+- [x] Implement the distinct `owner_pc_beta` boundary: a 64 GiB
+  loop-backed XFS guest image inside the dynamic D-backed WSL VHD; a single
+  persistent quota-bearing volume lease and physical project-ID scan; immutable
+  8–16 GiB byte quotas with a fixed 1,048,576-inode XFS project ceiling; one
+  2 CPU / 2 GiB / 512-process workload; fixed I/O ceilings; exact internal
+  `dev,nosuid` Podman self-binds beneath a `nodev` parent; and distinct
+  65,536-ID mappings from `containers:1000000:1048576`. Provide a bounded
+  no-release bootstrap for the free pinned host tools and first-manifest
+  runtime/firewall artifacts, refuse post-activation working-tree overwrite,
+  and hard-order dependent units after the verified owner mount. Keep AppArmor
+  marked unavailable on WSL and require dated live proof before claiming
+  acceptance.
 - [x] Implement the Dev Container bootstrap boundary: exact standard-directory detection is persisted, the admitted plain workspace receives the in-process-authenticated clone and confirms shutdown before structured review, approved supported setups restart with EnvBuilder, and unsupported/denied/queued/failed paths remain on the explicit plain fallback until a fresh decision.
 - [x] Make setup review a durable reconciled boundary shared by direct application transitions and lifecycle queue promotion: atomically persist one pending event/activity, repair interrupted transitions, keep owner decisions nonexpiring, and finalize the event only after retryable workspace acceptance or denial is durable.
 - [x] Make suspension and deletion authority boundaries durable and retryable: persist `suspending`/`deleting`, drain terminal and preview authority under the application workspace gate, wait for confirmed provider stop/absence, and retain the intermediate state on every ambiguous failure before final persistence.
@@ -225,10 +237,13 @@ must repeat that exact gate before promotion.
 
 Xcode 26.6/XcodeGen 2.45.4 testing was `NOT EXECUTED` on Windows. The hosted
 unsigned simulator run above predates this tree, so current-tree hosted Xcode
-execution remains pending. Owner-PC Compose/Coder/Podman activation, reviewed
-HTTPS ingress, physical-device, signing, APNs, domain, and credentialed
+execution remains pending. As of 2026-07-27, the owner-PC runtime implementation
+is present, but its final consolidated live quota/cgroup/user-namespace/restart
+record has not yet been added here and is not claimed as passing. Production
+Coder activation, reviewed HTTPS ingress, DNS/TLS, Apple associated domains,
+GitHub App, physical-device, signing, APNs, TestFlight, and other credentialed
 end-to-end scenarios remain `GATED` and `NOT EXECUTED`. Future VPS-specific
-XFS, AppArmor, provider-backup, reboot, and load evidence is deferred.
+AppArmor, provider-backup, reboot, ten-session, and load evidence is deferred.
 
 The recorded 2026-07-16 tree's source-security audit completed with Syft
 1.46.0, Trivy 0.72.0, Gitleaks 8.30.1, go-licenses 2.0.1, and govulncheck 1.6.0.

@@ -28,6 +28,7 @@ def safe_environment() -> dict[str, str]:
             "XDG_RUNTIME_DIR",
             "CONTAINERS_STORAGE_CONF",
             "CONTAINERS_CONF",
+            "INVOCATION_ID",
             "PATH",
         )
         if name in os.environ
@@ -35,6 +36,33 @@ def safe_environment() -> dict[str, str]:
 
 
 def run_podman(*arguments: str, accepted: tuple[int, ...] = (0,)) -> subprocess.CompletedProcess[str]:
+    if os.environ.get("DEPLOYMENT_PROFILE") == "owner_pc_beta":
+        try:
+            prepared = subprocess.run(
+                [
+                    "/usr/local/libexec/codex-mobile/"
+                    "prepare-workspace-overlay-quota"
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+                timeout=20,
+                env=safe_environment(),
+            )
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            raise RuntimeError(
+                f"cannot prepare owner-PC Podman quota mounts: {exc}"
+            ) from exc
+        if (
+            len(prepared.stdout) > MAX_OUTPUT
+            or len(prepared.stderr) > MAX_OUTPUT
+            or prepared.returncode
+        ):
+            detail = prepared.stderr.strip() or prepared.stdout.strip()
+            raise RuntimeError(
+                "owner-PC Podman quota mount preparation failed"
+                + (f": {detail}" if detail else "")
+            )
     command = [
         "/usr/bin/podman",
         f"--network-config-dir={NETWORK_CONFIG_DIR}",

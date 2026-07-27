@@ -52,7 +52,11 @@ does not suppress normal workspace or control-plane image findings. Review it
 on every EnvBuilder or private-runtime update. The root-owned engine exists to
 apply XFS project quotas; access to its private provisioner-only API is a
 separate root-equivalent host trust boundary, not part of this container
-exception.
+exception. Image scan success does not prove the active owner-PC host's
+64 GiB loop-backed XFS mount, singleton persistent-volume gate, inode default,
+cgroups, user mappings, restart behavior, or network isolation. Those require
+separate dated live evidence. AppArmor is unavailable on the selected WSL host
+and must not be inferred from image evidence.
 
 The upstream EnvBuilder 1.3.0 source and the license copied into the image are
 Apache-2.0. That conclusion does not relicense this repository's patch: the

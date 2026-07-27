@@ -77,7 +77,7 @@ WORKSPACE_HELPER_PROFILE_REGISTRY = MappingProxyType(
     }
 )
 
-HOST_ARTIFACTS = {
+V1_HOST_ARTIFACTS = {
     "containers.conf": (
         "infra/containers.conf",
         "/etc/codex-mobile/containers.conf",
@@ -129,6 +129,49 @@ HOST_ARTIFACTS = {
         "0755",
     ),
 }
+HOST_ARTIFACTS = {
+    **V1_HOST_ARTIFACTS,
+    "containers.conf": (
+        "infra/containers.conf",
+        "/etc/codex-mobile/containers.conf",
+        "0600",
+    ),
+    "containers-storage.conf": (
+        "infra/containers-storage.conf",
+        "/etc/codex-mobile/containers-storage.conf",
+        "0600",
+    ),
+    "codex-mobile-owner-pc-runtime.service": (
+        "infra/systemd/codex-mobile-owner-pc-runtime.service",
+        "/etc/systemd/system/codex-mobile-owner-pc-runtime.service",
+        "0644",
+    ),
+    "prepare-owner-pc-runtime": (
+        "infra/systemd/prepare-owner-pc-runtime.sh",
+        "/usr/local/libexec/codex-mobile/prepare-owner-pc-runtime",
+        "0755",
+    ),
+    "prepare-workspace-overlay-quota": (
+        "infra/systemd/prepare-workspace-overlay-quota.sh",
+        "/usr/local/libexec/codex-mobile/prepare-workspace-overlay-quota",
+        "0755",
+    ),
+    "start-workspace-runtime": (
+        "infra/systemd/start-workspace-runtime.sh",
+        "/usr/local/libexec/codex-mobile/start-workspace-runtime",
+        "0755",
+    ),
+    "finalize-workspace-runtime-socket": (
+        "infra/systemd/finalize-workspace-runtime-socket.sh",
+        "/usr/local/libexec/codex-mobile/finalize-workspace-runtime-socket",
+        "0755",
+    ),
+    "owner-pc-workspace-volume-gate": (
+        "infra/systemd/owner-pc-workspace-volume-gate.py",
+        "/usr/local/libexec/codex-mobile/owner-pc-workspace-volume-gate",
+        "0755",
+    ),
+}
 
 V1_CRITICAL_RELEASE_FILES = (
     "infra/containers.conf",
@@ -163,6 +206,14 @@ CRITICAL_RELEASE_FILES = V1_CRITICAL_RELEASE_FILES + (
     "scripts/check-billing-policy.py",
     "scripts/infra-preflight.py",
     "scripts/infra_image_audit.py",
+    "infra/systemd/codex-mobile-owner-pc-runtime.service",
+    "infra/systemd/finalize-workspace-runtime-socket.sh",
+    "infra/systemd/owner-pc-workspace-volume-gate.py",
+    "infra/systemd/prepare-owner-pc-runtime.sh",
+    "infra/systemd/prepare-workspace-overlay-quota.sh",
+    "infra/systemd/start-workspace-runtime.sh",
+    "scripts/infra-setup-owner-pc-wsl.sh",
+    "scripts/infra-setup-owner-pc.ps1",
     "scripts/verify-envbuilder-source.py",
 )
 V1_MANIFEST_KEYS = frozenset(
@@ -186,6 +237,16 @@ def critical_release_files(schema_version: int) -> tuple[str, ...]:
         return V1_CRITICAL_RELEASE_FILES
     if schema_version == SCHEMA_VERSION:
         return CRITICAL_RELEASE_FILES
+    raise ManifestError("release manifest schema is unsupported")
+
+
+def host_artifacts_for_schema(
+    schema_version: int,
+) -> Mapping[str, tuple[str, str, str]]:
+    if schema_version == 1:
+        return V1_HOST_ARTIFACTS
+    if schema_version == SCHEMA_VERSION:
+        return HOST_ARTIFACTS
     raise ManifestError("release manifest schema is unsupported")
 
 
@@ -1373,12 +1434,13 @@ def verify_manifest(
     if sha256_tree(repo_root / template_path) != coder.get("template_sha256"):
         raise ManifestError("Coder template checksum does not match manifest")
 
+    expected_host_artifacts = host_artifacts_for_schema(schema_version)
     host_artifacts = manifest.get("host_artifacts")
     if not isinstance(host_artifacts, dict) or set(host_artifacts) != set(
-        HOST_ARTIFACTS
+        expected_host_artifacts
     ):
         raise ManifestError("release manifest host-artifact inventory is invalid")
-    for name, (source, destination, mode) in HOST_ARTIFACTS.items():
+    for name, (source, destination, mode) in expected_host_artifacts.items():
         record = host_artifacts.get(name)
         if not isinstance(record, dict):
             raise ManifestError(f"host artifact record is invalid: {name}")

@@ -5,6 +5,8 @@ active private-beta deployment direction and must not be presented as a launch
 requirement unless the owner explicitly reopens that decision. The active
 owner-PC direction is recorded in
 [ADR 0025](../adr/0025-owner-pc-private-beta-hosting.md).
+Use [OWNER_PC_BETA.md](OWNER_PC_BETA.md) for the active zero-recurring-cost
+host. A failed owner-profile check is not permission to continue here.
 
 If reopened, this deploys to an existing, owner-approved Ubuntu 24.04 VPS. Nothing in the
 repository purchases or resizes a server, attaches storage/backup, changes DNS,

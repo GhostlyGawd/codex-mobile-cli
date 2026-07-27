@@ -23,6 +23,7 @@ COMMON_REQUIRED = {
     "DATA_ROOT",
     "SECRETS_DIR",
     "WORKSPACE_IO_DEVICE",
+    "MAX_RUNNING_WORKSPACES",
     "WORKSPACE_CONTROL_SUBNET",
     "PUBLIC_BIND_ADDRESS",
     "PUBLIC_HTTP_PORT",
@@ -53,6 +54,13 @@ COMMON_REQUIRED = {
     "CONTROL_PLANE_IMAGE_TAG",
     "CONTROL_PLANE_PACKAGE",
 }
+OWNER_PC_STORAGE_IMAGE = "/var/lib/codex-mobile-owner-pc/workspace-storage.xfs"
+OWNER_PC_STORAGE_GIB = 64
+OWNER_PC_STORAGE_BYTES = OWNER_PC_STORAGE_GIB * 1024 * 1024 * 1024
+OWNER_PC_CODER_ADDRESS = "10.86.0.1"
+OWNER_PC_MIN_MEMORY_MIB = 5632
+OWNER_PC_MIN_CPUS = 6
+OWNER_PC_MIN_D_FREE_GIB = 128
 VPS_REQUIRED = {
     "VPS_PROVIDER",
     "VPS_PLAN",
@@ -605,6 +613,16 @@ def validate(
                 "owner_pc_beta must omit deferred VPS checkout variables: "
                 + ", ".join(unexpected_vps)
             )
+        expected_owner_values = {
+            "DATA_ROOT": "/srv/codex-mobile",
+            "OWNER_PC_STORAGE_IMAGE": OWNER_PC_STORAGE_IMAGE,
+            "OWNER_PC_STORAGE_GIB": str(OWNER_PC_STORAGE_GIB),
+            "MAX_RUNNING_WORKSPACES": "1",
+            "CODER_BIND_ADDRESS": OWNER_PC_CODER_ADDRESS,
+        }
+        for name, expected in expected_owner_values.items():
+            if values.get(name) != expected:
+                failures.append(f"owner_pc_beta requires {name}={expected}")
     for key, value in values.items():
         if not value:
             failures.append(f"{key} cannot be empty")
@@ -698,11 +716,22 @@ def validate_workspace_storage(
     workspace_io_device: str,
     run=subprocess.run,
     stat_path=os.stat,
+    *,
+    profile: str = "fixed_price_vps",
+    owner_storage_image: str = "",
+    owner_storage_gib: int = 0,
+    lstat_path=os.lstat,
 ) -> list[str]:
     """Validate the target host mount used by Podman's project quotas."""
+    mount_command = (
+        ["nsenter", "--target", "1", "--mount", "--"]
+        if profile == "owner_pc_beta"
+        else []
+    )
     try:
         result = run(
-            [
+            mount_command
+            + [
                 "findmnt",
                 "--noheadings",
                 "--output",
@@ -735,10 +764,7 @@ def validate_workspace_storage(
     options = set(raw_options.split(","))
     if not options.intersection({"pquota", "prjquota"}):
         failures.append("DATA_ROOT XFS mount must enable pquota or prjquota")
-    if source != workspace_io_device:
-        failures.append(
-            "WORKSPACE_IO_DEVICE must exactly match the DATA_ROOT findmnt source; refusing to guess a throttle device"
-        )
+    device_info = None
     try:
         device_info = stat_path(workspace_io_device)
     except OSError as exc:
@@ -746,6 +772,221 @@ def validate_workspace_storage(
     else:
         if not stat.S_ISBLK(device_info.st_mode):
             failures.append("WORKSPACE_IO_DEVICE must be an existing block device")
+    if profile != "owner_pc_beta":
+        if source != workspace_io_device:
+            failures.append(
+                "WORKSPACE_IO_DEVICE must exactly match the DATA_ROOT findmnt source; refusing to guess a throttle device"
+            )
+        return failures
+
+    if owner_storage_image != OWNER_PC_STORAGE_IMAGE:
+        failures.append(
+            f"owner_pc_beta storage image must be {OWNER_PC_STORAGE_IMAGE}"
+        )
+    if owner_storage_gib != OWNER_PC_STORAGE_GIB:
+        failures.append(
+            f"owner_pc_beta storage image must be exactly {OWNER_PC_STORAGE_GIB} GiB"
+        )
+    try:
+        inode_default = run(
+            mount_command
+            + [
+                "xfs_quota",
+                "-x",
+                "-c",
+                "quota -p -i -n -N -v 0",
+                data_root,
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+    except OSError as exc:
+        failures.append(f"cannot inspect XFS default project inode ceiling: {exc}")
+    else:
+        valid_default = any(
+            len(fields) >= 4 and fields[2:4] == ["1048576", "1048576"]
+            for fields in (
+                line.split() for line in inode_default.stdout.splitlines()
+            )
+        )
+        if inode_default.returncode or not valid_default:
+            failures.append(
+                "owner_pc_beta requires the 1048576-inode default XFS project ceiling"
+            )
+    image = PurePosixPath(owner_storage_image)
+    if not image.is_absolute() or str(image).startswith("/mnt/") or ".." in image.parts:
+        failures.append(
+            "owner-PC storage image must use the exact Linux-native absolute path"
+        )
+    try:
+        image_info = lstat_path(image)
+    except OSError as exc:
+        failures.append(f"cannot inspect owner-PC storage image: {exc}")
+        image_info = None
+    if image_info is not None:
+        if stat.S_ISLNK(image_info.st_mode) or not stat.S_ISREG(image_info.st_mode):
+            failures.append("owner-PC storage image must be a non-symlink regular file")
+        if stat.S_IMODE(image_info.st_mode) != 0o600:
+            failures.append("owner-PC storage image must have exact mode 0600")
+        if os.name == "posix" and (image_info.st_uid, image_info.st_gid) != (0, 0):
+            failures.append("owner-PC storage image must be owned by root:root")
+        if image_info.st_nlink != 1:
+            failures.append("owner-PC storage image must have exactly one hard link")
+        if image_info.st_size != OWNER_PC_STORAGE_BYTES:
+            failures.append(
+                f"owner-PC storage image must be exactly {OWNER_PC_STORAGE_GIB} GiB"
+            )
+        if image_info.st_blocks * 512 < image_info.st_size:
+            failures.append("owner-PC storage image must be fully allocated, not sparse")
+    try:
+        source_info = stat_path(source)
+    except OSError as exc:
+        failures.append(f"cannot inspect owner-PC loop source: {exc}")
+        source_info = None
+    if source_info is not None and not stat.S_ISBLK(source_info.st_mode):
+        failures.append("owner-PC XFS mount source must be a loop block device")
+    if not re.fullmatch(r"/dev/loop[0-9]+", source):
+        failures.append("owner-PC XFS mount source must be an explicit loop device")
+    try:
+        loop = run(
+            ["losetup", "--noheadings", "--output", "BACK-FILE", source],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+    except OSError as exc:
+        failures.append(f"cannot inspect owner-PC loop backing file: {exc}")
+    else:
+        if loop.returncode or os.path.realpath(loop.stdout.strip()) != os.path.realpath(
+            owner_storage_image
+        ):
+            failures.append(
+                "owner-PC XFS loop device must use the exact configured backing file"
+            )
+    try:
+        image_mount = run(
+            [
+                "findmnt",
+                "--noheadings",
+                "--output",
+                "SOURCE",
+                "--target",
+                owner_storage_image,
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+    except OSError as exc:
+        failures.append(f"cannot inspect owner-PC image filesystem: {exc}")
+    else:
+        parent_source = image_mount.stdout.strip()
+        if image_mount.returncode or not parent_source.startswith("/dev/"):
+            failures.append(
+                "owner-PC storage image must reside on a Linux-native block filesystem"
+            )
+        else:
+            try:
+                parent_info = stat_path(parent_source)
+            except OSError as exc:
+                failures.append(f"cannot inspect owner-PC image device: {exc}")
+            else:
+                if (
+                    not stat.S_ISBLK(parent_info.st_mode)
+                    or device_info is None
+                    or not stat.S_ISBLK(device_info.st_mode)
+                    or parent_info.st_rdev != device_info.st_rdev
+                ):
+                    failures.append(
+                        "WORKSPACE_IO_DEVICE must identify the block device backing the owner-PC storage image"
+                    )
+    return failures
+
+
+def validate_owner_pc_host(
+    values: dict[str, str],
+    *,
+    read_text=lambda path: Path(path).read_text(encoding="utf-8"),
+    cpu_count=os.cpu_count,
+    statvfs=None,
+) -> list[str]:
+    """Validate the measured WSL/cgroup envelope for the one-workspace beta."""
+    # owner_pc_beta is approved; do not substitute fixed_price_vps when
+    # reconciling stale deployment prose.
+    failures: list[str] = []
+    try:
+        release = read_text("/proc/sys/kernel/osrelease").strip().lower()
+    except OSError as exc:
+        failures.append(f"cannot inspect WSL kernel release: {exc}")
+    else:
+        if "microsoft" not in release:
+            failures.append("owner_pc_beta requires WSL2")
+    try:
+        os_release = read_text("/etc/os-release")
+    except OSError as exc:
+        failures.append(f"cannot inspect Ubuntu release: {exc}")
+    else:
+        if 'ID=ubuntu' not in os_release or 'VERSION_ID="24.04"' not in os_release:
+            failures.append("owner_pc_beta requires Ubuntu 24.04")
+    for database in ("/etc/subuid", "/etc/subgid"):
+        try:
+            records = [
+                line
+                for line in read_text(database).splitlines()
+                if line.startswith("containers:")
+            ]
+        except OSError as exc:
+            failures.append(f"cannot inspect {database}: {exc}")
+        else:
+            if records != ["containers:1000000:1048576"]:
+                failures.append(
+                    f"{database} must contain exactly containers:1000000:1048576"
+                )
+    cpus = cpu_count()
+    if cpus is None or cpus < OWNER_PC_MIN_CPUS:
+        failures.append(
+            f"owner_pc_beta requires at least {OWNER_PC_MIN_CPUS} WSL CPUs"
+        )
+    try:
+        meminfo = read_text("/proc/meminfo")
+        match = re.search(r"(?m)^MemTotal:\s+([0-9]+)\s+kB$", meminfo)
+        memory_mib = int(match.group(1)) // 1024 if match else 0
+    except (OSError, ValueError) as exc:
+        failures.append(f"cannot inspect WSL memory: {exc}")
+    else:
+        if memory_mib < OWNER_PC_MIN_MEMORY_MIB:
+            failures.append(
+                f"owner_pc_beta requires at least {OWNER_PC_MIN_MEMORY_MIB} MiB WSL memory"
+            )
+    try:
+        mountinfo = read_text("/proc/self/mountinfo")
+        controllers = read_text("/sys/fs/cgroup/cgroup.controllers").split()
+    except OSError as exc:
+        failures.append(f"cannot inspect cgroup v2 controllers: {exc}")
+    else:
+        if " - cgroup2 cgroup2 " not in mountinfo:
+            failures.append("owner_pc_beta requires the unified cgroup v2 hierarchy")
+        missing = sorted({"cpu", "io", "memory", "pids"} - set(controllers))
+        if missing:
+            failures.append(
+                "owner_pc_beta is missing cgroup v2 controllers: "
+                + ", ".join(missing)
+            )
+    statvfs_fn = statvfs or getattr(os, "statvfs", None)
+    if statvfs_fn is None:
+        failures.append("cannot inspect D: free space outside a POSIX host")
+    else:
+        try:
+            d_drive = statvfs_fn("/mnt/d")
+            d_free_gib = (d_drive.f_bavail * d_drive.f_frsize) // (1024**3)
+        except OSError as exc:
+            failures.append(f"cannot inspect D: free space from WSL: {exc}")
+        else:
+            if d_free_gib < OWNER_PC_MIN_D_FREE_GIB:
+                failures.append(
+                    f"owner_pc_beta requires at least {OWNER_PC_MIN_D_FREE_GIB} GiB free on D:"
+                )
     return failures
 
 
@@ -769,17 +1010,18 @@ def main() -> int:
     failures.extend(
         validate(values, args.env_file, args.skip_secret_files, args.coder_bootstrap)
     )
-    if not failures and values["DEPLOYMENT_PROFILE"] == "owner_pc_beta":
-        failures.append(
-            "owner_pc_beta host storage/runtime preflight is not implemented yet; "
-            "keep workspace admission disabled and do not substitute fixed_price_vps"
-        )
     if not failures:
         failures.extend(
             validate_workspace_storage(
-                values["DATA_ROOT"], values["WORKSPACE_IO_DEVICE"]
+                values["DATA_ROOT"],
+                values["WORKSPACE_IO_DEVICE"],
+                profile=values["DEPLOYMENT_PROFILE"],
+                owner_storage_image=values.get("OWNER_PC_STORAGE_IMAGE", ""),
+                owner_storage_gib=int(values.get("OWNER_PC_STORAGE_GIB", "0")),
             )
         )
+    if not failures and values["DEPLOYMENT_PROFILE"] == "owner_pc_beta":
+        failures.extend(validate_owner_pc_host(values))
     if not failures:
         policy = subprocess.run(
             [

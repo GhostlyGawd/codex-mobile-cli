@@ -1,9 +1,11 @@
 [Unit]
 Description=Codex Mobile dedicated root-owned Podman workspace API
 Documentation=man:podman-system-service(1)
-Wants=network-online.target
-After=network-online.target
+Wants=network-online.target codex-mobile-owner-pc-runtime.service
+After=network-online.target codex-mobile-owner-pc-runtime.service
+Requires=codex-mobile-owner-pc-runtime.service
 RequiresMountsFor=/srv/codex-mobile/workspaces
+ConditionPathExists=/etc/codex-mobile/production.env
 
 [Service]
 Type=simple
@@ -16,19 +18,26 @@ Environment=CONTAINERS_CONF=/etc/codex-mobile/containers.conf
 # Supplies only operator configuration (including the exact verified
 # WORKSPACE_IO_DEVICE); credential values remain separate file secrets.
 EnvironmentFile=/etc/codex-mobile/production.env
+# Generated root-only host facts override duplicated example values in the
+# operator file for owner_pc_beta. The file is absent on fixed-price hosts.
+EnvironmentFile=-/etc/codex-mobile/owner-pc-host.env
 RuntimeDirectory=codex-mobile-podman
 RuntimeDirectoryMode=0710
+# Conmon and running containers retain paths beneath the Podman runroot when
+# only the API process is restarted. Preserve those files across API unit stops
+# so a later start can reconnect to existing state. The directory still lives
+# under /run and is discarded by a full host reboot.
+RuntimeDirectoryPreserve=yes
 UMask=0007
-ExecStartPre=/usr/local/libexec/codex-mobile/verify-workspace-storage
-ExecStartPre=/usr/local/libexec/codex-mobile/ensure-workspace-control-network
-ExecStart=/usr/bin/podman --network-config-dir=/srv/codex-mobile/workspaces/.networks system service --time=0 unix:///run/codex-mobile-podman/podman.sock
-ExecStartPost=/usr/bin/chgrp coder-provisioner /run/codex-mobile-podman/podman.sock
-ExecStartPost=/usr/bin/chmod 0660 /run/codex-mobile-podman/podman.sock
-ExecStartPost=/usr/bin/test -S /run/codex-mobile-podman/podman.sock
+ExecStart=/usr/local/libexec/codex-mobile/start-workspace-runtime
+ExecStartPost=/usr/local/libexec/codex-mobile/finalize-workspace-runtime-socket
 Restart=on-failure
 RestartSec=5s
 TimeoutStartSec=60s
 Delegate=yes
+# API restarts must not kill conmon or the running workspace containers it
+# supervises; their own cgroups retain the enforced resource policy.
+KillMode=process
 
 # This root-owned engine is a narrow exception required for Podman's XFS
 # project-quota volume options. Its API grants root-equivalent host authority,
@@ -42,6 +51,11 @@ Delegate=yes
 # workspaces receive no device mounts and cannot relax this parent policy.
 PrivateDevices=no
 DevicePolicy=closed
+# Podman represents the XFS graphroot's loop backing device inside its
+# root-only 0700 overlay/volume internals so containers/storage can assign
+# project IDs. Permit that device class only to the engine's parent cgroup;
+# workspaces receive no device mounts and cannot widen the inherited policy.
+DeviceAllow=block-loop rwm
 PrivateTmp=yes
 ProtectHome=yes
 ProtectSystem=strict
@@ -54,7 +68,9 @@ LockPersonality=yes
 RestrictRealtime=yes
 RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK AF_PACKET
 SystemCallArchitectures=native
-ReadWritePaths=/srv/codex-mobile/workspaces /run/codex-mobile-podman
+# Netavark serializes network state through /run/lock; libpod and storage state
+# stay under the unit-owned RuntimeDirectory.
+ReadWritePaths=/srv/codex-mobile/workspaces /run/codex-mobile-podman /run/lock
 
 [Install]
 WantedBy=multi-user.target

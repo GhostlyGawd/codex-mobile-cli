@@ -20,6 +20,10 @@ services:
   postgres:
     <<: *service-security
     image: postgres:18.4-bookworm@sha256:1961f96e6029a02c3812d7cb329a3b03a3ac2bb067058dec17b0f5596aca9296
+    mem_limit: 512m
+    memswap_limit: 512m
+    cpus: 1.0
+    pids_limit: 256
     read_only: true
     # The official entrypoint starts as root only long enough to initialize the
     # bind-mounted database and drop to postgres. No runtime/network capability
@@ -76,6 +80,10 @@ services:
   coder:
     <<: *service-security
     image: ghcr.io/coder/coder:v2.34.6@sha256:0ac9c07e9ff18ea9fecb07c08da838a032352e2b95c5fcd3bf279297cff1808a
+    mem_limit: 768m
+    memswap_limit: 768m
+    cpus: 1.0
+    pids_limit: 512
     read_only: true
     entrypoint:
       - /bin/sh
@@ -139,6 +147,10 @@ services:
   control-plane:
     <<: *service-security
     image: localhost/codex-mobile/control-plane:${CONTROL_PLANE_IMAGE_TAG:-local-2026-07-15}
+    mem_limit: 512m
+    memswap_limit: 512m
+    cpus: 1.0
+    pids_limit: 256
     pull_policy: never
     build:
       context: ..
@@ -150,6 +162,7 @@ services:
     read_only: true
     environment:
       APP_ENV: ${APP_ENV:-development}
+      DEPLOYMENT_PROFILE: ${DEPLOYMENT_PROFILE:-development}
       HTTP_ADDR: :8080
       METRICS_ADDR: 127.0.0.1:9090
       PUBLIC_ORIGIN: ${PUBLIC_ORIGIN:-http://localhost}
@@ -175,7 +188,7 @@ services:
       MAINTENANCE_WARNING_LEAD: ${MAINTENANCE_WARNING_LEAD:-24h}
       MAINTENANCE_URGENT_WARNING_LEAD: ${MAINTENANCE_URGENT_WARNING_LEAD:-5m}
       MAINTENANCE_SCAN_INTERVAL: ${MAINTENANCE_SCAN_INTERVAL:-1m}
-      MAX_RUNNING_WORKSPACES: "10"
+      MAX_RUNNING_WORKSPACES: ${MAX_RUNNING_WORKSPACES:-10}
       MASTER_KEY_FILE: /run/secrets/control_plane_master_key
       SESSION_PEPPER_FILE: /run/secrets/session_pepper
       GITHUB_ENABLED: ${GITHUB_ENABLED:-false}
@@ -230,6 +243,10 @@ services:
   caddy:
     <<: *service-security
     image: caddy:2.11.4-alpine@sha256:5f5c8640aae01df9654968d946d8f1a56c497f1dd5c5cda4cf95ab7c14d58648
+    mem_limit: 128m
+    memswap_limit: 128m
+    cpus: 0.25
+    pids_limit: 128
     user: "1000:1000"
     read_only: true
     cap_add:
