@@ -21,6 +21,16 @@ terraform {
 provider "coder" {}
 provider "docker" {}
 
+variable "deployment_profile" {
+  description = "Explicit host profile. The owner-PC WSL profile truthfully omits unavailable AppArmor while retaining every other runtime boundary."
+  type        = string
+
+  validation {
+    condition     = contains(["owner_pc_beta", "fixed_price_vps"], var.deployment_profile)
+    error_message = "deployment_profile must be owner_pc_beta or fixed_price_vps."
+  }
+}
+
 variable "workspace_base_image" {
   description = "Locally built, non-root fallback image. It is never pulled from a paid registry."
   type        = string
@@ -226,12 +236,17 @@ locals {
   }[data.coder_provisioner.current.arch]
   workspace_helper_path = "/opt/codex-mobile-helper/codex-mobile-workspace-helper"
   workspace_disk_bytes  = data.coder_parameter.disk_gib.value * 1073741824
-  workspace_inode_limit = data.coder_parameter.disk_gib.value * 65536
+  workspace_inode_limit = 1048576
+  workspace_userns_mode = var.deployment_profile == "owner_pc_beta" ? "auto:size=65536" : "private"
   workspace_read_bps    = 67108864
   workspace_write_bps   = 33554432
   workspace_read_iops   = 2000
   workspace_write_iops  = 1000
   coder_relay_url       = "http://cm-coder-control:7080"
+  workspace_security_opts = concat(
+    ["no-new-privileges:true"],
+    var.deployment_profile == "fixed_price_vps" ? ["apparmor=${var.workspace_apparmor_profile}"] : [],
+  )
   coder_agent_init_script = replace(
     coder_agent.main.init_script,
     data.coder_workspace.current.access_url,
@@ -243,6 +258,9 @@ locals {
     "com.codex-mobile.workspace-id"   = data.coder_workspace.current.id
     "com.codex-mobile.workspace-name" = data.coder_workspace.current.name
     "com.codex-mobile.pids-limit"     = tostring(data.coder_parameter.pids_limit.value)
+    "com.codex-mobile.cpu-millis"     = tostring(data.coder_parameter.cpu_millis.value)
+    "com.codex-mobile.memory-mib"     = tostring(data.coder_parameter.memory_mb.value)
+    "com.codex-mobile.profile"        = var.deployment_profile
   }
 
   envbuilder_environment = [
@@ -278,15 +296,48 @@ resource "docker_image" "envbuilder" {
   keep_locally = true
 }
 
+# Podman 4.9.3 reuses one XFS project ID across local volumes. The owner-PC
+# profile therefore serializes the sole quota-bearing workspace volume before
+# the Docker provider can create it. On destroy, Terraform removes the volume
+# first and releases the matching lease only after that deletion succeeds.
+resource "terraform_data" "owner_pc_volume_lease" {
+  count = var.deployment_profile == "owner_pc_beta" ? 1 : 0
+
+  input = {
+    workspace_id   = data.coder_workspace.current.id
+    workspace_name = data.coder_workspace.current.name
+  }
+
+  provisioner "local-exec" {
+    command = "/usr/local/libexec/codex-mobile/owner-pc-workspace-volume-gate claim --workspace-id \"$WORKSPACE_ID\" --workspace-name \"$WORKSPACE_NAME\""
+    environment = {
+      WORKSPACE_ID   = self.input.workspace_id
+      WORKSPACE_NAME = self.input.workspace_name
+    }
+  }
+
+  provisioner "local-exec" {
+    when    = destroy
+    command = "/usr/local/libexec/codex-mobile/owner-pc-workspace-volume-gate release --workspace-id \"$WORKSPACE_ID\" --workspace-name \"$WORKSPACE_NAME\""
+    environment = {
+      WORKSPACE_ID   = self.input.workspace_id
+      WORKSPACE_NAME = self.input.workspace_name
+    }
+  }
+}
+
 resource "docker_volume" "workspace" {
   name = "cm-workspace-v2-${local.workspace_key}"
 
   # Podman interprets these local-volume options as XFS project quotas. Volume
   # creation fails when the graphroot is not on XFS mounted with pquota/prjquota.
-  # The application never changes disk_gib after creation, and ignore_changes
-  # prevents Terraform from replacing persistent data during later rebalances.
+  # The root-owned runtime establishes the XFS default project inode ceiling
+  # before Podman starts. Podman 4.9 otherwise misclassifies a quota-only
+  # `inodes` option as a mount option. The application never changes disk_gib
+  # after creation, and ignore_changes prevents Terraform from replacing
+  # persistent data during later rebalances.
   driver_opts = {
-    o = "size=${data.coder_parameter.disk_gib.value}G,inodes=${local.workspace_inode_limit}"
+    o = "size=${local.workspace_disk_bytes}"
   }
 
   dynamic "labels" {
@@ -303,6 +354,8 @@ resource "docker_volume" "workspace" {
   lifecycle {
     ignore_changes = all
   }
+
+  depends_on = [terraform_data.owner_pc_volume_lease]
 }
 
 # Docker/Podman copies the trusted image contents into this empty named volume
@@ -376,7 +429,7 @@ resource "docker_container" "coder_relay" {
   must_run     = true
   restart      = "no"
   read_only    = true
-  userns_mode  = "private"
+  userns_mode  = local.workspace_userns_mode
   memory       = 64
   memory_swap  = 64
   cpu_period   = 100000
@@ -398,10 +451,7 @@ resource "docker_container" "coder_relay" {
     drop = ["ALL"]
   }
 
-  security_opts = [
-    "no-new-privileges:true",
-    "apparmor=${var.workspace_apparmor_profile}",
-  ]
+  security_opts = local.workspace_security_opts
 
   tmpfs = {
     "/tmp" = "rw,nosuid,nodev,noexec,size=8388608,uid=1000,gid=1000,mode=0700"
@@ -413,9 +463,21 @@ resource "docker_container" "coder_relay" {
     hard = 512
   }
 
-  labels {
-    label = "com.codex-mobile.control-relay-workspace-id"
-    value = data.coder_workspace.current.id
+  dynamic "labels" {
+    for_each = {
+      "com.codex-mobile.container-role"             = "workspace-relay"
+      "com.codex-mobile.control-relay-workspace-id" = data.coder_workspace.current.id
+      "com.codex-mobile.workspace-id"               = data.coder_workspace.current.id
+      "com.codex-mobile.workspace-name"             = data.coder_workspace.current.name
+      "com.codex-mobile.profile"                    = var.deployment_profile
+      "com.codex-mobile.pids-limit"                 = "512"
+      "com.codex-mobile.cpu-millis"                 = "100"
+      "com.codex-mobile.memory-mib"                 = "64"
+    }
+    content {
+      label = labels.key
+      value = labels.value
+    }
   }
 
   log_driver = "local"
@@ -501,7 +563,7 @@ resource "docker_container" "plain" {
   must_run     = true
   restart      = "no"
   read_only    = true
-  userns_mode  = "private"
+  userns_mode  = local.workspace_userns_mode
   memory       = data.coder_parameter.memory_mb.value
   memory_swap  = data.coder_parameter.memory_mb.value
   cpu_period   = 100000
@@ -545,10 +607,18 @@ resource "docker_container" "plain" {
     drop = ["ALL"]
   }
 
-  security_opts = [
-    "no-new-privileges:true",
-    "apparmor=${var.workspace_apparmor_profile}",
-  ]
+  security_opts = local.workspace_security_opts
+
+  lifecycle {
+    precondition {
+      condition = var.deployment_profile != "owner_pc_beta" || (
+        data.coder_parameter.cpu_millis.value == 2000 &&
+        data.coder_parameter.memory_mb.value == 2048 &&
+        data.coder_parameter.pids_limit.value == 512
+      )
+      error_message = "owner_pc_beta requires exactly 2000m CPU, 2048 MiB memory, and 512 processes."
+    }
+  }
 
   volumes {
     container_path = "/workspaces"
@@ -574,7 +644,9 @@ resource "docker_container" "plain" {
   }
 
   dynamic "labels" {
-    for_each = local.common_labels
+    for_each = merge(local.common_labels, {
+      "com.codex-mobile.container-role" = "workspace-workload"
+    })
     content {
       label = labels.key
       value = labels.value
@@ -604,7 +676,7 @@ resource "docker_container" "envbuilder" {
   must_run     = true
   restart      = "no"
   read_only    = false
-  userns_mode  = "private"
+  userns_mode  = local.workspace_userns_mode
   memory       = data.coder_parameter.memory_mb.value
   memory_swap  = data.coder_parameter.memory_mb.value
   cpu_period   = 100000
@@ -666,10 +738,22 @@ resource "docker_container" "envbuilder" {
     drop = ["ALL"]
   }
 
-  security_opts = [
-    "no-new-privileges:true",
-    "apparmor=${var.workspace_apparmor_profile}",
-  ]
+  security_opts = local.workspace_security_opts
+
+  lifecycle {
+    precondition {
+      condition = var.deployment_profile != "owner_pc_beta" || (
+        data.coder_parameter.cpu_millis.value == 2000 &&
+        data.coder_parameter.memory_mb.value == 2048 &&
+        data.coder_parameter.pids_limit.value == 512
+      )
+      error_message = "owner_pc_beta requires exactly 2000m CPU, 2048 MiB memory, and 512 processes."
+    }
+    precondition {
+      condition     = local.approval_receipt_ok
+      error_message = "EnvBuilder mode requires a valid control-plane setup approval receipt."
+    }
+  }
 
   volumes {
     container_path = "/workspaces"
@@ -698,6 +782,7 @@ resource "docker_container" "envbuilder" {
 
   dynamic "labels" {
     for_each = merge(local.common_labels, {
+      "com.codex-mobile.container-role"        = "workspace-workload"
       "com.codex-mobile.devcontainer-approved" = data.coder_parameter.setup_approval_id.value
       "com.codex-mobile.envbuilder-version"    = "1.3.0-codex-mobile.1"
     })
@@ -711,13 +796,6 @@ resource "docker_container" "envbuilder" {
   log_opts = {
     "max-size" = "10m"
     "max-file" = "3"
-  }
-
-  lifecycle {
-    precondition {
-      condition     = local.approval_receipt_ok
-      error_message = "EnvBuilder mode requires a valid control-plane setup approval receipt."
-    }
   }
 
   depends_on = [docker_container.coder_relay]

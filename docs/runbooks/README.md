@@ -15,6 +15,8 @@ immediately before it is performed.
 | --- | --- |
 | Public hosted CI policy | [CI.md](CI.md) |
 | Active private-beta hosting decision | [ADR 0025](../adr/0025-owner-pc-private-beta-hosting.md) |
+| Active owner-PC/WSL setup and verification | [OWNER_PC_BETA.md](OWNER_PC_BETA.md) |
+| Active owner-PC runtime architecture | [ADR 0026](../adr/0026-owner-pc-wsl-runtime.md) |
 | Deferred future VPS deployment | [DEPLOY.md](DEPLOY.md) |
 | Application rollback | [ROLLBACK.md](ROLLBACK.md) |
 | Controlled dependency/host update | [UPDATE.md](UPDATE.md) |
@@ -51,7 +53,11 @@ immediately before it is performed.
 For the active beta, local checkpoints remain on owner-controlled PC/WSL
 storage and do not survive loss of that storage. Active processes do not
 survive a Windows, WSL, or service restart; persistent files can, and stopped
-processes must be shown honestly. No provider backup is assumed.
+processes must be shown honestly. No provider backup is assumed. The
+64 GiB guest XFS image lives inside a dynamically sized WSL VHD on `D:` and is
+not a physical-host preallocation. The host foundation does not establish
+public HTTPS, DNS/TLS, Apple associated domains, a GitHub App, production
+Coder, or TestFlight availability.
 
 If the owner later reopens the VPS design, its included daily backup may leave
 an approximately 24-hour recovery gap. A whole-server backup would contain

@@ -31,11 +31,12 @@ for configuration in containers.conf containers-storage.conf; do
     echo "invalid release runtime configuration: $configuration" >&2
     exit 1
   }
-  install -o root -g root -m 0644 "$source" "/etc/codex-mobile/$configuration"
+  install -o root -g root -m 0600 "$source" "/etc/codex-mobile/$configuration"
 done
 for unit in \
   codex-mobile.service \
   codex-mobile-docker-firewall.service \
+  codex-mobile-owner-pc-runtime.service \
   codex-mobile-workspace-runtime.service \
   codex-mobile-provisioner.service; do
   source="$release/infra/systemd/$unit"
@@ -48,6 +49,11 @@ done
 
 for mapping in \
   'apply-docker-firewall.sh:apply-docker-firewall' \
+  'finalize-workspace-runtime-socket.sh:finalize-workspace-runtime-socket' \
+  'owner-pc-workspace-volume-gate.py:owner-pc-workspace-volume-gate' \
+  'prepare-owner-pc-runtime.sh:prepare-owner-pc-runtime' \
+  'prepare-workspace-overlay-quota.sh:prepare-workspace-overlay-quota' \
+  'start-workspace-runtime.sh:start-workspace-runtime' \
   'start-provisioner.sh:start-provisioner' \
   'verify-workspace-storage.sh:verify-workspace-storage' \
   'ensure-workspace-control-network.py:ensure-workspace-control-network'; do

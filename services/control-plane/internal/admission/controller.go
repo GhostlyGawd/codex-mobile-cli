@@ -40,6 +40,32 @@ func ReferenceCapacity() Capacity {
 	}
 }
 
+// OwnerPCBetaCapacity is intentionally smaller than the measured WSL VM.
+// Trusted host/control services retain 2 CPU and 3 GiB while the sole
+// untrusted workspace receives exactly 2 CPU and 2 GiB. The 24 GiB disk
+// reserve plus the maximum 16 GiB immutable workspace keeps admission closed
+// below 40 GiB free on the dedicated 64 GiB XFS filesystem.
+func OwnerPCBetaCapacity() Capacity {
+	return Capacity{
+		Total:       core.Quota{CPUMilli: 4000, MemoryMiB: 5 * 1024, DiskGiB: 64},
+		Reserve:     core.Quota{CPUMilli: 2000, MemoryMiB: 3 * 1024, DiskGiB: 24},
+		Minimum:     core.Quota{CPUMilli: 2000, MemoryMiB: 2 * 1024, DiskGiB: 8},
+		MaxRunning:  1,
+		DiskReserve: 24,
+	}
+}
+
+func CapacityForProfile(profile string) (Capacity, error) {
+	switch profile {
+	case "development":
+		return ReferenceCapacity(), nil
+	case "owner_pc_beta":
+		return OwnerPCBetaCapacity(), nil
+	default:
+		return Capacity{}, fmt.Errorf("deployment profile %q is not supported", profile)
+	}
+}
+
 type Controller struct {
 	capacity         Capacity
 	maintenanceDrain atomic.Bool
@@ -49,7 +75,10 @@ func New(capacity Capacity) (*Controller, error) {
 	if capacity.MaxRunning < 1 || capacity.MaxRunning > 10 {
 		return nil, fmt.Errorf("max running must be between 1 and 10")
 	}
-	if !positive(capacity.Total) || !positive(capacity.Minimum) || capacity.DiskReserve < capacity.Reserve.DiskGiB {
+	if !positive(capacity.Total) || !positive(capacity.Minimum) ||
+		negative(capacity.Reserve) || !notGreater(capacity.Reserve, capacity.Total) ||
+		capacity.DiskReserve < capacity.Reserve.DiskGiB ||
+		capacity.DiskReserve > capacity.Total.DiskGiB {
 		return nil, fmt.Errorf("capacity totals, minimums, and disk reserve are invalid")
 	}
 	pool := subtract(capacity.Total, capacity.Reserve)
@@ -118,6 +147,12 @@ func (c *Controller) share(count int) core.Quota {
 }
 
 func positive(q core.Quota) bool { return q.CPUMilli > 0 && q.MemoryMiB > 0 && q.DiskGiB > 0 }
+
+func negative(q core.Quota) bool { return q.CPUMilli < 0 || q.MemoryMiB < 0 || q.DiskGiB < 0 }
+
+func notGreater(a, b core.Quota) bool {
+	return a.CPUMilli <= b.CPUMilli && a.MemoryMiB <= b.MemoryMiB && a.DiskGiB <= b.DiskGiB
+}
 
 func subtract(a, b core.Quota) core.Quota {
 	return core.Quota{CPUMilli: a.CPUMilli - b.CPUMilli, MemoryMiB: a.MemoryMiB - b.MemoryMiB, DiskGiB: a.DiskGiB - b.DiskGiB}

@@ -1,0 +1,33 @@
+[Unit]
+Description=Codex Mobile owner-PC WSL storage and stable private host address
+Documentation=https://github.com/GhostlyGawd/codex-mobile-cli
+After=local-fs.target
+Before=codex-mobile-docker-firewall.service codex-mobile-workspace-runtime.service codex-mobile.service
+ConditionPathExists=/etc/codex-mobile/owner-pc-host.env
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+Environment=OWNER_PC_HOST_ENV=/etc/codex-mobile/owner-pc-host.env
+ExecStart=/usr/local/libexec/codex-mobile/prepare-owner-pc-runtime start
+ExecStop=/usr/local/libexec/codex-mobile/prepare-owner-pc-runtime stop
+TimeoutStartSec=2min
+TimeoutStopSec=2min
+
+UMask=0077
+NoNewPrivileges=no
+CapabilityBoundingSet=CAP_SYS_ADMIN CAP_NET_ADMIN CAP_CHOWN CAP_DAC_OVERRIDE CAP_FOWNER
+AmbientCapabilities=CAP_SYS_ADMIN CAP_NET_ADMIN CAP_CHOWN CAP_DAC_OVERRIDE CAP_FOWNER
+LockPersonality=yes
+RestrictRealtime=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
+SystemCallArchitectures=native
+
+# Mounts must enter the host namespace and remain visible after this oneshot
+# exits. Filesystem namespacing directives such as ProtectSystem, PrivateTmp,
+# and ReadWritePaths would make the XFS mount private to the helper and are
+# intentionally not used here. All paths and accepted values are fixed and
+# revalidated by the root-owned helper before privileged operations.
+
+[Install]
+WantedBy=multi-user.target

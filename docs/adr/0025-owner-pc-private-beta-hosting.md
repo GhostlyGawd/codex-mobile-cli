@@ -3,6 +3,10 @@
 - Status: accepted
 - Date: 2026-07-26
 
+[ADR 0026](0026-owner-pc-wsl-runtime.md) implements this hosting selection as
+the explicit `owner_pc_beta` runtime profile. It does not reopen the deferred
+VPS decision.
+
 ## Context
 
 The original deployment design selected one fixed-price VPS for an always-on
@@ -41,11 +45,12 @@ or audit controls. ADR 0022 remains authoritative for hosted CI.
 - The app is unavailable whenever the PC, WSL distribution, local services, or
   ingress is stopped or disconnected. This limitation must remain visible.
 - Existing VPS-only preflight, storage, service-management, and release paths
-  need a separate fail-closed local-beta profile rather than weakened
-  production checks.
-- Host security must account for Windows/WSL boundaries honestly. VPS-specific
-  XFS, AppArmor, provider-backup, reboot, and load evidence cannot be claimed
-  for the local beta.
+  are not reused as proof. ADR 0026 supplies a separate fail-closed local-beta
+  profile rather than weakening production checks.
+- Host security must account for Windows/WSL boundaries honestly. The local
+  profile uses its own loop-backed XFS quota boundary, but VPS disk-layout,
+  AppArmor, provider-backup, reboot, ten-session, and load evidence cannot be
+  claimed for the local beta.
 - A stable HTTPS origin and Apple associated-domain contract remain necessary
   for the signed app. Selecting or configuring the ingress is a separate
   external-account action and must not introduce a paid or metered dependency.

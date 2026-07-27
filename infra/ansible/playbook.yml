@@ -526,11 +526,15 @@
         mode: "{{ item.mode }}"
       loop:
         - { src: "{{ playbook_dir }}/../systemd/start-provisioner.sh", dest: /usr/local/libexec/codex-mobile/start-provisioner, mode: "0755" }
+        - { src: "{{ playbook_dir }}/../systemd/start-workspace-runtime.sh", dest: /usr/local/libexec/codex-mobile/start-workspace-runtime, mode: "0755" }
+        - { src: "{{ playbook_dir }}/../systemd/finalize-workspace-runtime-socket.sh", dest: /usr/local/libexec/codex-mobile/finalize-workspace-runtime-socket, mode: "0755" }
+        - { src: "{{ playbook_dir }}/../systemd/prepare-owner-pc-runtime.sh", dest: /usr/local/libexec/codex-mobile/prepare-owner-pc-runtime, mode: "0755" }
         - { src: "{{ playbook_dir }}/../systemd/verify-workspace-storage.sh", dest: /usr/local/libexec/codex-mobile/verify-workspace-storage, mode: "0755" }
         - { src: "{{ playbook_dir }}/../systemd/ensure-workspace-control-network.py", dest: /usr/local/libexec/codex-mobile/ensure-workspace-control-network, mode: "0755" }
         - { src: "{{ playbook_dir }}/../systemd/apply-docker-firewall.sh", dest: /usr/local/libexec/codex-mobile/apply-docker-firewall, mode: "0755" }
         - { src: "{{ playbook_dir }}/../systemd/codex-mobile.service", dest: /etc/systemd/system/codex-mobile.service, mode: "0644" }
         - { src: "{{ playbook_dir }}/../systemd/codex-mobile-docker-firewall.service", dest: /etc/systemd/system/codex-mobile-docker-firewall.service, mode: "0644" }
+        - { src: "{{ playbook_dir }}/../systemd/codex-mobile-owner-pc-runtime.service", dest: /etc/systemd/system/codex-mobile-owner-pc-runtime.service, mode: "0644" }
         - { src: "{{ playbook_dir }}/../systemd/codex-mobile-workspace-runtime.service", dest: /etc/systemd/system/codex-mobile-workspace-runtime.service, mode: "0644" }
         - { src: "{{ playbook_dir }}/../systemd/codex-mobile-provisioner.service", dest: /etc/systemd/system/codex-mobile-provisioner.service, mode: "0644" }
       notify: Reload systemd

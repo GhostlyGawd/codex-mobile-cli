@@ -1,8 +1,9 @@
 [Unit]
 Description=Codex Mobile Docker forwarding firewall
 Documentation=man:iptables(8)
-After=docker.service
-Requires=docker.service
+Wants=codex-mobile-owner-pc-runtime.service
+After=docker.service codex-mobile-owner-pc-runtime.service
+Requires=docker.service codex-mobile-owner-pc-runtime.service
 Before=codex-mobile.service
 ConditionPathExists=/etc/codex-mobile/production.env
 

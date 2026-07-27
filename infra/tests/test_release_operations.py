@@ -648,6 +648,19 @@ class ReleaseManifestTests(unittest.TestCase):
                     relative: manifest["release_files"][relative]
                     for relative in MANIFEST.V1_CRITICAL_RELEASE_FILES
                 }
+                manifest["host_artifacts"] = {
+                    name: {
+                        "source": source,
+                        "destination": destination,
+                        "mode": mode,
+                        "sha256": MANIFEST.sha256_file(root / source),
+                    }
+                    for name, (
+                        source,
+                        destination,
+                        mode,
+                    ) in MANIFEST.V1_HOST_ARTIFACTS.items()
+                }
                 (root / "infra/release.env").chmod(0o600)
                 (root / "infra/release-manifest.json").chmod(0o600)
                 MANIFEST.write_manifest(root, manifest)
@@ -1179,6 +1192,58 @@ class ReleaseScriptStaticTests(unittest.TestCase):
         self.assertNotIn("exec docker compose", compose)
         self.assertNotIn("\ndocker ", health)
         self.assertIn("/usr/bin/docker --host unix:///var/run/docker.sock", health)
+
+    def test_owner_pc_bootstrap_covers_every_premanifest_dependency(self) -> None:
+        setup = (ROOT / "scripts" / "infra-setup-owner-pc-wsl.sh").read_text(
+            encoding="utf-8"
+        )
+        deploy = (ROOT / "scripts" / "infra-deploy.sh").read_text(encoding="utf-8")
+        runbook = (ROOT / "docs" / "runbooks" / "OWNER_PC_BETA.md").read_text(
+            encoding="utf-8"
+        )
+
+        firewall_start = deploy.index(
+            "systemctl restart codex-mobile-docker-firewall.service"
+        )
+        runtime_start = deploy.index(
+            "systemctl start codex-mobile-workspace-runtime.service"
+        )
+        image_build = deploy.index('infra-build-workspace-image.sh"')
+        manifest_create = deploy.index('infra_release_manifest.py" create')
+        self.assertLess(firewall_start, runtime_start)
+        self.assertLess(runtime_start, image_build)
+        self.assertLess(image_build, manifest_create)
+
+        for bootstrap_artifact in (
+            "apply-docker-firewall.sh",
+            "codex-mobile-docker-firewall.service",
+            "codex-mobile-owner-pc-runtime.service",
+            "codex-mobile-provisioner.service",
+            "codex-mobile-workspace-runtime.service",
+            "codex-mobile.service",
+            "ensure-workspace-control-network.py",
+            "finalize-workspace-runtime-socket.sh",
+            "owner-pc-workspace-volume-gate.py",
+            "prepare-owner-pc-runtime.sh",
+            "prepare-workspace-overlay-quota.sh",
+            "start-provisioner.sh",
+            "start-workspace-runtime.sh",
+            "verify-workspace-storage.sh",
+        ):
+            self.assertIn(bootstrap_artifact, setup)
+
+        self.assertLess(
+            runbook.index("systemctl start codex-mobile-workspace-runtime.service"),
+            runbook.index("infra-build-workspace-image.sh"),
+        )
+        self.assertLess(
+            runbook.index("infra-build-workspace-image.sh"),
+            runbook.index('infra-deploy.sh" "$stage"'),
+        )
+        self.assertLess(
+            setup.index("owner-PC source bootstrap is forbidden"),
+            setup.index("for mapping in"),
+        )
 
     def test_builder_pin_check_does_not_trust_image_entrypoint_or_sha256sum(
         self,

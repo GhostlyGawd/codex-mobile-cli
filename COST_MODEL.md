@@ -27,6 +27,23 @@ which GitHub documents as free for public repositories. Every job also requires
 public visibility and the explicit `PUBLIC_CI_ENABLED` variable; larger runners
 and persistent owner-PC runners are prohibited.
 
+## Active owner-PC operating envelope
+
+The zero-new-cost profile uses the existing D-backed Ubuntu WSL distribution
+and does not add a tunnel or hosted control plane. Its 64 GiB XFS guest image
+is stored inside WSL's dynamically growing VHD on `D:`; that logical ceiling
+does not reserve 64 GiB of physical Windows storage. Setup and preflight retain
+separate `D:` free-space gates.
+
+The profile admits at most one 2 CPU / 2 GiB / 512-process workspace and one
+persistent quota-bearing 8–16 GiB named volume (12 GiB default). The owner PC
+must stay powered, awake, online, and running WSL, the product services, and
+the reviewed ingress. Those availability and electricity costs are accepted
+use of already-owned resources, not a new recurring infrastructure service.
+A stable public HTTPS route, DNS/TLS, Apple associated-domain configuration,
+GitHub App, production credentials, and TestFlight upload remain separate
+owner-gated launch work; this cost decision does not claim they exist.
+
 ## Research outcome
 
 - **Active decision:** defer all VPS purchasing and run the private beta on the

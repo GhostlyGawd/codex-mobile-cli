@@ -28,6 +28,11 @@ allowed_terraform_providers:
   - coder
   - docker
 
+# terraform_data is built into Terraform and only serializes the owner-PC
+# singleton-volume lease lifecycle; it cannot provision an external service.
+allowed_terraform_resources:
+  - terraform_data
+
 allowed_terraform_resource_prefixes:
   - coder_
   - docker_

@@ -49,6 +49,7 @@ case "$release" in "$releases"/*) ;; *) echo "active release escapes immutable r
 
 for unit in \
   docker.service \
+  codex-mobile-owner-pc-runtime.service \
   codex-mobile-docker-firewall.service \
   codex-mobile-workspace-runtime.service \
   codex-mobile.service \

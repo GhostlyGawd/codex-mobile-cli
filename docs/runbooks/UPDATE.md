@@ -36,9 +36,14 @@ apply.
    Stop admitting long-running work near the configured window.
 2. Enumerate dirty/unpushed workspaces. Warn prominently; never delete them.
    Gracefully drain input, suspend where safe, and checkpoint the database and
-   each stopped dirty workspace. Verify free space and provider daily backup.
+   each stopped dirty workspace. Verify both Windows `D:` and guest XFS free
+   space. The active beta assumes no provider backup; check one only if the
+   owner has explicitly reopened and deployed the future VPS profile.
 3. Ask the owner to approve activation of the exact staged release and, in a
-   separate question, any required host reboot. Run [DEPLOY.md](DEPLOY.md).
+   separate question, any required Windows/WSL restart. Use
+   [OWNER_PC_BETA.md](OWNER_PC_BETA.md) and the immutable owner-profile release
+   path for the active beta. Run [DEPLOY.md](DEPLOY.md) only after a separate
+   owner decision has reauthorized `fixed_price_vps`.
 4. Apply Ubuntu security packages in reviewed groups. Reboot only if required
    and explicitly approved. Active processes cannot survive; after reboot mark
    them stopped or restart only documented services—not user commands.

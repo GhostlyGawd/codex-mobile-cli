@@ -21,6 +21,10 @@ ExecStart=/usr/local/libexec/codex-mobile/start-provisioner
 Restart=on-failure
 RestartSec=10s
 TimeoutStopSec=90s
+MemoryMax=512M
+MemorySwapMax=0
+CPUQuota=100%
+TasksMax=256
 
 NoNewPrivileges=yes
 CapabilityBoundingSet=

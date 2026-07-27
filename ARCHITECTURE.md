@@ -13,20 +13,17 @@ flowchart LR
   CP --> PREVIEW[Authenticated preview proxy]
   CODER --> PROVISIONER[Unprivileged provisioner]
   PROVISIONER -->|Private root-equivalent Unix socket| ENGINE[Dedicated root-owned Podman quota runtime]
-  ENGINE --> W1[User-namespaced workspace container 1]
-  ENGINE --> WN[User-namespaced workspace container N, max 10]
-  ENGINE --> R1[Immutable workspace 1 Coder relay]
-  ENGINE --> RN[Immutable workspace N Coder relay]
+  ENGINE --> W1[One user-namespaced workspace workload]
+  ENGINE --> R1[One immutable Coder relay]
   W1 -->|Private workspace bridge| R1
-  WN -->|Private workspace bridge| RN
   R1 -->|Fixed address and port| CONTROL[Root-owned control uplink + host firewall]
-  RN -->|Fixed address and port| CONTROL
   CONTROL --> CODER
   W1 --> TMUX[tmux + PTYs + real Codex TUI]
-  WN --> TMUX2[tmux + PTYs + real Codex TUI]
 ```
 
-Only Caddy/control-plane listener ports are public. PostgreSQL, the exact
+Only reviewed Caddy/control-plane listener ports may become public; that
+owner-PC ingress is not established merely by installing the host foundation.
+PostgreSQL, the exact
 RFC1918 Coder listener, the container engine, workspace agents, metrics, and
 admin endpoints live on private networks, private Unix sockets, or loopback.
 Workspaces do not join the Coder/control network: each Coder agent connects
@@ -55,9 +52,11 @@ firewall-restricted, and audited only for an approved future remote host.
   ambiguity phases, exact-running start boundary, devcontainer trust, and unique
   branch/worktree policy.
 - `admission`: equal CPU/memory fair shares, immutable 8–16 GiB disk requests,
-  configurable running cap bounded by ten, 40 GiB host reserve, worst-case start guard, continuous
+  profile-specific running caps and reserves, worst-case start guard, continuous
   admission-to-runtime reservation, conservative quota high-water persistence,
-  and level-triggered repair.
+  and level-triggered repair. `owner_pc_beta` fixes the cap at one and reserves
+  2 CPU, 3 GiB memory, and 24 GiB of its 64 GiB XFS data image for trusted
+  host/control use.
 - `terminal`: tmux-backed PTYs, mandatory pre-sequence active-grant redaction,
   versioned binary frames, bounded replay/admission/subscriber queues, targeted
   idempotent-input receipts, acknowledgement/backpressure, one-writer lease,
@@ -78,8 +77,10 @@ firewall-restricted, and audited only for an approved future remote host.
 1. Authenticated owner selects a repository installation and base branch.
 2. Admission computes equal CPU/memory shares using running-count + 1, records
    an immutable 8–16 GiB disk request (12 GiB default), and either reserves
-   capacity or queues. A new start requires the 40 GiB host reserve plus a
-   worst-case 16 GiB workspace, regardless of the smaller requested quota. An
+   capacity or queues. In `owner_pc_beta`, the sole workload receives exactly
+   2 CPU and 2 GiB memory; a new start preserves a 24 GiB reserve plus room for
+   a worst-case 16 GiB workspace, so the XFS free-space boundary is 40 GiB
+   regardless of the smaller requested quota. An
    admitted start holds admission continuously through acquisition of the
    provider-runtime gate, and its durable `provider_start_reserved` phase proves
    that no provider call has happened yet.
@@ -388,32 +389,65 @@ it before promotion, while public CI remains authoritative for hosted
 current-head execution. See
 [ADR 0024](docs/adr/0024-pinned-source-envbuilder-derivative.md).
 
-### Deferred VPS host storage and workspace disk quotas
+### Active owner-PC WSL storage and workspace quotas
 
-The following XFS capacity profile belongs to the deferred always-on VPS
-design. The owner-PC private beta instead requires measured local limits and a
-separate fail-closed host profile; it must not claim this XFS, AppArmor, or
-ten-session evidence.
+The `owner_pc_beta` foundation creates one fully guest-allocated 64 GiB XFS
+image at `/var/lib/codex-mobile-owner-pc/workspace-storage.xfs`, loop-mounts it
+at `/srv/codex-mobile` with `pquota`/`prjquota`, `nodev`, `nosuid`, and
+`noatime`, and verifies it from systemd PID 1's mount namespace. The enclosing
+WSL `ext4.vhdx` remains dynamically thin on `D:`; the guest ceiling is not a
+claim that Windows preallocated 64 GiB. Host and guest free-space gates are
+both required.
 
-Operator-managed encrypted storage is mounted exactly at `/srv/codex-mobile`
-as XFS with `pquota` or `prjquota`. Ansible, deploy preflight, and the dedicated
-Podman unit fail closed otherwise. Each workspace volume is created once with
-`size=<G>G` and `inodes=<G*65536>` local-volume options and is not resized by
-later equal-share changes. Ten maximum 16 GiB volumes consume 160 GiB of the
-200 GiB budget, leaving 40 GiB for the host; admission requires at least 56 GiB
-free before every new start. Static checks do not prove kernel enforcement: a
-target Ubuntu spike must demonstrate an over-quota write fails.
+The no-release bootstrap installs the free host prerequisites,
+checksum-pinned Coder/Syft/Trivy tools, and the exact privileged artifacts
+needed to reach the first manifest. It refuses to overwrite installed
+artifacts after an active release exists; promotion replaces them with
+manifest-recorded copies. The firewall, workspace runtime, and Compose stack
+hard-require the condition-gated owner runtime, so an owner mount/quota failure
+blocks startup rather than falling through to directories on the WSL root.
 
-The administrator also records the exact `findmnt` source for this mount as
-`WORKSPACE_IO_DEVICE`; Ansible, preflight, template import, and runtime startup
-all reject a mismatch instead of guessing a host block device. The template
-sets fixed per-container BPS/IOPS maxima on that device and caps EnvBuilder's
-writable overlay at 4 GiB. Plain workspace root filesystems remain read-only.
-The pinned Docker provider does not expose `PidsLimit`, so the dedicated Podman
-engine applies a fixed 512-process default at container creation. Production
-acceptance requires a live template-created container to show the same value
-in HostConfig and cgroup-v2 `pids.max`, plus the configured limits in `io.max`.
-See [ADR 0010](docs/adr/0010-xfs-workspace-quotas-and-private-podman-runtime.md).
+At most one persistent quota-bearing workspace-data named volume may exist,
+including stopped or orphaned volumes. Podman 4.9.3 reuses its XFS project ID
+across multiple quota volumes, so a second such volume could silently change
+the first volume's limit. The runtime serializes creation and fails closed when
+that single-volume lease or the physical project-ID scan is inconsistent.
+The volume is created once with an immutable exact-byte 8–16 GiB quota (12 GiB
+default). Podman 4.9.3 also misclassifies its named-volume `inodes` option as a
+mount option, so the root-owned runtime establishes a fixed XFS default project
+hard and soft limit of 1,048,576 inodes before volume creation.
+
+The parent mount and all workspace-visible mounts remain `nodev`. Podman gets
+device-node behavior only through exact root-owned mode-`0700` self-binds at
+`workspaces/.containers/overlay` and `workspaces/.containers/volumes`,
+remounted `dev,nosuid`; neither internal path is exposed to a workspace. The
+administrator records the stable source for `WORKSPACE_IO_DEVICE`, and startup
+resolves and verifies it instead of guessing a block device.
+
+Each workspace workload is capped at 2 CPU, 2 GiB memory with no additional
+swap, 512 processes, 64 MiB/s read, 32 MiB/s write, 2,000 read IOPS, and 1,000
+write IOPS. The relay and workload request non-overlapping `auto:size=65536`
+user mappings from the dedicated `containers:1000000:1048576` subordinate UID
+and GID pools. EnvBuilder's writable overlay retains a separate 4 GiB /
+262,144-inode quota; plain workspace root filesystems remain read-only.
+AppArmor is unavailable on the selected WSL host, so this profile omits that
+security option while retaining seccomp, user namespaces, capability drops,
+`no-new-privileges`, cgroups, private networking, and socket/device denial.
+
+Static checks do not prove kernel enforcement. Dated acceptance evidence must
+demonstrate the byte and inode limits, a rejected second persistent
+quota-bearing volume, distinct user mappings, cgroup and I/O limits, the exact
+mount exceptions, and restart persistence. See
+[ADR 0026](docs/adr/0026-owner-pc-wsl-runtime.md).
+
+### Deferred VPS host profile
+
+The historical ten-session, 200 GiB host profile remains documented in
+[ADR 0010](docs/adr/0010-xfs-workspace-quotas-and-private-podman-runtime.md).
+It is unauthorized and rejected by current production policy unless the owner
+explicitly reopens always-on hosting. Its AppArmor, provider-backup,
+ten-session, reboot, and load evidence cannot be substituted for owner-PC beta
+evidence.
 
 Serving processes hold a shared PostgreSQL advisory lease. The offline
 master-key command requires the exclusive lease and uses one serializable
@@ -462,8 +496,8 @@ Every mutable core record contains `owner_id`, even though the MVP has one owner
   retried from an uncertain subset; it fails closed with
   `private_inputs_recreate_required` for deletion and recreation.
 - Capacity shortfall queues rather than scales. The active owner-PC beta uses a
-  measured conservative local cap; the historical ten-session/XFS target is
-  deferred with the VPS profile.
+  hard maximum of one workload and one persistent quota-bearing named volume;
+  the historical ten-session target is deferred with the VPS profile.
 - Dirty or unpushed workspaces are never automatically deleted.
 - A file-save error after a possible commit is reconciled by a fresh read/ETag,
   never a blind retry.

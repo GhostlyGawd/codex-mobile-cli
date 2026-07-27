@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"strings"
 	"testing"
+	"time"
 )
 
 func env(values map[string]string) Lookup {
@@ -20,7 +21,8 @@ func TestDevelopmentDefaults(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if cfg.HTTPAddr != ":8080" || cfg.GitHubEnabled || cfg.APNSEnabled || cfg.MaxRunning != 10 {
+	if cfg.HTTPAddr != ":8080" || cfg.GitHubEnabled || cfg.APNSEnabled ||
+		cfg.MaxRunning != 10 || cfg.DeploymentProfile != "development" {
 		t.Fatalf("unexpected development defaults: %#v", cfg)
 	}
 }
@@ -41,6 +43,8 @@ func TestProductionRequiresCompleteFailClosedConfig(t *testing.T) {
 	key := []byte("0123456789abcdef0123456789abcdef")
 	vals := map[string]string{
 		"APP_ENV":                   "production",
+		"DEPLOYMENT_PROFILE":        "owner_pc_beta",
+		"MAX_RUNNING_WORKSPACES":    "1",
 		"PUBLIC_ORIGIN":             "https://api.codex.test",
 		"PASSKEY_RP_ID":             "api.codex.test",
 		"PASSKEY_ORIGINS":           "https://api.codex.test",
@@ -69,6 +73,43 @@ func TestProductionRequiresCompleteFailClosedConfig(t *testing.T) {
 	}
 	if len(cfg.MasterKey) != 32 || len(cfg.SessionPepper) != 32 {
 		t.Fatal("keys were not decoded")
+	}
+}
+
+func TestProductionDeploymentProfileIsFailClosed(t *testing.T) {
+	t.Parallel()
+	base := Config{
+		Environment:             "production",
+		DeploymentProfile:       "owner_pc_beta",
+		HTTPAddr:                ":8080",
+		PublicOrigin:            "https://api.codex.test",
+		PasskeyRPID:             "codex.test",
+		PasskeyOrigins:          []string{"https://api.codex.test"},
+		CoderURL:                "http://coder:7080",
+		WorkspaceDiskProbePath:  "/workspace-disk-probe",
+		AccessTTL:               15 * time.Minute,
+		RefreshTTL:              24 * time.Hour,
+		BootstrapTTL:            15 * time.Minute,
+		LifecycleScanInterval:   time.Minute,
+		LifecycleWarningLead:    time.Hour,
+		MetricsAddr:             "127.0.0.1:9090",
+		MaintenanceWeekday:      time.Sunday,
+		MaintenanceWarningLead:  time.Hour,
+		MaintenanceUrgentLead:   5 * time.Minute,
+		MaintenanceScanInterval: time.Minute,
+		MaxRunning:              1,
+	}
+	for _, change := range []func(*Config){
+		func(c *Config) { c.DeploymentProfile = "fixed_price_vps" },
+		func(c *Config) { c.DeploymentProfile = "development" },
+		func(c *Config) { c.DeploymentProfile = "unknown" },
+		func(c *Config) { c.MaxRunning = 2 },
+	} {
+		candidate := base
+		change(&candidate)
+		if err := candidate.Validate(); err == nil {
+			t.Fatalf("accepted unsafe production profile: %#v", candidate)
+		}
 	}
 }
 

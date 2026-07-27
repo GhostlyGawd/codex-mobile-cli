@@ -3,10 +3,11 @@
 This runbook records what the Go backend suite proves and, just as importantly, what it does not prove. Unit tests that use fake GitHub, Coder, APNs, WebAuthn, or network boundaries are contract evidence only. They are not substitutes for credentialed end-to-end verification.
 
 The active private-beta target is the owner PC and D-backed Ubuntu WSL under
-ADR 0025. References below to XFS, ten-session capacity, AppArmor, provider
-backup, or VPS reconstruction describe retained future-VPS evidence unless a
-row explicitly adopts the control for the owner-PC profile. They are not
-private-beta launch gates.
+ADRs 0025 and 0026. The active profile has its own 64 GiB loop-backed XFS quota
+boundary inside a dynamically sized WSL VHD on `D:`. References below to the
+VPS disk layout, ten-session capacity, AppArmor, provider backup, or VPS
+reconstruction describe retained future-host evidence unless a row explicitly
+adopts a control for `owner_pc_beta`. They are not private-beta launch gates.
 
 ## Automated verification
 
@@ -15,16 +16,16 @@ the repository root:
 
 ```shell
 go work sync
-go fmt ./services/control-plane/...
+go -C services/control-plane fmt ./...
 go vet ./services/control-plane/...
 go test -race ./services/control-plane/...
 go test ./services/control-plane/... -coverprofile=coverage/control-plane.out
 ```
 
-On Windows with Go 1.26.5, use
-`go -C services/control-plane fmt ./...`; the integrated PowerShell verifier
-applies that module-local equivalent. The POSIX verifier and public Linux
-workflow use `GO111MODULE=off go fmt ./services/control-plane/...`.
+Go 1.26.5 rejects the workspace-root pattern
+`go fmt ./services/control-plane/...` on Windows and Linux even though
+`go list` accepts it. The required module-local invocation above is portable;
+both integrated verifiers and the public Linux workflow use it.
 
 For a focused backend security/contract pass from `services/control-plane`:
 
@@ -123,10 +124,40 @@ Recorded local evidence on 2026-07-16:
   generated manifest, rather than this self-referential document, name the
   authoritative revision. Every later commit must repeat the gate before
   promotion. Production Compose/Coder activation, the dedicated provisioner
-  runtime, XFS/AppArmor enforcement, and host isolation remain `GATED` and
-  `NOT EXECUTED`.
+  runtime, owner-profile XFS quota/cgroup/user-namespace/restart proof, and host
+  isolation remain `GATED` and `NOT EXECUTED` in that 2026-07-26 evidence.
+  AppArmor is unavailable on the selected WSL host and is not a beta pass.
+- On 2026-07-27, the exact initializer from revision
+  [`74b44a6`](https://github.com/GhostlyGawd/codex-mobile-cli/commit/74b44a6daafac5fec3ecff029398b6d5bf211f3a)
+  ran on the D-backed Ubuntu WSL host. It created the root-owned mode-`0600`
+  64 GiB XFS image and mounted it at `/srv/codex-mobile` with
+  `rw,nosuid,nodev,noatime,prjquota`. The singleton gate admitted one workspace
+  claim and rejected a different claim. The admitted project received equal
+  8 GiB block soft/hard limits and equal 1,048,576-inode soft/hard limits. A
+  stale inode limit failed closed, received a one-time repair, and subsequent
+  project-ID reuse inherited the required inode limit. A 1 MiB write
+  succeeded, a 9 GiB write failed with `ENOSPC`, and no proof lease or volume
+  remained.
+- During that same 2026-07-27 run, an empty marker on the XFS mount survived two
+  WSL terminations. The cold-start fix at revision
+  [`c1d6a41`](https://github.com/GhostlyGawd/codex-mobile-cli/commit/c1d6a41e85a4ced768307c839fee61e0927f7e01)
+  made the active storage mount's parent ID authoritative so hidden stale
+  self-binds do not satisfy the mount check, and kept socket finalization
+  bounded within the unit timeout. After a cold boot, the owner and workspace
+  runtime services were active; the private socket was
+  `root:coder-provisioner` mode
+  `0660`; repeated mount-helper execution did not stack global self-binds; the
+  dedicated sub-ID pool was `containers:1000000:1048576`; and loopback retained
+  `10.86.0.1/32`.
 - These local runs did not contact GitHub/ChatGPT, execute a real Linux Coder
   workspace, or compile Swift with Xcode.
+
+The 2026-07-27 live run completes the owner-PC storage/quota/singleton,
+private-socket, mount-persistence, and cold-service-start foundation evidence.
+It does not prove a real template-created Coder relay/workload, its cgroups/I/O
+and distinct user mappings, the Coder/EnvBuilder flow, Safe Mode network denial,
+public HTTPS/DNS/AASA, GitHub App behavior, or device/TestFlight behavior.
+AppArmor is unavailable in this WSL environment and is not claimed as passing.
 
 Rerun the full commands after any integration, dependency, migration, or
 generated-contract change. A prior green run is not evidence for a later tree.
@@ -146,7 +177,7 @@ execution.
 | Runtime secrets and master key | `internal/postgres`, `internal/application`, `internal/githubworkspace`, `internal/workspacehelper`, and `internal/gitops` cover active explicit-grant loading, per-workspace serialized database mutation followed by authoritative live tmpfs sync, future-process-only audit scope, honest committed-database/runtime-sync partial failure, mandatory sync before terminal launch, transfer/request wiping, tmpfs seal removal, generic fail-closed Git scanning, and exact AAD-family rewrap/rollback. `workspacehelper` also proves shell/direct-Codex/helper-Git ambient-environment allowlists exclude the agent token, database/control-plane, GitHub/APNs, shell-hook, and unknown parent variables while preserving trusted owner configuration/grants. This does not hide the standard agent process token from same-authority hostile code. | A process already running when a grant is revoked retains its launch environment until closed. The root-owned master key is outside PostgreSQL/database-only dumps. The active beta assumes no provider backup; any whole-host recovery copy must be assessed for whether it also contains the key. Target-Linux tmpfs behavior, hostile agent-token observation/scope, process-crash observation, a credentialed real-grant shell/Codex run, execution of the PostgreSQL serve-lock test, a live all-family rotation/checkpoint rollback drill, and the operator's atomic production key-file switch remain unproven. |
 | PTY and terminal protocol | `internal/coder` covers fixed tmux construction, prompt non-interpolation, initial-prompt readiness, PTY URL construction, and loopback-only forwarding. `application`/`postgres`/`httpapi` cover terminal ownership and persistent-tab mutations; the live PostgreSQL race run includes `TestIntegrationTerminalTabMutations`. `internal/terminal` covers binary validation; complete retained-window replay after truncated/ahead gaps; one-use tickets; reconnect audience binding/revocation; explicit takeover; targeted reliable per-connection input receipts after successful PTY write; per-device/tab same-key retry dedupe and changed-payload rejection; 2,048-per-device/4,096-per-tab capacity rejection before write; two-device receipt isolation; output backpressure; mandatory exact/hex/base64/base64url/URL/wrapped active-grant redaction across PTY chunks before sequence/replay/subscription; OSC 52 removal; and title sanitization. Native model/static tests cover same-key composer retry until receipt, full renderer/cache reset and earliest-sequence resume on gap, and one-time stale reconnect-token fallback through the authenticated owner session; those tests compile and pass in the hosted unsigned simulator suite. | Receipt/dedupe records live only for the gateway process/replay generation. A crash after PTY write and before receipt leaves an ambiguity that can duplicate a later retry. The pending native delivery key is also memory-only: app termination after confirmation but before encrypted draft clearing can leave a resendable stale draft. Attachment retry reuses the exact staged payload only until expiry. This is not durable exactly-once delivery. Real PTY/tmux survival/termination on Linux, pinned-TUI timing, SwiftTerm rendering, input fidelity, and physical-device behavior remain gated. |
 | Files and Git | `internal/files` covers bounded/cancelable pure-Go search plus root confinement, special/sensitive-path denial, create races, and ETag behavior. The production Linux implementation pins the workspace root, traverses parent descriptors with `O_NOFOLLOW`, requires regular files, stages/fsyncs atomic saves, exchanges the target, verifies the exact displaced-content ETag, and rolls back a commit-boundary conflict; Linux tests exercise root/parent/path symlink swaps and concurrent CAS. The portable `os.Root` backend proves confinement and deterministic conflict handling. `internal/gitops` covers status/stage/commit/diff, checkpoint-backed discard, fast-forward-only pull, index-lock contention, path safety, bounded active-grant scanning, and strict Git environments. | Non-Linux platforms lack rename-exchange and therefore cannot guarantee external-writer CAS in the final check-to-rename window. Any error after a possible namespace commit must be reconciled by a fresh read/ETag before retry. Native-versus-terminal contention, target-Linux filesystem/scanner runtime, large repositories/binaries, editor/diff runtime, uploads, and device cache behavior remain live-gated. |
-| Workspace capacity/runtime | `internal/admission`, `internal/core`, workspace/lifecycle tests, Coder adapter tests, infrastructure static tests, and API/native contracts bind disk requests to immutable 8–16 GiB with a 12 GiB default. New starts hold admission continuously from the durable `provider_start_reserved` record through runtime acquisition, switch to `provider_provision_unconfirmed` before the provider call, and block unsafe starts/expansion while a transition may still be live. Coder create, setup, and quota builds become ready only when the exact returned build reaches `running`. Quota reconciliation persists the component-wise conservative high-water before provider expansion, persists the exact target after confirmation, and retries owner convergence on lifecycle scans. Static tests cover the historical XFS/ten-session profile plus the immutable per-workspace relay, root-owned RFC1918 control bridge, exact Coder address/port firewall allow, absence of a Safe Mode egress bridge, `api_key_scope=no_user_data` on the standard agent token, and exclusion of privileged Coder API/provisioner credentials from workspaces. | The owner-PC Ubuntu WSL spike must prove the selected local profile's disk/PID/I/O limits, private user namespaces/networking/socket isolation, conservative measured capacity, and refusal beyond that cap. It must also prove a template-created Coder agent registers and operates a PTY only through its relay while Safe Mode reaches no other host/control/general-egress destination. The historical ten-session XFS spike is deferred with VPS hosting. Same-authority repository code may observe/use the unavoidable agent token; hostile live inspection must show it grants no privileged Coder API/cross-workspace authority. |
+| Workspace capacity/runtime | `internal/admission`, `internal/core`, workspace/lifecycle tests, Coder adapter tests, infrastructure static tests, and API/native contracts bind disk requests to immutable 8–16 GiB with a 12 GiB default. `owner_pc_beta` fixes `MAX_RUNNING_WORKSPACES=1`, the workload at 2 CPU / 2 GiB / 512 processes, trusted reserves at 2 CPU / 3 GiB / 24 GiB, and the XFS start boundary at 40 GiB free. Static infrastructure policy covers the root-owned 64 GiB loop-backed XFS image, exact mount options, one persistent quota-bearing volume lease plus physical scan, exact-byte Podman quota, fixed 1,048,576-inode project default, parent/workspace `nodev`, two exact Podman-internal `dev,nosuid` self-binds, I/O ceilings, and distinct `auto:size=65536` mappings from `containers:1000000:1048576`. New starts hold admission continuously from the durable `provider_start_reserved` record through runtime acquisition, switch to `provider_provision_unconfirmed` before the provider call, and block unsafe starts/expansion while a transition may still be live. Coder create, setup, and quota builds become ready only when the exact returned build reaches `running`. Quota reconciliation persists the component-wise conservative high-water before provider expansion, persists the exact target after confirmation, and retries owner convergence on lifecycle scans. The dated 2026-07-27 live run at initializer `74b44a6` and cold-start fix `c1d6a41` proves the root-owned image/mount; singleton claim/different-claim rejection; exact 8 GiB block and 1,048,576-inode soft/hard limits; fail-closed stale-limit handling; 1 MiB success and 9 GiB `ENOSPC`; correct inode-limit inheritance on project-ID reuse; no residual proof lease/volume; mount and service restart persistence; stable self-bind count; private socket; exact sub-ID pool; and stable loopback. | A real template-created Coder relay/workload must still prove its 2 CPU / 2 GiB / 512-process and I/O cgroups, non-overlapping live user mappings, complete admission/capacity refusal, agent registration, PTY operation only through its relay, and Safe Mode denial of every other host/control/general-egress destination. Coder/EnvBuilder lifecycle evidence also remains gated. AppArmor is unavailable on this WSL host and is not claimed; the historical ten-session, provider-backup, reboot, and load evidence is deferred with VPS hosting. Same-authority repository code may observe/use the unavoidable agent token; hostile live inspection must show it grants no privileged Coder API/cross-workspace authority. |
 | Lifecycle and retention | Lifecycle tests cover activity compare-and-swap, running/idle/suspended transitions, process preservation, retention anchors/protection and fair queue promotion. Idle classification never treats a process `comm`/name as identity: only quiescent managed terminal infrastructure with a trusted executable/ancestry is excluded, ambiguous classification fails busy, and TCP listeners always count. Adversarial tests cover spoofed legacy names and a runnable trusted shell. | Validate the same executable/ancestry and listener behavior against real Linux `/proc` and Coder workspace processes, then exercise timed suspension/deletion on the target host. |
 | Local checkpoint recovery | `internal/checkpoint`, `internal/workspacehelper`, `internal/application`, and `internal/httpapi` cover owner scoping, v1 file-only compatibility, identity-bound v2 full restore, strict archive/hash/path/type/mode/cap validation, recorded deletions, mandatory pre-restore checkpoints, private sibling staging, atomic replacement, reverse rollback, incomplete-rollback journal retention, idempotency, metadata preservation, authenticated confirmation-gated routes, and recovery IDs. iOS static verification covers matching typed routes, checkpoint/hash metadata, confirmation dialogs, and the visible restore link; the native target compiles in the hosted unsigned simulator suite. | Owner-PC Ubuntu WSL filesystem race/fsync/permission behavior, terminal contention under real load, physical-device runtime UX, suspended whole-volume/database restore, and local host-loss drills. Future provider/VPS restore is deferred. |
 | Previews | `internal/preview` covers audience binding, expiry, route revocation, loopback-only targets, and fragment-token exchange that strips credentials before proxying. `internal/application` covers fragment-only access URLs and binding to the private Coder workspace identifier. | Wildcard DNS/TLS, a real Coder tunnel, HTTP and WebSocket development servers, hostile preview content isolation in `WKWebView`, Safari handoff, and stop/revoke behavior under deployment. |
@@ -158,6 +189,12 @@ Run these only after the owner supplies the relevant accounts, keys, domain,
 Mac/device, and approves use of the owner-PC Ubuntu WSL host. Keep secrets in
 the documented secret files or platform key stores; never paste them into
 commands, logs, screenshots, issue text, or this report.
+
+The host foundation is not public/TestFlight go-live. Stable public ingress,
+DNS/TLS, the Apple associated-domain file and matching passkey RP/origin,
+production Coder/template connectivity, the owner-created GitHub App,
+root-only production credentials, signing/APNs, and TestFlight upload remain
+distinct gates.
 
 1. Deploy the pinned Compose stack through the fail-closed owner-PC/WSL beta
    profile and record image digests, kernel details, health output, and the
@@ -182,12 +219,15 @@ commands, logs, screenshots, issue text, or this report.
 7. With a separate shell process running and Codex conversation history present, confirm the per-workspace Codex disconnect. Prove the helper first stops only app-owned Codex tmux sessions and removes tmpfs material/key plus encrypted auth, then the control plane unregisters runtimes; non-Codex processes/history remain. Inject a runtime-unregister failure and prove the API reports partial cleanup without restoring credentials. Verify status becomes disconnected, then complete a fresh `codex login --device-auth` and resume the retained history. Do not claim this revoked the upstream ChatGPT account/session.
 8. Grant and revoke a test secret in a running workspace. Verify future shells/Codex processes see the authoritative set, an existing process retains its launch-time value until closed, a failed live sync is returned/audited as a committed-database partial failure, and exact/encoded/split forms cannot enter terminal replay or the encrypted cache. Do not record the value in evidence.
 9. Exercise the native file tree, search, ETag conflict, stage/unstage, diff, commit, pull, and push while a terminal process swaps parent paths and a terminal Git process attempts a conflicting operation. Confirm Linux confinement/CAS, contention reporting, and that an injected post-commit error triggers a fresh read rather than a blind save retry.
-10. On the exact active owner-PC storage/runtime, prove the selected local
-    profile's fail-closed disk and process limits, then inspect user namespaces,
-    cgroups, networks, and runtime-socket absence from Coder/workspaces. Treat
-    provisioner socket access as root-equivalent evidence. The exact
-    `/srv/codex-mobile` encrypted-XFS quota drill belongs to the deferred VPS
-    profile unless the local design explicitly and safely adopts it.
+10. Retain the 2026-07-27 foundation record for the root-owned 64 GiB XFS
+    image/mount, singleton quota lease, exact 8 GiB byte and 1,048,576-inode
+    limits, refusal behavior, self-bind stability, private provisioner socket,
+    and controlled service/WSL restart. On a real template-created workspace,
+    still prove one-workload admission; 2 CPU / 2 GiB / no-extra-swap /
+    512-process and I/O cgroups; non-overlapping 65,536-ID workload/relay
+    mappings from the dedicated pool; network isolation; and runtime-socket
+    absence from Coder/workspaces. Treat provisioner socket access as
+    root-equivalent evidence and record AppArmor as unavailable, not passed.
 11. Start one HTTP and one WebSocket development server. Verify the detected route uses wildcard TLS, an unauthenticated request fails, the fragment credential is exchanged and removed before proxying, cookies/origins are isolated, the target remains loopback inside the workspace, and revoke/stop invalidates access.
 12. Send sandbox and production APNs notifications only with the corresponding owner keys and provisioned app. Verify generic detail by default, quiet-hours behavior, unregistered-token disablement, retry handling, and safe deep links on a real device.
 13. On the owner-controlled Mac, run the SwiftTerm VT/xterm corpus and native editor/diff flows, including Unicode/emoji width, alternate screen, bracketed paste, resize, hardware control keys, OSC 52 denial, malicious titles/links, VoiceOver, and Dynamic Type.

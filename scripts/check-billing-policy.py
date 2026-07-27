@@ -34,6 +34,7 @@ def active_hcl(text: str) -> str:
 
 def check_terraform(root: Path, policy: dict[str, Any], failures: list[str]) -> None:
     allowed_providers = set(policy["allowed_terraform_providers"])
+    allowed_resources = set(policy["allowed_terraform_resources"])
     allowed_prefixes = tuple(policy["allowed_terraform_resource_prefixes"])
     block = re.compile(r'\b(provider|resource)\s+"([A-Za-z0-9_-]+)"')
 
@@ -44,7 +45,11 @@ def check_terraform(root: Path, policy: dict[str, Any], failures: list[str]) -> 
                 failures.append(
                     f"{relative}: Terraform provider {name!r} is not local-policy approved"
                 )
-            if kind == "resource" and not name.startswith(allowed_prefixes):
+            if (
+                kind == "resource"
+                and name not in allowed_resources
+                and not name.startswith(allowed_prefixes)
+            ):
                 failures.append(
                     f"{relative}: Terraform resource {name!r} can create an unapproved resource"
                 )
@@ -194,6 +199,7 @@ def validate_policy(root: Path, requested_profile: str | None = None) -> list[st
         "deferred_deployment",
         "allowed_runtime_services",
         "allowed_terraform_providers",
+        "allowed_terraform_resources",
         "allowed_terraform_resource_prefixes",
         "forbidden_deployment_manifests",
         "forbidden_paid_runtime_environment",

@@ -8,9 +8,13 @@ script retains database dumps for 14 days and workspace archives for 30 days;
 local scheduling and a fail-closed storage-capacity guard must be proven on the
 active host before relying on those periods.
 
-The infrastructure script refuses to start unless the filesystem can preserve
-the 40 GiB host reserve plus the configured maximum archive size (4 GiB for a
-database dump and 16 GiB for a workspace by default). It serializes writers,
+The infrastructure script selects its reserve from `DEPLOYMENT_PROFILE`:
+`owner_pc_beta` preserves 24 GiB and the deferred `fixed_price_vps` profile
+preserves 40 GiB. It also requires room for the configured maximum output
+(4 GiB for a database dump and 16 GiB for a workspace by default), so an
+owner-profile workspace checkpoint starts only with at least 40 GiB free.
+A capacity refusal is fail-closed and must not be bypassed. The script
+serializes writers,
 captures producer and compressor failures independently, enforces the
 compressed-size cap, validates gzip integrity (and workspace tar structure),
 syncs the result, and only then atomically publishes the final filename. A
@@ -18,6 +22,11 @@ failure leaves no final or partial archive. The byte limits can be lowered for
 an approved smaller installation with `CHECKPOINT_RESERVE_BYTES`,
 `CHECKPOINT_DATABASE_MAX_BYTES`, and `CHECKPOINT_WORKSPACE_MAX_BYTES`; do not
 lower the reserve below the measured control-stack requirement.
+
+Owner-profile checkpoints are supported as same-image recovery points beneath
+the 64 GiB XFS filesystem. They are not an independent disaster backup: loss or
+corruption of the D-backed WSL VHD can remove the workspace and its checkpoints
+together.
 
 ## In-app local recovery
 
@@ -91,23 +100,31 @@ checkpoint API. Manual archive extraction remains a drill for a
 security-reviewed operator; the shipped safe helper described above operates
 only on bounded app-created local checkpoint archives.
 
-## Restore an entire stopped workspace volume with the XFS quota profile
+## Restore an entire stopped owner-PC workspace volume
 
-This is destructive and requires explicit approval. Capture `podman volume
-inspect` metadata and the exact template release first. Create a scratch volume
-through the same private quota runtime with the captured XFS size/inode options,
-import the archive into it, attach it only to a disposable no-network
-validation container, and verify ownership, confinement, Git fsck/status,
-absence of special files, quota enforcement, and expected checkout. Access to
-that engine is root-equivalent and belongs only in the owner-approved operator
-procedure.
+This is destructive and remains `GATED` until an exact owner-PC drill is
+recorded. Podman 4.9.3 may reuse the same XFS project ID for multiple quota
+volumes, so `owner_pc_beta` permits only one persistent quota-bearing named
+volume total. Do **not** create a second scratch quota volume while the stopped
+live volume or an orphaned predecessor exists; doing so can silently change the
+live volume's byte limit.
 
-Only after validation: stop the workspace, export the current live volume,
-remove/recreate the fixed-name live volume with the captured labels/options,
-import the approved archive, and resume. Abort if Coder/Podman has changed the
-volume contract; do not improvise a label/name swap. Run the two-workspace
-isolation tests afterward. Exact commands must be recorded from a successful
-target-Podman drill before this procedure is marked executable.
+Capture `podman volume inspect`, the singleton lease, physical project-ID/quota
+state, archive hash, and exact template/release first. Validate the archive's
+format, paths, types, ownership plan, Git fsck/status, and expected checkout in
+a root-only bounded quarantine that does not create another quota-bearing
+Podman volume. The final replacement sequence must be implemented and reviewed
+as one serialized owner-profile operation that preserves recovery evidence,
+proves the old container is absent, removes/releases the sole old volume only
+at the approved destructive boundary, claims and creates the sole replacement
+with the captured immutable byte quota, imports the archive, and verifies both
+the byte quota and inherited 1,048,576-inode ceiling before resume.
+
+Abort if the lease, labels, project ID, quota, Coder state, or physical volume
+scan is ambiguous. Do not improvise a second volume, label/name swap, or
+proportional inode option. Access to the private engine is root-equivalent.
+Exact redacted commands and rollback behavior must be captured from a
+successful target-Podman drill before this procedure is marked executable.
 
 ## Restore PostgreSQL
 
@@ -124,6 +141,7 @@ target-Podman drill before this procedure is marked executable.
 
 Database restore and whole-volume restore have not been executed on this
 Windows/WSL host. Record active-beta restore as `GATED`, not passing, until a
-local live drill captures exact redacted commands and evidence. The XFS quota
-volume procedure remains deferred if the active local profile does not use that
-filesystem contract.
+local live drill captures exact redacted commands and evidence. The active
+profile does use XFS project quotas, but its one-volume Podman 4.9.3 boundary
+forbids the older two-volume scratch procedure. Future VPS restore remains a
+separate owner decision.

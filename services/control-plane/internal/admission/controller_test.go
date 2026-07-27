@@ -31,6 +31,54 @@ func TestReferenceCapacityAdmitsTenEqualShares(t *testing.T) {
 	}
 }
 
+func TestOwnerPCBetaCapacityAdmitsExactlyOneBoundedWorkspace(t *testing.T) {
+	t.Parallel()
+	capacity := OwnerPCBetaCapacity()
+	if capacity.MaxRunning != 1 {
+		t.Fatalf("unexpected owner-PC maximum: %d", capacity.MaxRunning)
+	}
+	c, err := New(capacity)
+	if err != nil {
+		t.Fatal(err)
+	}
+	decision := c.PlanStart(Snapshot{DiskFreeGiB: 40})
+	if !decision.Admitted {
+		t.Fatalf("owner-PC workspace was not admitted at the exact boundary: %#v", decision)
+	}
+	want := core.Quota{CPUMilli: 2000, MemoryMiB: 2048, DiskGiB: 40}
+	if decision.Quota != want {
+		t.Fatalf("owner-PC quota = %#v, want %#v", decision.Quota, want)
+	}
+	second := c.PlanStart(Snapshot{Running: 1, DiskFreeGiB: 64})
+	if second.Admitted || second.Reason != "running workspace limit reached" {
+		t.Fatalf("second owner-PC workspace was not queued: %#v", second)
+	}
+}
+
+func TestOwnerPCBetaDiskReserveFailsClosedBelowBoundary(t *testing.T) {
+	t.Parallel()
+	c, err := New(OwnerPCBetaCapacity())
+	if err != nil {
+		t.Fatal(err)
+	}
+	decision := c.PlanStart(Snapshot{DiskFreeGiB: 39})
+	if decision.Admitted || decision.Reason != "disk reserve would be violated" {
+		t.Fatalf("unexpected owner-PC disk decision: %#v", decision)
+	}
+}
+
+func TestCapacityForProfileRejectsDeferredAndUnknownProfiles(t *testing.T) {
+	t.Parallel()
+	for _, profile := range []string{"", "fixed_price_vps", "unknown"} {
+		if _, err := CapacityForProfile(profile); err == nil {
+			t.Fatalf("profile %q was accepted", profile)
+		}
+	}
+	if got, err := CapacityForProfile("owner_pc_beta"); err != nil || got != OwnerPCBetaCapacity() {
+		t.Fatalf("owner profile capacity: %#v, %v", got, err)
+	}
+}
+
 func TestEleventhWorkspaceQueuesWithoutScaling(t *testing.T) {
 	t.Parallel()
 	c, _ := New(ReferenceCapacity())
@@ -71,6 +119,26 @@ func TestInvalidCapacityRejected(t *testing.T) {
 	_, err := New(Capacity{Total: core.Quota{CPUMilli: 1, MemoryMiB: 1, DiskGiB: 1}, Minimum: core.Quota{CPUMilli: 1, MemoryMiB: 1, DiskGiB: 1}, MaxRunning: 11})
 	if err == nil {
 		t.Fatal("expected invalid capacity")
+	}
+	for _, capacity := range []Capacity{
+		{
+			Total:       core.Quota{CPUMilli: 2, MemoryMiB: 2, DiskGiB: 2},
+			Reserve:     core.Quota{CPUMilli: 3, MemoryMiB: 1, DiskGiB: 1},
+			Minimum:     core.Quota{CPUMilli: 1, MemoryMiB: 1, DiskGiB: 1},
+			MaxRunning:  1,
+			DiskReserve: 1,
+		},
+		{
+			Total:       core.Quota{CPUMilli: 2, MemoryMiB: 2, DiskGiB: 2},
+			Reserve:     core.Quota{CPUMilli: 0, MemoryMiB: -1, DiskGiB: 0},
+			Minimum:     core.Quota{CPUMilli: 1, MemoryMiB: 1, DiskGiB: 1},
+			MaxRunning:  1,
+			DiskReserve: 0,
+		},
+	} {
+		if _, err := New(capacity); err == nil {
+			t.Fatalf("accepted invalid capacity: %#v", capacity)
+		}
 	}
 }
 

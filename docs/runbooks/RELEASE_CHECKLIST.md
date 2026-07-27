@@ -1,7 +1,8 @@
 # Release checklist
 
 This checklist's active profile is the owner-PC private beta selected in
-[ADR 0025](../adr/0025-owner-pc-private-beta-hosting.md). Items explicitly
+[ADR 0025](../adr/0025-owner-pc-private-beta-hosting.md) and implemented by
+[ADR 0026](../adr/0026-owner-pc-wsl-runtime.md). Items explicitly
 labelled **deferred future VPS** are retained design evidence, not private-beta
 launch blockers. A release decision is **NO-GO** unless every applicable PASS
 has executed evidence and every remaining GATED item is explicitly accepted by
@@ -22,8 +23,10 @@ the owner as an external step—not silently converted into a pass.
       through a reviewed stable HTTPS ingress. PostgreSQL, Coder, Podman,
       runtime sockets, SSH, and workspace ports remain non-public. Live
       authorization, isolation, restart, and accepted local capacity checks
-      pass without claiming VPS-only XFS, AppArmor, provider-backup, or
-      ten-session evidence.
+      prove the exact 64 GiB loop-backed XFS mount; singleton persistent
+      quota-volume gate; 8–16 GiB byte quota and 1,048,576-inode ceiling;
+      2 CPU / 2 GiB / 512-process and I/O limits; and distinct 65,536-ID user
+      mappings. AppArmor is recorded unavailable on WSL, not passed.
 - [ ] **Deferred future VPS:** if the owner explicitly reopens always-on
       hosting, provider checkout, included daily backup, restore, DNS/wildcard
       TLS, XFS project quotas, host hardening, and ten-session/11th-refusal
@@ -31,7 +34,8 @@ the owner as an external step—not silently converted into a pass.
 - [ ] Schema-2 immutable release manifest verifies the root-only audit receipt/report tree, exact local image IDs, helper/template/Podman/systemd hashes and installed host artifacts. The EnvBuilder image has the exact scratch runtime contract, its complete canonical helper seed matches the immutable workspace-base ID, a Coder activation receipt exists, and full health plus the bounded disposable smoke gate pass without rebuilding or rescanning.
 - [ ] Active-host database, file, workspace, and service restart/recovery checks
       pass, with PC/WSL storage loss and the absence of an assumed provider
-      backup shown honestly.
+      backup shown honestly. The evidence distinguishes the fully allocated
+      64 GiB guest image from the dynamically sized WSL VHD on `D:`.
 - [ ] **Deferred future VPS:** provider restore passes and the approximately
       24-hour whole-server recovery gap is shown honestly. Evidence acknowledges
       that a provider whole-server backup contains encrypted state and the host
@@ -46,6 +50,10 @@ the owner as an external step—not silently converted into a pass.
       runner is configured.
 - [ ] Owner separately approves owner-PC beta activation, public HTTPS ingress,
       Apple archive signing, and private TestFlight upload.
+- [ ] Public DNS/TLS, the passkey RP and Apple associated-domain file, the
+      production GitHub App, production Coder/template connectivity, and every
+      required root-only credential are configured and pass live checks. The
+      local host foundation alone cannot satisfy this item.
 
 Known limitations shown to the owner/testers: Linux workspaces cannot run
 Xcode/macOS tools; containers share one kernel; granted runtime secrets can be
@@ -54,9 +62,9 @@ until closed; terminal input receipts do not provide durable exactly-once
 delivery across a gateway crash, and an app termination in the receipt-to-draft
 clear window can leave a stale resendable draft; portable non-Linux file saves do not provide
 the production Linux external-writer CAS guarantee; the provisioner's private
-Podman socket is root-equivalent authority; workspaces within the measured
-active local cap share finite fixed resources, while the historical
-ten-session target is deferred; active
+Podman socket is root-equivalent authority; the active profile permits only one
+workload and one persistent quota-bearing named volume, and its WSL host lacks
+AppArmor; the historical ten-session target is deferred; active
 processes do not survive a Windows, WSL, or service restart; local checkpoints
 do not survive loss of the PC/WSL storage; the beta is offline whenever the PC,
 WSL, services, network, or ingress is offline; there is no HA or automatic

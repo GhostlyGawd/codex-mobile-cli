@@ -8,10 +8,12 @@ GitHub and APNs override files only when the corresponding flag is exactly
 `true`.
 
 The active beta host is the owner PC and D-backed Ubuntu WSL. Its fail-closed
-deployment/storage profile is the next implementation step: the current XFS,
-AppArmor, SSH/UFW, Ansible, systemd, and ten-session path is retained only for
-the deferred VPS profile. Do not use that path or fictitious VPS metadata to
-bypass the missing local storage boundary.
+`owner_pc_beta` deployment/storage profile is implemented separately from the
+historical VPS path. It uses its own loop-backed XFS boundary and systemd
+helpers, omits unavailable WSL AppArmor honestly, and admits one workspace.
+SSH/UFW, Ansible, provider backup, AppArmor, and ten-session procedures remain
+deferred VPS material. Do not select `fixed_price_vps` or introduce fictitious
+VPS metadata to bypass a local-profile failure.
 
 ## Owner-provided integrations
 
@@ -35,31 +37,58 @@ root-only directory, and each service receives only its declared mounts.
 Coder bootstrap must run with both integrations disabled. Enable them only
 after the scoped Coder token and external-provisioner key have been installed.
 
-## Deferred VPS/XFS workspace storage and engine boundary
+## Active owner-PC/XFS workspace storage and engine boundary
 
-The XFS capacity profile in this section is not an active private-beta launch
-gate. The local WSL profile must provide an equally hard, measured storage and
-inode boundary for hostile workspaces before admission is enabled; simply
-skipping these checks is forbidden.
+Run [the owner-PC setup](../docs/runbooks/OWNER_PC_BETA.md) only against the
+registered D-backed Ubuntu WSL distribution. It creates or validates one
+root-owned, mode-`0600`, single-linked, fully guest-allocated 64 GiB XFS image
+at `/var/lib/codex-mobile-owner-pc/workspace-storage.xfs` and mounts it at
+`/srv/codex-mobile` with `pquota`/`prjquota`, `nodev`, `nosuid`, and `noatime`
+inside systemd PID 1's mount namespace. The enclosing WSL `ext4.vhdx` remains
+dynamically sized on `D:`; the guest image is a logical limit, not 64 GiB of
+preallocated Windows storage.
 
-Before running Ansible, mount the operator-managed encrypted data device at
-`/srv/codex-mobile` as XFS with `pquota` or `prjquota`. The playbook never
-partitions, formats, or remounts a device. It and the workspace runtime both
-fail closed if the mount target, filesystem, or project-quota option is wrong.
+Before any release is active, that setup also installs the free Docker/Compose
+packages, checksum-pinned Coder/Syft/Trivy tools, release/cache/account roots,
+and the exact runtime/firewall/provisioner artifacts needed to build and audit
+the first manifest. The first immutable release replaces those bootstrap
+artifacts with manifest-recorded copies. Setup refuses to copy working-checkout
+artifacts after `/opt/codex-mobile/current` exists.
 
-Workspace volumes are immutable 8–16 GiB XFS project quotas (12 GiB by
-default), with 65,536 inodes per GiB. Ten maximum-size workspaces consume the
-160 GiB workspace pool while 40 GiB remains reserved for the host and control
-stack. Quotas are fixed when a volume is created and are not resized during
-equal-share rebalancing.
+The Docker firewall, workspace engine, and Compose control unit have hard
+ordered requirements on the condition-gated owner runtime. A failed loop mount
+or quota verification blocks them before Docker can create bind sources on the
+WSL root filesystem. On the separately governed fixed-host path the owner unit
+has no host-facts file and is condition-skipped.
 
-Set `WORKSPACE_IO_DEVICE` to the exact output of `findmnt -n -o SOURCE
---target /srv/codex-mobile`. Host hardening, preflight, template import, and
-runtime startup reject a mismatch; automation never guesses a host device.
-The Coder template limits each workspace on that verified device to 64 MiB/s
-read, 32 MiB/s write, 2,000 read IOPS, and 1,000 write IOPS. Approved
-EnvBuilder containers also receive a 4 GiB / 262,144-inode writable-rootfs XFS
-quota; plain containers keep a read-only rootfs.
+The owner profile permits exactly one managed workload and one persistent
+quota-bearing workspace-data named volume in total, including stopped or
+orphaned volumes. Podman 4.9.3 can reuse one XFS project ID across multiple
+quota volumes and let a later volume change the earlier limit. The runtime
+therefore serializes volume creation, persists one lease, scans the physical
+volume state at startup, and fails closed before a second quota volume.
+
+Workspace data volumes are immutable 8–16 GiB byte quotas (12 GiB default).
+Podman 4.9.3 cannot safely combine its named-volume inode option because it
+misclassifies that quota value as a mount option. The runtime instead
+establishes an XFS default project hard and soft limit of 1,048,576 inodes
+before Podman assigns a project ID. That fixed ceiling is not proportional to
+the selected byte quota.
+
+Keep the parent XFS mount and all workspace-visible paths `nodev`. Podman
+receives device behavior only on the exact root-owned mode-`0700`
+`workspaces/.containers/overlay` and `workspaces/.containers/volumes`
+self-binds, each remounted `dev,nosuid`; neither internal path is mounted into
+a workspace. Set `WORKSPACE_IO_DEVICE` to the stable device path generated by
+the setup helper. Preflight and runtime startup resolve it to the actual device
+and reject a mismatch; automation never guesses `/dev/sdX` or a loop number.
+
+The one workload receives exactly 2 CPU, 2 GiB memory with no additional swap,
+512 processes, 64 MiB/s read, 32 MiB/s write, 2,000 read IOPS, and 1,000 write
+IOPS. The workload and relay each use `auto:size=65536` from the dedicated
+`containers:1000000:1048576` subordinate UID and GID pools. Approved EnvBuilder
+containers also receive a 4 GiB / 262,144-inode writable-rootfs XFS quota;
+plain containers keep a read-only rootfs.
 
 Because kreuzwerker/docker 4.5.0 has no `PidsLimit` field, the dedicated
 Podman engine applies `pids_limit = 512` from its private `containers.conf`
@@ -82,6 +111,14 @@ verified I/O path to cgroup major/minor values, but its parent systemd cgroup
 uses `DevicePolicy=closed`; it cannot open arbitrary block devices. Workspace
 containers receive no device mounts and cannot relax the parent's policy.
 
+The selected WSL kernel does not provide AppArmor. The owner profile omits that
+one security option and still requires seccomp, non-overlapping user
+namespaces, capability drops, `no-new-privileges`, cgroups, private networking,
+read-only roots where applicable, and socket/device denial. Do not report
+AppArmor as passing. The historical 200 GiB/ten-session VPS XFS layout,
+Ansible/SSH hardening, AppArmor, provider backup, reboot, and load drills remain
+unauthorized unless the owner explicitly reopens `fixed_price_vps`.
+
 ## Workspace Coder control relay
 
 Production Coder binds only the literal RFC1918 `CODER_BIND_ADDRESS` and
@@ -96,8 +133,10 @@ Every workspace has an internal per-workspace bridge. A separate immutable
 `codex-mobile-control`; the workspace resolves `cm-coder-control:7080` and does
 not join the shared uplink. The relay is a non-root, private-userns, read-only
 application-level `socat` forwarder with dropped capabilities,
-`no-new-privileges`, AppArmor, bounded memory/CPU/tmpfs/logs, and no token,
-volume, host path, device or engine socket. `INPUT` and `DOCKER-USER` rules
+`no-new-privileges`, seccomp, bounded memory/CPU/tmpfs/logs, and no token,
+volume, host path, device or engine socket. The deferred VPS profile also
+requires its managed AppArmor profile; the owner WSL profile cannot.
+`INPUT` and `DOCKER-USER` rules
 permit `cm-control0` only to the exact private Coder address/port and drop every
 other destination. Balanced/Full Access uses a separate per-workspace egress
 bridge; Safe Mode has none.
@@ -110,9 +149,9 @@ as hidden from hostile code. The privileged control-plane Coder token,
 provisioner key and root-equivalent Podman socket never enter a workspace or
 relay.
 
-Keep `CODER_WORKSPACE_CONNECTIVITY_CONFIRMED=false` through bootstrap. For the
-deferred VPS profile, create a template workspace on its selected Ubuntu host
-and prove its Coder agent
+Keep `CODER_WORKSPACE_CONNECTIVITY_CONFIRMED=false` through bootstrap. On the
+active owner-PC Ubuntu WSL host, create a template workspace and prove its Coder
+agent
 registers and a real PTY works through the relay while the workspace cannot
 reach Coder directly, any other host/control port, another workspace, the engine
 socket or the general network. Inspect the relay/network attachments and prove
@@ -160,6 +199,8 @@ run is still required to prove the exact candidate IDs. Private Podman workspace
 isolation, live relay/Coder-agent/Safe Mode
 route enforcement, active-host restart/recovery, database restore, reviewed
 public ingress, DNS, and TLS must still be exercised on the D-backed Ubuntu WSL
-beta host. VPS-specific XFS/AppArmor hardening, provider-backup restore,
-ten-session capacity, and target-host reboot/update evidence are deferred unless
-the owner explicitly reopens the always-on VPS design.
+beta host. The active XFS/quota, cgroup, user-namespace, singleton-volume, and
+restart checks require their own dated live evidence; static configuration does
+not establish them. VPS-specific AppArmor hardening, provider-backup restore,
+ten-session capacity, and VPS reboot/update evidence are deferred unless the
+owner explicitly reopens the always-on VPS design.

@@ -6,6 +6,9 @@
 Under [ADR 0025](0025-owner-pc-private-beta-hosting.md), private-beta
 target-host verification means the actual D-backed Ubuntu WSL and Windows
 networking boundary. Historical VPS evidence cannot satisfy it.
+[ADR 0026](0026-owner-pc-wsl-runtime.md) fixes the beta at one workload/relay
+pair and records AppArmor as unavailable on that host; seccomp and every other
+relay restriction in this ADR remain required.
 
 ## Context
 
@@ -36,9 +39,11 @@ Coder address and port. Only the relay joins `codex-mobile-control`. The
 workspace itself never joins the shared uplink.
 
 The relay runs as UID/GID 1000 in a private user namespace with a read-only root
-filesystem, all capabilities dropped, `no-new-privileges`, the managed AppArmor
-profile, bounded memory/CPU/tmpfs/file descriptors/logging, and no token, volume, host
-path, device or engine socket. Host `INPUT` and `DOCKER-USER` chains allow
+filesystem, all capabilities dropped, `no-new-privileges`, seccomp, bounded
+memory/CPU/tmpfs/file descriptors/logging, and no token, volume, host path,
+device or engine socket. The managed AppArmor profile remains required for a
+future VPS; `owner_pc_beta` omits it because the selected WSL host cannot
+provide it. Host `INPUT` and `DOCKER-USER` chains allow
 traffic from `cm-control0` and the configured source subnet only to the exact
 Coder address/port and drop all other paths. Balanced and Full Access add a
 separate per-workspace egress bridge only while the authoritative mutable

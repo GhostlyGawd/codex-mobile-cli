@@ -28,19 +28,28 @@ env_value() {
   awk -F= -v key="$1" '$1 == key {sub(/^[^=]*=/, ""); print; found=1} END {if (!found) exit 1}' "$env_file"
 }
 
-[ "$(env_value DEPLOYMENT_PROFILE)" = fixed_price_vps ] || {
-  echo "this XFS/AppArmor spike is only for the deferred fixed_price_vps profile; the owner_pc_beta profile requires its separate fail-closed host spike" >&2
-  exit 1
-}
+deployment_profile=$(env_value DEPLOYMENT_PROFILE)
+case "$deployment_profile" in
+  owner_pc_beta)
+    apparmor_opt=
+    userns_opt='--userns auto:size=65536'
+    ;;
+  fixed_price_vps)
+    apparmor_opt='--security-opt apparmor=container-default'
+    userns_opt='--userns private'
+    ;;
+  *) echo "runtime spike requires an explicit supported deployment profile" >&2; exit 1 ;;
+esac
 [ "$(uname -s)" = Linux ] || { echo "SKIP: Linux host required"; exit 77; }
-[ "$(id -u)" -eq 0 ] || { echo "run as root on the configured fixed_price_vps host" >&2; exit 1; }
+[ "$(id -u)" -eq 0 ] || { echo "run as root on the configured Linux host" >&2; exit 1; }
 [ -r "$containers_conf" ] || { echo "dedicated workspace containers.conf is missing" >&2; exit 1; }
 CONTAINERS_CONF=$containers_conf
 export CONTAINERS_CONF
 grep -q '^ID=ubuntu$' /etc/os-release || { echo "Ubuntu host required" >&2; exit 1; }
 grep -q '^VERSION_ID="24.04"$' /etc/os-release || { echo "Ubuntu 24.04 required" >&2; exit 1; }
 [ "$(stat -fc %T /sys/fs/cgroup)" = cgroup2fs ] || { echo "cgroup v2 is required" >&2; exit 1; }
-if ! { [ -r /sys/module/apparmor/parameters/enabled ] && grep -q '^Y' /sys/module/apparmor/parameters/enabled; }; then
+if [ "$deployment_profile" = fixed_price_vps ] &&
+  ! { [ -r /sys/module/apparmor/parameters/enabled ] && grep -q '^Y' /sys/module/apparmor/parameters/enabled; }; then
   echo "enforcing AppArmor support is required" >&2
   exit 1
 fi
@@ -50,6 +59,9 @@ if [ "$(podman --url "$podman_url" info --format '{{.Host.Security.Rootless}}')"
   exit 1
 fi
 workspace_io_device=$(env_value WORKSPACE_IO_DEVICE)
+workspace_io_device_inspect=$workspace_io_device
+[ "$deployment_profile" != owner_pc_beta ] ||
+  workspace_io_device_inspect=$(readlink -f "$workspace_io_device")
 workspace_read_bps=67108864
 workspace_write_bps=33554432
 workspace_read_iops=2000
@@ -80,15 +92,30 @@ for workspace_container in $workspace_containers; do
   esac
   inspect_json=$(podman --url "$podman_url" inspect "$workspace_container")
   printf '%s\n' "$inspect_json" | jq --exit-status \
-    --arg device "$workspace_io_device" \
+    --arg device "$workspace_io_device_inspect" \
+    --arg profile "$deployment_profile" \
     --argjson read_bps "$workspace_read_bps" \
     --argjson write_bps "$workspace_write_bps" \
     --argjson read_iops "$workspace_read_iops" \
     --argjson write_iops "$workspace_write_iops" '
+      def owner_id_map:
+        length == 1 and
+        (.[0] | split(":")) as $parts |
+        $parts | length == 3 and
+        $parts[0] == "0" and
+        $parts[2] == "65536" and
+        ($parts[1] | tonumber) >= 1000000 and
+        (($parts[1] | tonumber) + 65536) <= 2048576;
       .[0] as $c |
       $c.Config.Labels["com.codex-mobile.pids-limit"] == "512" and
       $c.HostConfig.PidsLimit == 512 and
       $c.HostConfig.UsernsMode == "private" and
+      (if $profile == "owner_pc_beta"
+       then ($c.HostConfig.IDMappings.UidMap | owner_id_map) and
+            ($c.HostConfig.IDMappings.GidMap | owner_id_map) and
+            $c.HostConfig.IDMappings.UidMap == $c.HostConfig.IDMappings.GidMap
+       else true
+       end) and
       $c.HostConfig.Memory >= 1610612736 and
       $c.HostConfig.Memory <= 19327352832 and
       $c.HostConfig.MemorySwap == $c.HostConfig.Memory and
@@ -128,6 +155,12 @@ for workspace_container in $workspace_containers; do
     esac
     pids_policy_seen=false
     io_policy_seen=false
+    memory_policy_seen=true
+    cpu_policy_seen=true
+    if [ "$deployment_profile" = owner_pc_beta ]; then
+      memory_policy_seen=false
+      cpu_policy_seen=false
+    fi
     while :; do
       if [ -r "$cgroup_directory/pids.max" ]; then
         pids_value=$(cat "$cgroup_directory/pids.max")
@@ -147,6 +180,18 @@ for workspace_container in $workspace_containers; do
           io_policy_seen=true
         fi
       fi
+      if [ "$deployment_profile" = owner_pc_beta ] &&
+        [ -r "$cgroup_directory/memory.max" ] &&
+        [ -r "$cgroup_directory/memory.swap.max" ] &&
+        [ "$(cat "$cgroup_directory/memory.max")" = 2147483648 ] &&
+        [ "$(cat "$cgroup_directory/memory.swap.max")" = 0 ]; then
+        memory_policy_seen=true
+      fi
+      if [ "$deployment_profile" = owner_pc_beta ] &&
+        [ -r "$cgroup_directory/cpu.max" ] &&
+        [ "$(cat "$cgroup_directory/cpu.max")" = "200000 100000" ]; then
+        cpu_policy_seen=true
+      fi
       [ "$cgroup_directory" = /sys/fs/cgroup ] && break
       cgroup_directory=${cgroup_directory%/*}
     done
@@ -158,6 +203,14 @@ for workspace_container in $workspace_containers; do
         echo "template-created workspace $workspace_container lacks the required cgroup I/O maxima" >&2
         exit 1
     }
+    [ "$memory_policy_seen" = true ] || {
+      echo "template-created owner-PC workspace lacks memory.max=2GiB and swap.max=0" >&2
+      exit 1
+    }
+    [ "$cpu_policy_seen" = true ] || {
+      echo "template-created owner-PC workspace lacks cpu.max=200000/100000" >&2
+      exit 1
+    }
   fi
 done
 [ "$running_workspace_seen" = true ] || {
@@ -165,40 +218,94 @@ done
   exit 1
 }
 
-# Prove that this exact engine enforces the XFS project quota, not merely that
-# the mount advertises pquota. A small write first distinguishes a working
-# private mount from an unrelated container failure. The larger write must then
-# fail specifically with EDQUOT after filling the disposable bounded volume.
-podman --url "$podman_url" volume create \
-  --opt o=size=8M,inodes=1024 "$quota_volume" >/dev/null
-podman --url "$podman_url" run --rm --network none --read-only --user 1000:1000 \
-  --userns private --cap-drop all --security-opt no-new-privileges \
-  --volume "$quota_volume:/workspaces" "$base_image" \
-  /bin/sh -ec 'printf quota-ready > /workspaces/quota-probe'
-if quota_error=$(podman --url "$podman_url" run --rm --network none --read-only --user 1000:1000 \
-  --userns private --cap-drop all --security-opt no-new-privileges \
-  --volume "$quota_volume:/workspaces" "$base_image" \
-  /bin/sh -ec 'LC_ALL=C dd if=/dev/zero of=/workspaces/quota-fill bs=1M count=16 status=none' 2>&1); then
-  echo "Podman accepted a write beyond the disposable volume quota" >&2
-  exit 1
+# Podman 4.9.3 on owner_pc_beta reuses one XFS project ID for multiple
+# quota-bearing named volumes. Never create a probe alongside the real
+# workspace: validate the lease-selected volume and its live XFS limits.
+if [ "$deployment_profile" = owner_pc_beta ]; then
+  gate=/usr/local/libexec/codex-mobile/owner-pc-workspace-volume-gate
+  [ -x "$gate" ] || {
+    echo "owner-PC singleton quota-volume gate is missing" >&2
+    exit 1
+  }
+  gate_status=$(/usr/sbin/runuser -u coder-provisioner -- "$gate" status)
+  [ "$(printf '%s\n' "$gate_status" | jq -r '.quota_volume_count')" = 1 ] || {
+    echo "owner-PC runtime spike requires exactly one leased quota volume" >&2
+    exit 1
+  }
+  inspected_quota_volume=$(printf '%s\n' "$gate_status" | jq -r '.quota_volume')
+  quota_bytes=$(podman --url "$podman_url" volume inspect "$inspected_quota_volume" |
+    jq -r '.[0].Options.o | select(startswith("size=")) | ltrimstr("size=")')
+  case "$quota_bytes" in
+    ''|*[!0-9]*) echo "leased volume has no canonical byte quota" >&2; exit 1 ;;
+  esac
+  quota_kib=$((quota_bytes / 1024))
+else
+  # The fixed-price profile uses a disposable bounded volume and destructive
+  # overfill because its supported Podman release assigns unique project IDs.
+  podman --url "$podman_url" volume create \
+    --opt o=size=8388608 "$quota_volume" >/dev/null
+  inspected_quota_volume=$quota_volume
+  quota_bytes=8388608
+  quota_kib=8192
 fi
-printf '%s\n' "$quota_error" | grep -Eqi 'disk quota exceeded|quota exceeded' || {
-  echo "quota fill failed for a reason other than XFS project enforcement: $quota_error" >&2
+quota_mountpoint=$(podman --url "$podman_url" volume inspect \
+  --format '{{.Mountpoint}}' "$inspected_quota_volume")
+[ "$quota_mountpoint" = "/srv/codex-mobile/workspaces/.containers/volumes/$inspected_quota_volume/_data" ] || {
+  echo "quota volume escaped the dedicated graphroot" >&2
   exit 1
 }
+quota_project_id=$(xfs_io -c stat "$quota_mountpoint" |
+  awk -F'= ' '$1 ~ /fsxattr.projid/ {print $2}')
+case "$quota_project_id" in
+  ''|0|*[!0-9]*) echo "quota volume has no XFS project ID" >&2; exit 1 ;;
+esac
+xfs_quota -x -c "quota -p -b -n -N -v $quota_project_id" /srv/codex-mobile |
+  awk -v expected="$quota_kib" '
+    NF >= 4 && $3 == expected && $4 == expected { found = 1 }
+    END { exit(found ? 0 : 1) }
+  ' || {
+    echo "quota volume does not have its exact byte project quota" >&2
+    exit 1
+  }
+xfs_quota -x -c "quota -p -i -n -N -v $quota_project_id" /srv/codex-mobile |
+  awk 'NF >= 4 && $3 == 1048576 && $4 == 1048576 { found = 1 } END { exit(found ? 0 : 1) }' || {
+    echo "quota volume did not inherit the default project inode ceiling" >&2
+    exit 1
+  }
+if [ "$deployment_profile" = fixed_price_vps ]; then
+  # userns_opt is a trusted profile-selected literal.
+  # shellcheck disable=SC2086
+  podman --url "$podman_url" run --rm --network none --read-only --user 1000:1000 \
+    $userns_opt --cap-drop all --security-opt no-new-privileges \
+    --volume "$inspected_quota_volume:/workspaces" "$base_image" \
+    /bin/sh -ec 'printf quota-ready > /workspaces/quota-probe'
+  # shellcheck disable=SC2086
+  if quota_error=$(podman --url "$podman_url" run --rm --network none --read-only --user 1000:1000 \
+    $userns_opt --cap-drop all --security-opt no-new-privileges \
+    --volume "$inspected_quota_volume:/workspaces" "$base_image" \
+    /bin/sh -ec 'LC_ALL=C dd if=/dev/zero of=/workspaces/quota-fill bs=1M count=16 status=none' 2>&1); then
+    echo "Podman accepted a write beyond the disposable volume quota" >&2
+    exit 1
+  fi
+  printf '%s\n' "$quota_error" | grep -Eqi 'disk quota exceeded|quota exceeded|no space left on device' || {
+    echo "quota fill failed for a reason other than XFS project enforcement: $quota_error" >&2
+    exit 1
+  }
+fi
 
 # EnvBuilder's root filesystem is writable, so separately prove this engine's
 # overlay `size` option is an enforced XFS project quota. The production
 # template uses 4 GiB; this disposable probe uses 8 MiB to fail quickly.
+# shellcheck disable=SC2086
 if rootfs_quota_error=$(podman --url "$podman_url" run --name "$prefix-rootfs-quota" \
-  --network none --user 0:0 --userns private --cap-drop all \
+  --network none --user 0:0 $userns_opt --cap-drop all \
   --security-opt no-new-privileges --storage-opt size=8M --storage-opt inodes=1024 \
   "$base_image" /bin/sh -ec \
   'LC_ALL=C dd if=/dev/zero of=/tmp/rootfs-quota-fill bs=1M count=16 status=none' 2>&1); then
   echo "Podman accepted a write beyond the disposable rootfs overlay quota" >&2
   exit 1
 fi
-printf '%s\n' "$rootfs_quota_error" | grep -Eqi 'disk quota exceeded|quota exceeded' || {
+printf '%s\n' "$rootfs_quota_error" | grep -Eqi 'disk quota exceeded|quota exceeded|no space left on device' || {
   echo "rootfs fill failed for a reason other than XFS project enforcement: $rootfs_quota_error" >&2
   exit 1
 }
@@ -238,8 +345,9 @@ actual_helper_sha256=$(podman --url "$podman_url" run --rm --network none --read
 # A private host bind is useful only if a workspace can reach it. This
 # is the exact path the Coder agent uses; the public API never exposes Coder.
 coder_access_url=$(env_value CODER_ACCESS_URL)
+# shellcheck disable=SC2086
 podman --url "$podman_url" run --rm --read-only --user 1000:1000 \
-  --userns private \
+  $userns_opt \
   --cap-drop all --security-opt no-new-privileges --memory 256m --pids-limit 64 \
   "$base_image" curl --fail --silent --show-error --max-time 10 \
   "$coder_access_url/healthz" >/dev/null
@@ -247,15 +355,19 @@ podman --url "$podman_url" run --rm --read-only --user 1000:1000 \
 podman --url "$podman_url" volume create "$volume_a" >/dev/null
 podman --url "$podman_url" volume create "$volume_b" >/dev/null
 marker=$(openssl rand -hex 24)
+# apparmor_opt is either empty or the fixed two-argument trusted literal set
+# above; word splitting is intentional because POSIX sh has no arrays.
+# shellcheck disable=SC2086
 podman --url "$podman_url" run --rm --network none --read-only --user 1000:1000 \
-  --userns private \
-  --cap-drop all --security-opt no-new-privileges --security-opt apparmor=container-default \
+  $userns_opt \
+  --cap-drop all --security-opt no-new-privileges $apparmor_opt \
   --memory 256m --cpus 0.5 --pids-limit 64 --volume "$volume_a:/workspaces" \
   "$base_image" /bin/sh -ec "printf '%s' '$marker' > /workspaces/isolation-marker"
 
+# shellcheck disable=SC2086
 podman --url "$podman_url" run --rm --network none --read-only --user 1000:1000 \
-  --userns private \
-  --cap-drop all --security-opt no-new-privileges --security-opt apparmor=container-default \
+  $userns_opt \
+  --cap-drop all --security-opt no-new-privileges $apparmor_opt \
   --memory 256m --cpus 0.5 --pids-limit 64 --volume "$volume_b:/workspaces" \
   "$base_image" /bin/sh -ec '
     test "$(id -u)" = 1000
@@ -273,15 +385,16 @@ podman --url "$podman_url" volume create "$envbuilder_helper_volume" >/dev/null
 podman --url "$podman_url" run --rm --network none --user 0:0 \
   --volume "$envbuilder_volume:/workspaces" --volume "$repo_root/infra/tests/fixtures/devcontainer:/fixture:ro" \
   "$base_image" /bin/sh -ec 'cp -R /fixture/. /workspaces/repository/'
+# shellcheck disable=SC2086
 podman --url "$podman_url" run --name "$prefix-envbuilder" \
   --memory 1536m --memory-swap 1536m --cpu-period 100000 --cpu-quota 50000 \
   --storage-opt size=4G --storage-opt inodes=262144 \
-  --userns private --security-opt no-new-privileges \
+  $userns_opt --security-opt no-new-privileges \
   --device-read-bps "$workspace_io_device:$workspace_read_bps" \
   --device-write-bps "$workspace_io_device:$workspace_write_bps" \
   --device-read-iops "$workspace_io_device:$workspace_read_iops" \
   --device-write-iops "$workspace_io_device:$workspace_write_iops" \
-  --security-opt apparmor=container-default --cap-drop all \
+  $apparmor_opt --cap-drop all \
   --cap-add CHOWN --cap-add DAC_OVERRIDE --cap-add FOWNER --cap-add FSETID \
   --cap-add SETFCAP --cap-add SETGID --cap-add SETUID --cap-add SYS_CHROOT \
   --volume "$envbuilder_volume:/workspaces" \
@@ -298,7 +411,7 @@ podman --url "$podman_url" run --name "$prefix-envbuilder" \
   "$envbuilder_image"
 envbuilder_inspect=$(podman --url "$podman_url" inspect "$prefix-envbuilder")
 printf '%s\n' "$envbuilder_inspect" | jq --exit-status \
-  --arg device "$workspace_io_device" \
+  --arg device "$workspace_io_device_inspect" \
   --argjson read_bps "$workspace_read_bps" \
   --argjson write_bps "$workspace_write_bps" \
   --argjson read_iops "$workspace_read_iops" \
@@ -332,4 +445,4 @@ actual_helper_sha256=$(podman --url "$podman_url" run --rm --network none --read
   echo "protected EnvBuilder helper volume was not seeded or was modified" >&2; exit 1;
 }
 
-echo "Linux template workspace cgroups/I/O, private Podman isolation, XFS volume/rootfs quotas, and EnvBuilder spike: PASS"
+echo "Linux template workspace cgroups/I/O, private Podman isolation, XFS volume/rootfs quotas, profile-appropriate LSM policy, and EnvBuilder spike: PASS"

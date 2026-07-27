@@ -459,8 +459,13 @@ func buildServer(ctx context.Context, cfg config.Config) (*serverRuntime, error)
 	if err != nil {
 		return fail(err)
 	}
-	capacity := admission.ReferenceCapacity()
-	capacity.MaxRunning = cfg.MaxRunning
+	capacity, err := admission.CapacityForProfile(cfg.DeploymentProfile)
+	if err != nil {
+		return fail(err)
+	}
+	if capacity.MaxRunning != cfg.MaxRunning {
+		return fail(fmt.Errorf("configured workspace maximum does not match deployment profile"))
+	}
 	controller, err := admission.New(capacity)
 	if err != nil {
 		return fail(err)
