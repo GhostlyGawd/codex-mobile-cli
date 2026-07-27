@@ -41,7 +41,10 @@ class CheckpointScriptTests(unittest.TestCase):
         compose.write_text("#!/bin/sh\nset -eu\n" + compose_body, encoding="utf-8")
         compose.chmod(0o700)
         env_file = raw / "production.env"
-        env_file.write_text("POSTGRES_ADMIN_USER=checkpoint_admin\n", encoding="utf-8")
+        env_file.write_text(
+            "DEPLOYMENT_PROFILE=owner_pc_beta\nPOSTGRES_ADMIN_USER=checkpoint_admin\n",
+            encoding="utf-8",
+        )
         checkpoint_root = raw / "checkpoints"
         environment = os.environ.copy()
         environment.update(

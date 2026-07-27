@@ -50,7 +50,7 @@ jobs:
 
       - name: Verify Go formatting
         run: |
-          GO111MODULE=off go fmt ./services/control-plane/...
+          go -C services/control-plane fmt ./...
           git diff --exit-code -- services/control-plane
 
       - name: Vet backend

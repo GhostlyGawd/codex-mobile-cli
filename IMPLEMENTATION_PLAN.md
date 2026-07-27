@@ -11,8 +11,8 @@ Status values: `not started`, `in progress`, `locally verified`, `owner-gated`, 
 | GitHub repository | The clean-history cutover is complete: `GhostlyGawd/codex-mobile-cli` is public from a distinct clean root, while the original history remains private at `GhostlyGawd/codex-mobile-cli-private-archive` | Develop and verify the active product at the public URL without exposing the private repository's historical metadata |
 | Go | 1.26.5 installed and verified | Backend build/test available |
 | Windows self-hosted runner | Historical trusted smoke validation passed; this repository's listener, registration, root, and launcher were removed before publication, and the public repository has no self-hosted runners | Use only the public standard-runner workflows; unrelated owner-PC runners remain outside this repository's scope |
-| Active beta host | The owner selected the D-backed Ubuntu WSL environment on the Windows PC for the first private beta with zero new recurring hosting cost. `owner_pc_beta` is the explicit active configuration profile, rejects VPS checkout metadata, and implements a separate fail-closed 64 GiB XFS guest-storage/runtime boundary | Complete and record the exact live host/runtime/restart evidence; do not bypass a failed owner-profile check or substitute the deferred VPS profile. The app is unavailable while the PC, WSL, services, or reviewed HTTPS ingress is offline, and the host foundation alone is not TestFlight go-live |
-| Docker/Compose | A D-backed Ubuntu WSL environment provides Docker 29.1.3 and Podman 4.9.3; checksum-verified Compose 5.3.1 schema validation passed, and the exact commit-tagged candidate-image build/runtime/profile-3 audit/manifest gate is executable there | Reuse the verified local engines. The owner profile must separately prove its loop-backed XFS quota, singleton persistent volume, cgroups, user namespaces, and restart behavior; do not claim the unavailable WSL AppArmor control or any VPS backup/reboot/load evidence |
+| Active beta host | The owner selected the D-backed Ubuntu WSL environment on the Windows PC for the first private beta with zero new recurring hosting cost. `owner_pc_beta` is the explicit active configuration profile, rejects VPS checkout metadata, and implements a separate fail-closed 64 GiB XFS guest-storage/runtime boundary. Dated 2026-07-27 evidence now covers the initializer, quota/singleton boundary, mount persistence, private runtime socket, and cold service restart | Complete the template-created Coder relay/workload, Safe Mode, production ingress, and credentialed end-to-end evidence; do not bypass a failed owner-profile check or substitute the deferred VPS profile. The app is unavailable while the PC, WSL, services, or reviewed HTTPS ingress is offline, and the host foundation alone is not TestFlight go-live |
+| Docker/Compose | A D-backed Ubuntu WSL environment provides Docker 29.1.3 and Podman 4.9.3; checksum-verified Compose 5.3.1 schema validation passed, and the exact commit-tagged candidate-image build/runtime/profile-3 audit/manifest gate is executable there. The owner profile's XFS byte/inode quota, singleton lease, restart persistence, sub-ID pool, and socket boundary have dated live host evidence | Reuse the verified local engines. A real template-created Coder relay/workload must still prove its cgroups, I/O, distinct user mappings, relay routing, and Safe Mode denial; do not claim the unavailable WSL AppArmor control or any VPS backup/reboot/load evidence |
 | Swift/Xcode | Local Xcode is unavailable on Windows; a historical public `macos-26` run passed project generation, compilation, unit tests, and UI tests with Xcode 26.6, checksum-verified XcodeGen 2.45.4, and the iPhone 17 Pro simulator on revision `c2aef5d3640f9f4660a550e1c0d3df6aacf26cf1`; the current-tree rerun is pending | Unsigned simulator evidence is automated, but revision-specific; signing, physical devices, manual accessibility, APNs, and TestFlight remain owner-gated |
 | Codex CLI shell binary | Packaged app binary is not directly executable from this shell | Version-pinned Linux CLI validation uses disposable Linux infrastructure later |
 | External credentials | GitHub App, APNs, stable HTTPS origin/domain, and Apple signing values are not stored in the repository | Real-account E2E remains owner-gated; a VPS is explicitly not an active dependency |
@@ -29,7 +29,7 @@ Status values: `not started`, `in progress`, `locally verified`, `owner-gated`, 
 | 5. Genuine Codex | owner-gated | ChatGPT device login and Linux runtime access by owner | Portable wrapper/config/auth security tests, per-workspace status/confirmed disconnect that stops only app-owned Codex tmux and removes runtime/encrypted auth, deterministic Linux cross-builds, and a bounded attachment-staging boundary for the authoritative TUI pass; live Linux TUI/device-login/reauth/resume/attachment evidence remains owner-gated |
 | 6. Files/Git/review | owner-gated | Production Linux workspace filesystem | Linux fd-relative no-follow file/search/save, exact displaced-content ETag CAS, bounded Git, and recoverable checkpoint/discard contracts pass locally; hosted native compilation and simulator Git-review reachability passed on the historical hosted baseline, while the current-tree hosted rerun, live contention, and target-filesystem proof remain gated |
 | 7. Previews/secrets/offline | owner-gated | Domain/TLS for live preview E2E and Mac/device for native runtime tests | Preview revocation, live grant/revoke tmpfs sync, pre-replay terminal redaction, encrypted read-only cache/drafts/history, and attachment cache exclusion pass portable/static tests; hosted native unit/UI tests passed on the historical hosted baseline, while the current-tree hosted rerun, domain/TLS, live workspace integration, device file protection, and physical-device behavior remain gated |
-| 8. Operations/hardening | in progress | Local-beta service lifecycle and reviewed stable HTTPS ingress | Supply-chain reproducibility, recorded frozen-tree source-security scanning, release-artifact validation, private runtime policy, and runbooks are locally exercised. The exact merged-main OCI candidate passed build/runtime checks, the profile-3/schema-2 image audit, and manifest-schema-2 binding in D-backed WSL. The active profile rejects VPS metadata and implements the 64 GiB loop-backed XFS boundary, one-volume safety gate, fixed inode ceiling, user-namespace pool, and hard compute/I/O limits. Final dated runtime/quota/restart evidence, production Coder activation, ingress, and truthful offline-state evidence remain |
+| 8. Operations/hardening | in progress | Local-beta service lifecycle and reviewed stable HTTPS ingress | Supply-chain reproducibility, recorded frozen-tree source-security scanning, release-artifact validation, private runtime policy, and runbooks are locally exercised. The exact merged-main OCI candidate passed build/runtime checks, the profile-3/schema-2 image audit, and manifest-schema-2 binding in D-backed WSL. Dated 2026-07-27 live evidence covers the active profile's 64 GiB XFS mount, singleton 8 GiB byte/inode quota and refusal behavior, inode-limit inheritance on project-ID reuse, private socket, mount/restart persistence, sub-ID pool, and stable loopback. Template-created Coder relay/workload cgroup/I/O/distinct-mapping proof, Coder/EnvBuilder, Safe Mode denial, reviewed HTTPS ingress, and truthful offline-state evidence remain |
 | 9. Product polish/release | owner-gated | Apple team, APNs key, physical devices, TestFlight authorization | Xcode unit/UI simulator tests passed on the historical hosted baseline; the current-tree hosted rerun, manual VoiceOver/Dynamic Type device evidence, a signed archive, APNs, TestFlight, and the release checklist remain owner-gated |
 
 ## Milestone execution rules
@@ -108,6 +108,12 @@ Status values: `not started`, `in progress`, `locally verified`, `owner-gated`, 
   and hard-order dependent units after the verified owner mount. Keep AppArmor
   marked unavailable on WSL and require dated live proof before claiming
   acceptance.
+- [x] Run the exact owner-PC initializer from revision `74b44a6`, exercise the
+  singleton quota boundary and controlled WSL restarts, and preserve the
+  resulting dated evidence. Apply and cold-start-verify the mount-parent and
+  bounded socket-finalization fix at revision `c1d6a41`. This completes the host
+  foundation evidence only; it does not complete the template-created
+  Coder/EnvBuilder, Safe Mode, ingress, or TestFlight gates.
 - [x] Implement the Dev Container bootstrap boundary: exact standard-directory detection is persisted, the admitted plain workspace receives the in-process-authenticated clone and confirms shutdown before structured review, approved supported setups restart with EnvBuilder, and unsupported/denied/queued/failed paths remain on the explicit plain fallback until a fresh decision.
 - [x] Make setup review a durable reconciled boundary shared by direct application transitions and lifecycle queue promotion: atomically persist one pending event/activity, repair interrupted transitions, keep owner decisions nonexpiring, and finalize the event only after retryable workspace acceptance or denial is durable.
 - [x] Make suspension and deletion authority boundaries durable and retryable: persist `suspending`/`deleting`, drain terminal and preview authority under the application workspace gate, wait for confirmed provider stop/absence, and retain the intermediate state on every ambiguous failure before final persistence.
@@ -178,7 +184,7 @@ coverage, and `pwsh ./scripts/verify.ps1` passed. Coverage remained 55.8% and
 the integrated verifier completed in 72.648 seconds; its 70-test
 infrastructure suite completed successfully with six expected Windows skips. The literal root
 `go fmt ./services/control-plane/...` is
-rejected by Go 1.26's Windows workspace path handling; the module-local
+rejected by Go 1.26's workspace-root module-pattern handling; the module-local
 `go -C services/control-plane fmt ./...` equivalent passed without a diff. The
 literal race command was attempted but this host has no CGO compiler, so the
 current-tree race result remains unexecuted here. The hosted Linux run above is
@@ -237,13 +243,39 @@ must repeat that exact gate before promotion.
 
 Xcode 26.6/XcodeGen 2.45.4 testing was `NOT EXECUTED` on Windows. The hosted
 unsigned simulator run above predates this tree, so current-tree hosted Xcode
-execution remains pending. As of 2026-07-27, the owner-PC runtime implementation
-is present, but its final consolidated live quota/cgroup/user-namespace/restart
-record has not yet been added here and is not claimed as passing. Production
-Coder activation, reviewed HTTPS ingress, DNS/TLS, Apple associated domains,
-GitHub App, physical-device, signing, APNs, TestFlight, and other credentialed
-end-to-end scenarios remain `GATED` and `NOT EXECUTED`. Future VPS-specific
-AppArmor, provider-backup, reboot, ten-session, and load evidence is deferred.
+execution remains pending.
+
+On 2026-07-27, the exact initializer from revision
+[`74b44a6`](https://github.com/GhostlyGawd/codex-mobile-cli/commit/74b44a6daafac5fec3ecff029398b6d5bf211f3a)
+ran on the D-backed Ubuntu WSL host. It created the root-owned mode-`0600`
+64 GiB XFS image and mounted it at `/srv/codex-mobile` with
+`rw,nosuid,nodev,noatime,prjquota`. The singleton gate admitted one workspace
+claim and rejected a different claim. Its 8 GiB project received equal block
+soft/hard limits and equal 1,048,576-inode soft/hard limits. A stale inode limit
+failed closed, was repaired once, and a later project-ID reuse inherited the
+required inode limit. A 1 MiB write succeeded and a 9 GiB write failed with
+`ENOSPC`; the proof lease and volume were removed afterward.
+
+An empty marker on that XFS mount survived two WSL terminations. The cold-start
+fix at revision
+[`c1d6a41`](https://github.com/GhostlyGawd/codex-mobile-cli/commit/c1d6a41e85a4ced768307c839fee61e0927f7e01)
+then made the active storage mount's parent ID authoritative so hidden stale
+self-binds cannot satisfy the mount check, and kept socket finalization bounded
+within its unit timeout. After a cold boot, the owner and workspace runtime
+services were active; the private socket was owned by
+`root:coder-provisioner` with mode `0660`; repeated mount-helper execution did
+not stack global self-binds; the dedicated sub-ID pool remained
+`containers:1000000:1048576`; and loopback retained `10.86.0.1/32`.
+
+This is host-foundation evidence, not a complete Workspace, Host boundary,
+Capacity, Maintenance, or release pass. Still `GATED` and `NOT EXECUTED` are a
+real template-created Coder relay/workload with cgroup, I/O, and distinct user
+mapping evidence; the Coder/EnvBuilder flow; Safe Mode network denial; reviewed
+public HTTPS ingress and DNS/TLS/AASA; the owner-created GitHub App; and
+physical-device, signing, APNs, and TestFlight scenarios. AppArmor is
+unavailable in the selected WSL environment and is not claimed as passing.
+Future VPS-specific provider-backup, reboot, ten-session, and load evidence is
+deferred.
 
 The recorded 2026-07-16 tree's source-security audit completed with Syft
 1.46.0, Trivy 0.72.0, Gitleaks 8.30.1, go-licenses 2.0.1, and govulncheck 1.6.0.

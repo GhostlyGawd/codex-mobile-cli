@@ -604,6 +604,8 @@ class ImageSupplyChainTests(unittest.TestCase):
         self.assertIn("--entrypoint /opt/codex-mobile-helper/codex-real", build)
         self.assertIn("-ldflags='-s -w'", verify_sh)
         self.assertIn("-ldflags=-s -w", verify_ps1)
+        self.assertIn("go -C services/control-plane fmt ./...", verify_sh)
+        self.assertIn("go -C services/control-plane fmt ./...", verify_ps1)
         self.assertIn("verify-workspace-helper-checksums.py", verify_sh)
         self.assertIn("verify-workspace-helper-checksums.py", verify_ps1)
         self.assertIn("verify-envbuilder-source.py --static-only", verify_sh)
@@ -808,6 +810,9 @@ class PolicyCheckerTests(unittest.TestCase):
         failures: list[str] = []
         RELEASE_VALIDATOR.check_ci(failures)
         self.assertEqual(failures, [])
+        ci = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+        self.assertIn("go -C services/control-plane fmt ./...", ci)
+        self.assertNotIn("GO111MODULE=off go fmt", ci)
         self.assertFalse(
             (ROOT / ".github" / "workflows" / "self-hosted-windows.yml").exists()
         )
