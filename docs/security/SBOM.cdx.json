@@ -920,11 +920,11 @@
       "version": "v4.3.2-0.20231010084843-55a94097c399"
     },
     {
-      "bom-ref": "b30965102807a68f485aa6fe527f7a5847d9b1ec797778786f0359d681234f45",
+      "bom-ref": "5dc535f53d640ae8a91ece05aeb9ef55b41906b3482c949314038f337c383e6d",
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "9d7dbb027694e37fcae5b2a4b4ac2006647d95ac286157b50a4834ae0cf3374d"
+          "content": "c247e7eef3a5501bbc8af0162815a2b138b024ae23607cd317c35dbf52f21aa6"
         }
       ],
       "licenses": [
@@ -947,9 +947,9 @@
           "value": "https://github.com/go-git/go-git/v5"
         }
       ],
-      "purl": "pkg:golang/github.com/go-git/go-git/v5@v5.19.1",
+      "purl": "pkg:golang/github.com/go-git/go-git/v5@v5.19.2",
       "type": "library",
-      "version": "v5.19.1"
+      "version": "v5.19.2"
     },
     {
       "bom-ref": "d15041a3d062973497a717a6415b221227ac55976beed804e7e3b8fd8ef56d0f",
@@ -3431,7 +3431,7 @@
       ]
     }
   },
-  "serialNumber": "urn:uuid:66864f2b-ae0b-98a6-02a1-ed011796ffc0",
+  "serialNumber": "urn:uuid:279d167d-a884-c548-cd7d-d07fabb52cd4",
   "specVersion": "1.6",
   "version": 1
 }
