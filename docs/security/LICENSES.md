@@ -40,7 +40,7 @@ third-party license.
 | Go module | `github.com/go-git/gcfg` | `v1.5.1-0.20230307220236-3a3c6141e376` | transitive | BSD-3-Clause |
 | Go module | `github.com/go-git/go-billy/v5` | `v5.9.0` | transitive | Apache-2.0 |
 | Go module | `github.com/go-git/go-git-fixtures/v4` | `v4.3.2-0.20231010084843-55a94097c399` | transitive | Apache-2.0 |
-| Go module | `github.com/go-git/go-git/v5` | `v5.19.1` | direct | Apache-2.0 |
+| Go module | `github.com/go-git/go-git/v5` | `v5.19.2` | direct | Apache-2.0 |
 | Go module | `github.com/go-viper/mapstructure/v2` | `v2.5.0` | transitive | MIT |
 | Go module | `github.com/go-webauthn/webauthn` | `v0.17.4` | direct | BSD-3-Clause |
 | Go module | `github.com/go-webauthn/x` | `v0.2.6` | transitive | BSD-2-Clause AND BSD-3-Clause |

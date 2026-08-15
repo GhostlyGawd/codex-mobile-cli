@@ -37,7 +37,7 @@ installed binaries, transitive modules, and operating-system packages.
 | Go module | `github.com/go-git/gcfg` | `v1.5.1-0.20230307220236-3a3c6141e376` | transitive | SHA-256 `fb3b3fb4f9a40e41f1dd4eba0c06f4950149ae94baef7d4e69ad768a473e0e22` |
 | Go module | `github.com/go-git/go-billy/v5` | `v5.9.0` | transitive | SHA-256 `8c8b465eccd40d1b51fc095f7ab58f4cc3788f7f0143cf179d729b8a59a604f0` |
 | Go module | `github.com/go-git/go-git-fixtures/v4` | `v4.3.2-0.20231010084843-55a94097c399` | transitive | SHA-256 `78c8dedf562095206a09d22a7612815bc96891a32b2f7b93929198944d8e393e` |
-| Go module | `github.com/go-git/go-git/v5` | `v5.19.1` | direct | SHA-256 `9d7dbb027694e37fcae5b2a4b4ac2006647d95ac286157b50a4834ae0cf3374d` |
+| Go module | `github.com/go-git/go-git/v5` | `v5.19.2` | direct | SHA-256 `c247e7eef3a5501bbc8af0162815a2b138b024ae23607cd317c35dbf52f21aa6` |
 | Go module | `github.com/go-viper/mapstructure/v2` | `v2.5.0` | transitive | SHA-256 `bcce48268500cb777bcd1495b48c108018fb0625ad30f7e63c48005e7be3d51a` |
 | Go module | `github.com/go-webauthn/webauthn` | `v0.17.4` | direct | SHA-256 `2854d2cf74764580e2527ff47038b75d326015e9d21bbe1e2934c796a5a19719` |
 | Go module | `github.com/go-webauthn/x` | `v0.2.6` | transitive | SHA-256 `4c4c83b90008884818a71eb49ca8812485ffe674940bc2f135b1feb9fe54f6e9` |
